@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+    branches: [main, devel]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 5 * * 1"   # weekly, to catch changes in BendHub packages or in the toolchain
+
+jobs:
+  check:
+    name: the proofs, the kernel and the numbers
+    runs-on: ubuntu-24.04      # pinned (ubuntu-latest moves to 26 on 2026-10-19); 4 vCPU, 16 GB RAM
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Cache the Bend and Lean toolchains
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.bend
+            ~/.elan
+          key: toolchain-${{ runner.os }}-${{ hashFiles('scripts/setup.sh') }}
+
+      - name: Set up (Bend 2.0.37, Lean 4.34.0, Python venv)
+        run: scripts/setup.sh
+
+      - name: Checks (proofs, kernel, rejected programs, NumPy and scikit-learn)
+        run: make check

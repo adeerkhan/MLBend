@@ -1,0 +1,21 @@
+# Bend: binaries and build artifacts
+*.gpu
+*.bendtt
+build/
+dist/
+
+# Local
+.scratch/
+.DS_Store
+
+# Python (reference/)
+.venv/
+__pycache__/
+*.pyc
+
+# downloaded data
+data/
+*.bin
+
+# bend-lint (make lint)
+node_modules/
