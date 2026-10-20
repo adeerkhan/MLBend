@@ -64,6 +64,39 @@ relevant entry before changing performance-sensitive code or a law.
   `Result<&1, &1, U32 & String, A>`) and the law (`U32.of_string
   (U32.show x) == x`, provable). Until it lands, v0.2 carries a small decimal
   parser and drops it when Base has one.
+- **The environment (2026-10-20).** The repository is a workspace now: a
+  root `bend.toml` names the members (`metrics`), one `bend.lock` holds
+  every package in the closure, and one `.bend/env` holds them all.
+  `bendenv` is at <https://github.com/adeerkhan/bend-env>; it is a Rust
+  tool that takes uv's shape (a global content-addressed cache, hard
+  links into the environment, parallel downloads, one lock per
+  workspace). `make env` builds it, `make env-check` verifies it and
+  runs `examples/stacks/main.bend` over it.
+  - **The example is the proof.** One program, one environment, two
+    stacks: `bend-ml-tensor-array@0.1.14.0` computes a 2x2 product
+    (`[12, 12, 12, 12]`) and `bendtorch-core@0.1.0.0` builds a tensor
+    of four words. Both come from the lock.
+  - **The ecosystem's tensors do not mix, and the tool says so.** A
+    Bend type belongs to the package that declares it, so
+    `bend-ml-tensor` and `bend-ml-tensor-array` are two different
+    `Mat`, and so are the `G` of `bend-ml-autograd` and of
+    `bend-ml-tensor-array`. `bendenv` reports every type two packages
+    of the closure declare. The consequence: **the flat tensor library
+    has no autodiff behind it** — `bend-ml-autograd@0.1.1.0` is written
+    against the list-based `bend-ml-tensor@0.1.0.0`. That is the gap
+    the deep-learning half has to close.
+  - **The versions skew too.** `bend-ml-autograd@0.1.1.0` imports
+    `bend-ml-nat-lemmas@0.1.0.0` while this repository asks for
+    `0.1.1.0`; both are in the lock, and the tool says so. Not a bug:
+    a Bend source names its dependencies exactly, so two versions can
+    live side by side.
+  - **The publish path is verified.** `bendenv hash <file.bend>`
+    computes the hash a package would publish under, and on
+    `aaaxn/bendtorch`'s checkout it gives
+    `0x1689e5deb278c16abd3bd45eac101ef3` — the hash the hub holds for
+    `bendtorch-core@0.1.0.0`, over the same 196 files. So the file
+    set, the paths, the digests and the hash are the compiler's, byte
+    for byte.
 - **The data (2026-10-20).** iris (150 rows, 4 features) and breast cancer
   (569 rows, 30 features) are in `mlbend-datasets/data/`, taken from
   scikit-learn's copies (which come from UCI). A hub package is one file, so

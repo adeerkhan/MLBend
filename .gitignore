@@ -8,6 +8,9 @@ dist/
 .scratch/
 .DS_Store
 
+# the environment bend-env builds (the lock is committed, the env is not)
+.bend/
+
 # Python (reference/)
 .venv/
 __pycache__/

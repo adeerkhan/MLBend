@@ -1,0 +1,7 @@
+[project]
+name = "mlbend-metrics"
+version = "0.1.0.0"
+description = "The evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on."
+
+[dependencies]
+bend-ml-nat-lemmas = "0.1.1.0"
