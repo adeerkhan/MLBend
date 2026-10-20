@@ -49,3 +49,23 @@ relevant entry before changing performance-sensitive code or a law.
   is generated and must never be committed — it is now in that repository's
   `.git/info/exclude`, because it would otherwise fail bend's own repo gate (the
   allow list) the first time an agent ran `git add -A`.
+- **The base layer exists (2026-10-20).** The plan was wrong about
+  `mlbend-linalg`: the ecosystem already has the containers, the CSV reader,
+  the bytes, the integers, the soft float, the proved lemmas and the parser
+  combinators (`bend-kit-csv`, `-bytes`, `-int`, `-f64`, `-lemmas`, `-parse`),
+  and bend-ml has the tensors and the reverse-mode autodiff. MLBend writes the
+  *machine-learning* surface and imports the rest. A second `Mat` and a second
+  set of lemmas would be the third copy of the same thing in the ecosystem, so
+  the `mlbend-linalg` package is off the plan.
+- **The numbers gap, and the ask (2026-10-20).** Base can print a number but
+  not read one: no `U32.of_string`, no `F32.of_string`, and `bend-kit-f64`
+  says so outright ("Decimal text is not here"). The data layer needs it, so
+  the ask is upstream: bendlang/bend#1789, with the shape (Base's own
+  `Result<&1, &1, U32 & String, A>`) and the law (`U32.of_string
+  (U32.show x) == x`, provable). Until it lands, v0.2 carries a small decimal
+  parser and drops it when Base has one.
+- **The data (2026-10-20).** iris (150 rows, 4 features) and breast cancer
+  (569 rows, 30 features) are in `mlbend-datasets/data/`, taken from
+  scikit-learn's copies (which come from UCI). A hub package is one file, so
+  the data lives with the program that uses it, not in the package: the loaders
+  take a path.

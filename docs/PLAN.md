@@ -21,18 +21,32 @@ only Base and the packages below it.
 | v | Package | What it is | The law it earns |
 |---|---|---|---|
 | 0.1 | `mlbend-metrics` | MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | the count of the samples is the length of the label list |
-| 0.2 | `mlbend-linalg` | `Vec<n>`, `Mat<r, c>` over lists, with the inner-product lemmas proved | the dot product is symmetric; the sum of a list is its length times its head |
+| 0.2 | `mlbend-datasets` | the `load_*` surface of scikit-learn: iris, breast cancer, diabetes, on top of `bend-kit-csv` | the loader reads the rows the file has (over the bytes) |
 | 0.3 | `mlbend-preprocess` | standardize, min-max, one-hot, L1 and L2 normalization | one-hot is a unit vector; the standardizer's output has mean 0 and variance 1 (over exact arithmetic) |
 | 0.4 | `mlbend-split` | a seeded, deterministic train/test split, stratified by label | the split is a partition: the sizes add up and no index is in both |
-| 0.5 | `mlbend-linear` | ordinary least squares, ridge, logistic regression | the residual of the fit is orthogonal to the design |
-| 0.6 | `mlbend-cluster` | k-means, functional (a fixed number of iterations) | every point is in exactly one cluster, and the assignment is a function of the point |
-| 0.7 | `mlbend-pipeline` | a typed chain of transformers and estimators | the chain's type is the chain of the steps' types |
-| 0.8 | `mlbend-datasets` | the fetchers (iris, breast cancer, california housing) as effects | none: an effect, tested on both lanes |
-| 0.9 | `mlbend-select` | k-fold cross-validation on top of `mlbend-split` | the folds partition the data, like the split |
+| 0.5 | `mlbend-select` | k-fold cross-validation on top of the split | the folds partition the data, like the split |
+| 0.6 | `mlbend-linear` | ordinary least squares, ridge, logistic regression | the residual of the fit is orthogonal to the design |
+| 0.7 | `mlbend-cluster` | k-means, functional (a fixed number of iterations) | every point is in exactly one cluster, and the assignment is a function of the point |
+| 0.8 | `mlbend-pipeline` | a typed chain of transformers and estimators | the chain's type is the chain of the steps' types |
 
-**v0.1 is written** (2026-10-20): the metrics, the counts, one law proved, the
-numbers against NumPy and scikit-learn. The rest of the table is the plan; the
-open issues carry the debt of each step.
+
+**v0.1 is written** (2026-10-20): the metrics, the counts, one law proved by the
+Lean kernel, the numbers against NumPy and scikit-learn. The rest of the table
+is the plan; the open issues carry the debt of each step.
+
+**No `mlbend-linalg`.** The base layer already exists and is published:
+`bend-kit-csv` (an RFC 4180 reader), `bend-kit-bytes`, `bend-kit-f64` (a soft
+float, the numbers scikit-learn defaults to), `bend-kit-int` (U64, I64),
+`bend-kit-lemmas` (proved arithmetic) and `bend-kit-parse`; bend-ml has the
+tensors (`bend-ml-tensor`, `bend-ml-tensor-array`) and the reverse-mode
+autodiff (`bend-ml-autograd`). MLBend writes the *machine-learning* surface and
+imports the rest: a second `Mat` and a second set of lemmas would be the third
+copy of the same thing in the ecosystem.
+
+**The one gap in the base layer**: Base cannot read a number from a string
+(bendlang/bend#1789), and the kit's f64 says so outright (*"Decimal text is not
+here"*). The data layer needs it, so v0.2 carries a small decimal parser until
+Base has one, and drops it when it does.
 
 ## The order, and why
 
@@ -71,10 +85,14 @@ check` before every push, `NOTES.md` for what was measured and what failed, and
 
 ## Open questions
 
-- **The containers.** `mlbend-linalg` over lists, or bend-ml's `Mat` over a flat
-  `Array<F32>`? The list version is simple and its length is a claim; the array
-  version is fast and its capacity is a claim. v0.2 measures both before
-  choosing.
+- **The containers.** bend-ml's `Mat` over a flat `Array<F32>` (fast, its
+  capacity is a claim) or its list-based `Mat` (simple, its length is a claim)?
+  For the tabular sizes scikit-learn deals with the list version is enough; for
+  anything that grows, the flat one. Measured when v0.3 needs it.
+- **The numbers.** `F32` (Base) or `F64` (`bend-kit-f64`, a soft float, and
+  slow)? scikit-learn is f64; the kit's f64 has no square root and no
+  transcendentals, so the estimators that need them (the softmax, the logistic)
+  would be F32 anyway. One precision is a rule; two is a headache.
 - **The proved core.** Over `Nat` (as bend-ml's nat-lemmas does) or over a
   rational type? Rational arithmetic would make the standardization laws
   provable as stated, at the price of a new numeric tower.
