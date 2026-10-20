@@ -30,6 +30,10 @@ only Base and the packages below it.
 | 0.8 | `mlbend-datasets` | the fetchers (iris, breast cancer, california housing) as effects | none: an effect, tested on both lanes |
 | 0.9 | `mlbend-select` | k-fold cross-validation on top of `mlbend-split` | the folds partition the data, like the split |
 
+**v0.1 is written** (2026-10-20): the metrics, the counts, one law proved, the
+numbers against NumPy and scikit-learn. The rest of the table is the plan; the
+open issues carry the debt of each step.
+
 ## The order, and why
 
 - **Metrics first.** Every later package scores itself with them, and they are
@@ -45,6 +49,13 @@ only Base and the packages below it.
   point for k-means).
 - **The pipeline and the datasets at the end.** They are the scikit-learn
   surface proper, and they need the estimators to exist.
+
+## How the work carries
+
+The plan is here; the *process* is in [`AGENTS.md`](../AGENTS.md) and
+[`docs/agents/`](../agents): one issue per work item, work on `devel`, `make
+check` before every push, `NOTES.md` for what was measured and what failed, and
+`docs/agents/handoff.md` for where we are.
 
 ## Stop criteria
 

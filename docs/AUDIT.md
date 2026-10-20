@@ -43,7 +43,12 @@ two sequences are `List<&2, F32>` (the values may be read twice) and
 2. **NumPy and scikit-learn**, for the numbers. `reference/test_metrics.py`
    compares the metrics with them; the comparison is within a relative `1e-5`,
    because `F32` is not a real number and the two round differently.
-3. **The host's floating point.** `F32` arithmetic is IEEE-754 single precision;
+3. **The published packages this repository imports.** `mlbend-metrics`
+   imports `bend-ml-nat-lemmas@0.1.1.0` for the arithmetic lemmas (its
+   `add_zero` is what the `count_length` proof leans on). That package is
+   trusted as far as its own audit says: its laws are proved by the same kernel,
+   and its source is readable offline in the hub cache (`~/.bend/lib`).
+4. **The host's floating point.** `F32` arithmetic is IEEE-754 single precision;
    the sums are in the order the code writes them, so a run is reproducible on
    one machine and one compiler.
 

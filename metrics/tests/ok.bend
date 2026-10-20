@@ -44,3 +44,14 @@ def main():
     Unit <- IO.print(String.append("recall_1 ", show(M.recall(labels(), predicted(), 1n))))
     Unit <- IO.print(String.append("f1_1 ", show(M.f1(labels(), predicted(), 1n))))
     return Unit{}
+
+#|mse 0.4375
+#|mae 0.625
+#|rmse 0.6614378
+#|accuracy 0.5
+#|precision_0 0.5
+#|recall_0 0.5
+#|f1_0 0.5
+#|precision_1 0.5
+#|recall_1 0.5
+#|f1_1 0.5

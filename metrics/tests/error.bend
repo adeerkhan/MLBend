@@ -39,3 +39,7 @@ def main():
     Unit <- IO.print(String.append("mse_empty ", show(M.mse(none(), none()))))
     Unit <- IO.print(String.append("accuracy ", show(M.accuracy(labels(), predicted()))))
     return Unit{}
+
+#|mse mismatch 3
+#|mse_empty empty
+#|accuracy mismatch 2

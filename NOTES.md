@@ -31,3 +31,21 @@ relevant entry before changing performance-sensitive code or a law.
     Those come with the confusion matrix, in v0.2.
   - `r2` and the log loss are not here: both need the variance of the targets
     (a second sum) and a zero-denominator case of their own. v0.2.
+- **The process, and where the memory lives.** An agent's durable context is
+  this repository, not a transcript: `AGENTS.md` (the rules, the read order, the
+  traps), `docs/agents/handoff.md` (where we are, what was run, what was not),
+  `docs/agents/domain.md` (the vocabulary and the design rules),
+  `docs/agents/issue-tracker.md` (how the issues carry the work), `NOTES.md`
+  (what was measured and what failed), `docs/AUDIT.md` (the trust base) and the
+  issues themselves (the debt). The laws are the real memory: a claim that
+  survives the Lean kernel needs no log to stay true.
+- **The bend repository stays where it is.** It is not vendored here: it is a
+  fork with two remotes, it moves daily, and the copy would be wrong tomorrow.
+  The pinned install (`~/.bend`) is the versioned reference (the guide and
+  `base.bend` come with it), the hub cache (`~/.bend/lib`) is an offline mirror
+  of the published packages, and `make sync-bend` fetches the pinned tag into
+  `../bend-ref` when a read-only copy of the compiler is wanted.
+- **Housekeeping on the bend fork**: the `/understand` knowledge graph (`.ua/`)
+  is generated and must never be committed — it is now in that repository's
+  `.git/info/exclude`, because it would otherwise fail bend's own repo gate (the
+  allow list) the first time an agent ran `git add -A`.

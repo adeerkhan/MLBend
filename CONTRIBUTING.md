@@ -48,6 +48,24 @@ with NumPy and scikit-learn still passes.
   other published packages, at pinned versions. Published versions are
   permanent: a change to a package becomes a new version.
 
+## Publishing a package
+
+A package is published to BendHub as one file, and **publishing is public and
+permanent**: a published version never moves, so a change is a new version.
+
+```bash
+bend login                                   # once, with your BendAI key
+bend metrics/main.bend --publish mlbend-metrics@0.1.0.0
+```
+
+- The name is 12 or more characters, a-z, 0-9 and `-`; the version is four
+  numbers.
+- A `LICENSE` file sits next to the entry file (the repository's MIT licence
+  does).
+- The publish prints, on stderr, that the hub is public and permanent.
+- After publishing, point the demos and the other packages at the new version
+  and record it in `NOTES.md`.
+
 ## Benchmarks
 
 Performance claims need numbers someone else can reproduce: the hardware, the

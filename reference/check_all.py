@@ -17,6 +17,17 @@ ENV = dict(os.environ, BEND_NO_TELEMETRY="1",
 results = []
 
 
+def tidy(text):
+    """The output of a program, as the tests compare it: no trailing spaces."""
+    return "\n".join(l.rstrip() for l in text.strip().split("\n"))
+
+
+def golden(path):
+    """The expected output of a test file, in its #| lines (None when it has none)."""
+    lines = [l[2:] for l in open(path).read().split("\n") if l.startswith("#|")]
+    return tidy("\n".join(lines)) if lines else None
+
+
 def run(name, cmd, ok_if=None, timeout=1800):
     t0 = time.time()
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=ROOT, env=ENV, timeout=timeout)
@@ -73,7 +84,7 @@ def main():
                       lambda o, c: "SOME PROOFS FAIL" in o and "Error:" in o)
             results.append("MUST FAIL" in out)
 
-    # 4. the programs that must run
+    # 4. the programs that must run, against the output pinned in the file
     for pkg in packages:
         tdir = os.path.join(ROOT, pkg, "tests")
         if not os.path.isdir(tdir):
@@ -82,7 +93,16 @@ def main():
             if name.startswith("bad_") or not name.endswith(".bend"):
                 continue
             f = f"{pkg}/tests/{name}"
-            run(f"{f}: runs", BEND.split() + [f], lambda o, c: "SOME PROOFS FAIL" not in o and "Error:" not in o)
+            want = golden(os.path.join(ROOT, f))
+            out = run(f"{f}: runs", BEND.split() + [f],
+                      lambda o, c: "SOME PROOFS FAIL" not in o and "Error:" not in o)
+            if want is not None:
+                got = tidy(out)
+                results.append(got == want)
+                print(f"{'ok  ' if got == want else 'ERROR'} {f}: the output is the pinned one")
+                if got != want:
+                    print("     want:\n     " + want.replace("\n", "\n     "))
+                    print("     got:\n     " + got.replace("\n", "\n     "))
 
     # 5. the numbers, against NumPy and scikit-learn
     for name in sorted(os.listdir(os.path.join(ROOT, "reference"))):

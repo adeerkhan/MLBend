@@ -10,6 +10,44 @@ the types and the structure proved by the kernel.
 - `docs/AUDIT.md`: what is proved, what is tested, what is trusted.
 - `NOTES.md`: every finding and every discarded hypothesis, by date.
 - `reference/`: the NumPy and scikit-learn comparisons, and the runner.
+- `docs/agents/`: the map of the work for an agent.
+  - `docs/agents/handoff.md`: **where we are, what was run, what was not, what
+    is next.** It is overwritten at the end of every session; read it first.
+  - `docs/agents/domain.md`: the vocabulary and the design rules.
+  - `docs/agents/issue-tracker.md`: how the issues carry the work.
+
+## How an agent works here
+
+1. **Read, in this order**: this file, `docs/agents/handoff.md`, the issue the
+   handoff names, `docs/PLAN.md`, `docs/agents/domain.md`, then
+   `NOTES.md` for the part of the code you are about to touch.
+2. **One issue per work item**, on `devel`, in small commits. The acceptance
+   criteria go in the issue (`docs/agents/issue-tracker.md`).
+3. **Run `make check` before you believe anything.** It checks the proofs, the
+   kernel, the programs that must be refused, and the numbers against NumPy and
+   scikit-learn. A number you did not run is not a number.
+4. **Say what you ran and what you did not**, in the pull request and in
+   `NOTES.md`. The kernel check (`--verdict`) needs Lean 4.34.0: if your machine
+   has no Lean, the law is *checked* but not *proved*, and the pull request
+   must say so.
+5. **A law that cannot be proved yet is an issue**, not a package.
+6. **Write the handoff** before you stop: the next agent starts from it.
+
+## Where the language lives
+
+Not in this repository, and not as a copy. The language moves every day; a copy
+here would be wrong tomorrow.
+
+- **The guide**: `bend guide` (the installed one), or
+  `~/.bend/guide/GUIDE.md`.
+- **The Base source**: `~/.bend/bend2/base.bend` (the pinned 2.0.37 install) or
+  `bend base <name>`.
+- **The language source**: `github.com/bendlang/bend`. The work on the language
+  itself (the compiler, the runtime, the checker) happens there, in its own
+  repository, on its own rhythm. `make sync-bend` fetches the pinned tag into
+  `../bend-ref` when a read-only copy is wanted.
+- **The published packages**: `~/.bend/lib` is the hub cache; the source of
+  every package this repository depends on is readable there, offline.
 
 ## Branches
 

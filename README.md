@@ -31,7 +31,7 @@ estimator surface on top of it and does not repeat it.
 
 | Package | What it is | Status |
 |---|---|---|
-| [`mlbend-metrics`](metrics) | the evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | v0.1, in this repo |
+| [`mlbend-metrics`](metrics) | the evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | v0.1: written, checked, one law proved |
 
 More are planned; the order and the stop criteria are in [`docs/PLAN.md`](docs/PLAN.md).
 
@@ -40,6 +40,16 @@ More are planned; the order and the stop criteria are in [`docs/PLAN.md`](docs/P
 [`docs/AUDIT.md`](docs/AUDIT.md) says what each package proves, what it only
 tests, and what it trusts. The short version: the counts are proved, the `F32`
 numbers are tested against NumPy and scikit-learn.
+
+## For an agent
+
+Start at [`AGENTS.md`](AGENTS.md): the rules, the read order, the commands, and
+where the language lives (the guide and the Base source come with the pinned
+install; the language's own source is `bendlang/bend`, in its own repository, and
+is not vendored here). [`docs/agents/handoff.md`](docs/agents/handoff.md) says
+where the work is right now; [`docs/agents/domain.md`](docs/agents/domain.md) is
+the map of the packages; [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md)
+is how the issues carry the work.
 
 ## Checks
 
