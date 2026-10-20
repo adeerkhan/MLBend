@@ -15,20 +15,23 @@ counts they rest on. One law is proved (`count_length`). The ten metrics of
 `metrics/tests/ok.bend` match NumPy and scikit-learn within a relative 1e-5.
 
 **What was run.**
-- `bend metrics/main.bend --check-only` → `ALL PROOFS CHECK` (the checker; the
-  Lean kernel has not run here, see below).
+- `bend metrics/main.bend --check-only` → `ALL PROOFS CHECK`.
+- `bend metrics/main.bend --verdict` → **the Lean kernel proves the law**
+  (CI, run 39372667256: `ok metrics/main.bend --verdict (the kernel, as Lean)`).
+  So `count_length` is proved, not merely checked.
 - `bend metrics/tests/ok.bend`, `metrics/tests/error.bend` → the ten metrics and
-  the three error answers.
+  the three error answers, and the output matches the `#|` block pinned in the
+  file.
 - `bend metrics/tests/bad_affine.bend`, `bad_type.bend` → refused, as they must
   be.
 - `reference/test_metrics.py` → 10/10 against NumPy and scikit-learn
   (numpy 2.5.4, scikit-learn 1.9.1, Python 3.14).
+- `make check` → 11/11 locally (the kernel check is skipped without Lean, and
+  says so) and 12/12 in CI.
 
-**What was NOT run.** `bend metrics/main.bend --verdict` (the Lean-proved
-kernel): this machine has no Lean, so the one law is checked by the checker
-only. **CI runs it on the first push** — if the kernel refuses `count_length`,
-the proof's shape is wrong and the law comes out of the package until it is
-fixed. Watch the CI before trusting the claim.
+**What was NOT run.** Nothing of the plan is unverified except what is listed
+below as unverified; the only thing this machine cannot do is the kernel check
+(it has no Lean 4.34.0), and CI does it.
 
 **What is next.** `docs/PLAN.md` has the order; the two open issues have the
 detail:
