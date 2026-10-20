@@ -15,6 +15,19 @@ recall, F1) and the counts they rest on, with one law proved. And the
 repository is a workspace now, with one lockfile and one environment for
 every package here, built by `bendenv` (https://github.com/adeerkhan/bend-env).
 
+**What was run (2026-10-21).**
+- `bendenv sync` → 22 packages, 233 files linked out of the global cache.
+- `bendenv run -- bend datasets/tests/iris.bend` → `rows: 150, classes: 0,0,`:
+  the iris dataset fetched from HuggingFace at run time, parsed in Bend,
+  and put into a `Mat<150n, 4n>` with its labels.
+- `bendenv run -- bend hf/tests/hello.bend` → `dataset: mstz/iris` and
+  `first row label: 5`: the dataset page and the rows server, both read
+  over HTTP with `bend-kit-http` and `bend-kit-json`.
+- `bendenv check` → the environment matches the lock.
+- `bendenv lock` → the collision report names `Text` between
+  `emerging-ezhttp`, `bend2/base.bend` and `ezx`. That is the clash that
+  stops `ezx@1.5.0.0` from compiling against bend 2.0.37.
+
 **What was run.**
 - `bend metrics/main.bend --check-only` → `ALL PROOFS CHECK`.
 - `bend metrics/main.bend --verdict` → **the Lean kernel proves the law**
@@ -42,7 +55,13 @@ public and permanent, and it needs `bend login`. Only the hash was
 computed, and it matches the hub's.
 
 **What is next.** `docs/PLAN.md` has the order; the two open issues have
-the detail:
+the detail. The next piece of work is the training step: the iris data
+is here as a typed matrix, and no estimator has read it yet. Two ways:
+a nearest-centroid or k-means fit in pure Bend over the flat tensor, or
+the gradient of a linear model written out by hand — because the flat
+tensor has no autodiff behind it (bend-ml-autograd is written against
+the list-based bend-ml-tensor), which is the gap the collision report
+named.
 - issue #1: the accounting law (the samples right and the samples wrong
   add up to the number of samples), `r2`, the log loss, the macro averages.
 - issue #2: the containers — lists or bend-ml's `Mat` over a flat
