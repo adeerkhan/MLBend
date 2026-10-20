@@ -1,0 +1,9 @@
+[project]
+name = "mlbend-hf"
+version = "0.1.0.0"
+description = "A HuggingFace client for Bend 2: the dataset page, the file tree, a file's bytes, and the rows server's JSON rows."
+
+[dependencies]
+bend-kit-http = "0.36.0.0"
+bend-kit-json = "0.6.1.1"
+bend-kit-bytes = "0.3.2.0"

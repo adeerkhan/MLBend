@@ -1,6 +1,631 @@
 version = 1
 
 [[package]]
+name = ""
+version = ""
+hash = "0x4eed9d7ac6ece61523d747a9d804e4f0"
+source = "hub"
+dependencies = []
+constructors = [
+    "I32",
+    "I64",
+    "U16",
+    "U64",
+    "U8",
+]
+
+[[package.files]]
+sha = "5588aa776b7883a661b30489bccc7f2bf54ee0e333d363eaa33804cb1b130fcf"
+path = "int.bend"
+
+[[package]]
+name = "bend-kit-bytes"
+version = "0.3.2.0"
+hash = "0x185ae03c75e3e75be1171471f68b43cb"
+source = "hub"
+dependencies = ["0x4eed9d7ac6ece61523d747a9d804e4f0"]
+constructors = [
+    "Bytes",
+    "Chr",
+    "Cursor",
+    "CursorLimit",
+]
+
+[[package.files]]
+sha = "07a046795be85c891390055013bca17bb6e4e88a91e836eec0df4a9e1dc5cabe"
+path = "bytes.bend"
+
+[[package]]
+name = "bend-kit-concurrency"
+version = "0.2.0.0"
+hash = "0x67bc295335339eaf9387ddb5aa34190a"
+source = "hub"
+dependencies = []
+constructors = [
+    "RGot",
+    "RSent",
+    "RWait",
+    "WDone",
+    "WGot",
+    "WIdle",
+]
+
+[[package.files]]
+sha = "396c9aa1ad557d3677248787322d0a25f6744102b79c6f5ab68b92891b319c0c"
+path = "concurrency.bend"
+
+[[package]]
+name = "bend-kit-dns"
+version = "0.6.0.2"
+hash = "0x9bf2c4100bf9328348d215e7ae1657de"
+source = "hub"
+dependencies = [
+    "bend-kit-bytes@0.3.2.0",
+    "bend-kit-wire@0.4.6.1",
+]
+constructors = [
+    "Again",
+    "Go",
+    "Got",
+    "RRA",
+    "RRBad",
+    "RRSkip",
+    "Some",
+    "Stop",
+]
+
+[[package.files]]
+sha = "4f13455fc5cb6150a23f431e8a2cc09c56ab0aa8a4b2935f1d89e689b1ff7843"
+path = "dns.bend"
+
+[[package.files]]
+sha = "5d216d6c8c86e78e49fb84939790c496e68500f3e6fa18bf2b8b96aea5ab71af"
+path = "effs/dns.c"
+
+[[package.files]]
+sha = "3abdd6528b6c8b885639b81a2542fdfb2668af78e2a16c70b45b94dfc50d1010"
+path = "effs/dns.js"
+
+[[package]]
+name = "bend-kit-encoding"
+version = "0.4.0.0"
+hash = "0x0468714c0982fd44530e6d9c4e7b5ec4"
+source = "hub"
+dependencies = ["bend-kit-bytes@0.3.2.0"]
+constructors = [
+    "Out",
+    "SCon",
+    "Utf8",
+]
+
+[[package.files]]
+sha = "e699f909e9200f52d0a2c2f1a6fc58b69acd1192b2504734ce9d732603647eac"
+path = "encoding.bend"
+
+[[package]]
+name = "bend-kit-fmt"
+version = "0.1.0.0"
+hash = "0xea2956cd4e05ac318643319cb7fb3c29"
+source = "hub"
+dependencies = []
+constructors = [
+    "Builder",
+    "Con",
+    "Last",
+    "More",
+    "St",
+    "TChr",
+    "TEnd",
+    "THole",
+]
+
+[[package.files]]
+sha = "d2a6c9a2817568855e9d4784299f730495731434a52e1e5037b05bf9ce21f8df"
+path = "fmt.bend"
+
+[[package]]
+name = "bend-kit-hash"
+version = "0.2.0.0"
+hash = "0xb0776c613aafddb88fd284dd3c763501"
+source = "hub"
+dependencies = ["bend-kit-bytes@0.3.2.0"]
+constructors = [
+    "Crc",
+    "S4",
+    "V4",
+    "V64",
+    "W64",
+]
+
+[[package.files]]
+sha = "6adbcbd5dad38f9c3e9afb897be6ff3caafa599a581f0f13e3200b161e71ee4d"
+path = "hash.bend"
+
+[[package]]
+name = "bend-kit-http"
+version = "0.36.0.0"
+hash = "0xbd1b4cc5d2844d9d24fe4ccd14752506"
+source = "hub"
+dependencies = [
+    "bend-kit-bytes@0.3.2.0",
+    "bend-kit-concurrency@0.2.0.0",
+    "bend-kit-dns@0.6.0.2",
+    "bend-kit-encoding@0.4.0.0",
+    "bend-kit-http2@0.3.0.0",
+    "bend-kit-int@0.2.0.0",
+    "bend-kit-json@0.6.1.1",
+    "bend-kit-resources@0.1.0.0",
+    "bend-kit-time@0.2.0.0",
+    "bend-kit-url@0.4.1.0",
+    "bend-kit-wire@0.4.6.1",
+    "bend-kit-zlib@0.3.0.0",
+]
+constructors = [
+    "AcceptAllowed",
+    "AcceptChecking",
+    "AcceptFailed",
+    "AcceptReceived",
+    "Acquire",
+    "Acquired",
+    "Admitted",
+    "AvDomain",
+    "AvExpires",
+    "AvHttpOnly",
+    "AvMaxAge",
+    "AvOther",
+    "AvPath",
+    "AvSameSite",
+    "AvSecure",
+    "Bf",
+    "BindError",
+    "Booked",
+    "Broken",
+    "Caps",
+    "Cav",
+    "Cdate",
+    "Cert",
+    "Chr",
+    "Ck",
+    "Completion",
+    "Conn",
+    "ConnH2",
+    "Cookie",
+    "Counted",
+    "Counts",
+    "Cs",
+    "DcBad",
+    "DcData",
+    "DcDataCr",
+    "DcDataLf",
+    "DcDone",
+    "DcExt",
+    "DcSize",
+    "DcSizeLf",
+    "DcTr",
+    "Dco",
+    "DecBad",
+    "DecOk",
+    "DecSkip",
+    "Dial",
+    "ErrBad",
+    "ErrConnect",
+    "ErrDns",
+    "ErrRead",
+    "ErrRedirect",
+    "ErrTimeout",
+    "ErrTls",
+    "ErrUrl",
+    "ErrWrite",
+    "Fed",
+    "Fetch",
+    "FieldsBad",
+    "FieldsOk",
+    "Finishing",
+    "FlBad",
+    "FlDone",
+    "FlMore",
+    "FrameBad",
+    "FrameDone",
+    "FrameMore",
+    "Full",
+    "GotBad",
+    "GotHead",
+    "GotMore",
+    "GotReq",
+    "H2Events",
+    "H2Received",
+    "H2Reply",
+    "H2Sent",
+    "Hms",
+    "HoldBad",
+    "HoldBody",
+    "HoldMore",
+    "HoldUntil",
+    "Hop",
+    "Hops",
+    "HostAccepted",
+    "HsBad",
+    "HsRes",
+    "HsSeek",
+    "HsWait",
+    "IncompleteResponse",
+    "InvalidConfig",
+    "Jar",
+    "LeadCut",
+    "LeadFinal",
+    "LeadSkip",
+    "Lease",
+    "Ledger",
+    "Limits",
+    "Lost",
+    "Marks",
+    "ModeError",
+    "ModeFollow",
+    "ModeManual",
+    "NDone",
+    "NGo",
+    "NStop",
+    "Observed",
+    "Opened",
+    "OutDone",
+    "OutFail",
+    "Pc",
+    "Phase",
+    "PoBad",
+    "PoEnd",
+    "PoNone",
+    "PoPiece",
+    "PoReady",
+    "Pool",
+    "ProxyDirect",
+    "ProxyVia",
+    "Quiesce",
+    "RbBad",
+    "RbChunk",
+    "RbClose",
+    "RbDone",
+    "RbLen",
+    "ReadAllowed",
+    "ReadBudget",
+    "ReadChecking",
+    "ReadFailed",
+    "ReadInput",
+    "ReadReceived",
+    "Reason",
+    "Received",
+    "Release",
+    "Released",
+    "Reply",
+    "Req",
+    "Res",
+    "RouteDirect",
+    "RouteProxy",
+    "RtBad",
+    "RtDone",
+    "RtMore",
+    "Running",
+    "RvBody",
+    "RvHead",
+    "RvLen",
+    "Send",
+    "SendContinue",
+    "Server",
+    "ServerAcceptFailed",
+    "ServerAccepted",
+    "ServerConfig",
+    "ServerControl",
+    "ServerCounts",
+    "ServerFailed",
+    "ServerListening",
+    "ServerStats",
+    "ServerStopped",
+    "Serving",
+    "ShBad",
+    "ShMore",
+    "ShRes",
+    "SnDone",
+    "SnDrop",
+    "SnGo",
+    "Snapshot",
+    "Stop",
+    "Stream",
+    "StreamCheck",
+    "StreamChecked",
+    "StreamClosed",
+    "StreamDone",
+    "StreamFailed",
+    "StreamHops",
+    "StreamInputFailed",
+    "StreamReady",
+    "SvChunk",
+    "SvHead",
+    "SvLen",
+    "TunnelGot",
+    "TunnelHead",
+    "TunnelRead",
+    "TurnClose",
+    "TurnFail",
+    "TurnInputFailed",
+    "TurnMore",
+    "TurnReq",
+    "Unobserved",
+    "Up",
+    "Waiting",
+    "WriteChunk",
+    "WriteFailed",
+    "WriteHead",
+    "WriteKnown",
+    "WriteNone",
+    "Writer",
+]
+
+[[package.files]]
+sha = "4545a3dc387b67b60bcab99b394ca628f54db69dcb252c4317c17a17e140c147"
+path = "admission.bend"
+
+[[package.files]]
+sha = "9914265438a552797a5effc9074b3308f129b6d4f2b6896318203f8a71f6a507"
+path = "completion.bend"
+
+[[package.files]]
+sha = "3776f1bc214158e54c1f267674636a94418406def4044044d4afa93069f597dd"
+path = "http.bend"
+
+[[package]]
+name = "bend-kit-http2"
+version = "0.3.0.0"
+hash = "0xa11bdb2813e74dfef72c6e83d97094c3"
+source = "hub"
+dependencies = ["bend-kit-bytes@0.3.2.0"]
+constructors = [
+    "Advanced",
+    "Bad",
+    "BodySent",
+    "Builder",
+    "Client",
+    "Code",
+    "Control",
+    "Cursor",
+    "Decoder",
+    "Done",
+    "Error",
+    "Failed",
+    "Field",
+    "Flushed",
+    "Frame",
+    "Gone",
+    "Got",
+    "Invalid",
+    "Need",
+    "Pong",
+    "Reset",
+    "Response",
+    "Shutdown",
+    "Some",
+    "State",
+    "Step",
+    "Stream",
+    "Valid",
+]
+
+[[package.files]]
+sha = "e153aa6457333fbe4354a3a9ca850176ff911a5c875d5ae567a0d641dc4c48d9"
+path = "hpack.bend"
+
+[[package.files]]
+sha = "24f8d8eb563b318c7b2e5bc7806ea054eccdc3be8fe1c830d575f171a70ad478"
+path = "http2.bend"
+
+[[package.files]]
+sha = "032beee61cb94321e48ec9e3323577d160827cb879d62fdaec7909ad27590392"
+path = "huffman.bend"
+
+[[package]]
+name = "bend-kit-int"
+version = "0.2.0.0"
+hash = "0x4eed9d7ac6ece61523d747a9d804e4f0"
+source = "hub"
+dependencies = []
+constructors = [
+    "I32",
+    "I64",
+    "U16",
+    "U64",
+    "U8",
+]
+
+[[package.files]]
+sha = "5588aa776b7883a661b30489bccc7f2bf54ee0e333d363eaa33804cb1b130fcf"
+path = "int.bend"
+
+[[package]]
+name = "bend-kit-json"
+version = "0.6.1.1"
+hash = "0x040b6c79c72da50288552227f006b061"
+source = "hub"
+dependencies = ["bend-kit-bytes@0.3.2.0"]
+constructors = [
+    "Arr",
+    "BAfter",
+    "BColon",
+    "BEnd",
+    "BEsc",
+    "BFail",
+    "BFirst",
+    "BKey",
+    "BNum",
+    "BOk",
+    "BSep",
+    "BStr",
+    "BValue",
+    "Cp",
+    "Flag",
+    "Null",
+    "Num",
+    "OArr",
+    "OKey",
+    "OObj",
+    "Obj",
+    "Str",
+    "W",
+]
+
+[[package.files]]
+sha = "5b432d08097d4aa15b08ebba93f08d94f52f99505b56deed201259fd87faac4a"
+path = "json.bend"
+
+[[package]]
+name = "bend-kit-resources"
+version = "0.1.0.0"
+hash = "0x8ef64648a1ae4481382be5e5ce2a9fc8"
+source = "hub"
+dependencies = []
+constructors = [
+    "Apart",
+    "Grant",
+    "Joined",
+    "Kept",
+    "Parts",
+    "Pool",
+    "Refused",
+    "Released",
+    "Took",
+    "Whole",
+]
+
+[[package.files]]
+sha = "a5e0faf01909aed58d72ee33e5426dc6bd73dec18e3693d7fede6c9609155a7e"
+path = "resources.bend"
+
+[[package]]
+name = "bend-kit-time"
+version = "0.2.0.0"
+hash = "0x5845f8df039e2692ba739c8deee74189"
+source = "hub"
+dependencies = [
+    "bend-kit-bytes@0.3.2.0",
+    "bend-kit-fmt@0.1.0.0",
+    "bend-kit-int@0.2.0.0",
+]
+constructors = [
+    "Date",
+    "DateTime",
+    "Duration",
+    "Instant",
+    "Julian",
+    "MonthWeek",
+    "Ordinal",
+    "P",
+    "Trans",
+    "Ttype",
+    "TzClock",
+    "TzDate",
+    "TzDatePart",
+    "TzDayPart",
+    "TzEvent",
+    "TzField",
+    "TzRule",
+    "TzText",
+    "Zone",
+]
+
+[[package.files]]
+sha = "61ae7d815984cacc340fddcaaad5b7c46ee3ae31c220c346ab937f251abdbc22"
+path = "effs/time.c"
+
+[[package.files]]
+sha = "c720fa2df363bed4f5f72ceb1f0d76a8bf07507a04cc9c2ac2dd38edccf16c29"
+path = "effs/time.js"
+
+[[package.files]]
+sha = "aa8696d561bb35a7e3b1514af63de41d7349fa967e75229aebf71c34a6a4f309"
+path = "time.bend"
+
+[[package]]
+name = "bend-kit-url"
+version = "0.4.1.0"
+hash = "0x1f2d80f53f971b16c6de6a65cb1918ae"
+source = "hub"
+dependencies = []
+constructors = [
+    "Abs",
+    "Chr",
+    "PQ",
+    "PdBad",
+    "PdHi",
+    "PdLit",
+    "PdLo",
+    "Some",
+    "Url",
+]
+
+[[package.files]]
+sha = "0e17d17d507e8630b05c7ce667f5daaa08ffc8a130a119c32efe94313d1c368d"
+path = "url.bend"
+
+[[package]]
+name = "bend-kit-wire"
+version = "0.4.6.1"
+hash = "0x1afdf90dbe41c30b1df4594db039b02a"
+source = "hub"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "9ad4a732bafa5faefc5b5a201962b2cd9c8dbc6cd2eceef50a7e69d46424f455"
+path = "effs/wire.c"
+
+[[package.files]]
+sha = "a3fdd272b5ebe5f43eb325a3d4fad7c249058458d4f7175fbb979eb87827a0eb"
+path = "effs/wire.js"
+
+[[package.files]]
+sha = "a42c34499290f6a9e032e9c9c210cbaa7e1be5526ef4c7cb0ca27b50407e2ec1"
+path = "wire.bend"
+
+[[package]]
+name = "bend-kit-zlib"
+version = "0.3.0.0"
+hash = "0x04a64175142f737348703d0d63c51493"
+source = "hub"
+dependencies = ["bend-kit-hash@0.2.0.0"]
+constructors = [
+    "Br",
+    "Bw",
+    "Cd",
+    "Ch",
+    "Chr",
+    "Cx",
+    "Decoder",
+    "Es",
+    "HtBad",
+    "HtLeaf",
+    "HtNode",
+    "HtNone",
+    "Inflated",
+    "Is",
+    "Lz",
+    "Ml",
+    "MoBad",
+    "MoCodes",
+    "MoDone",
+    "MoHead",
+    "Ow",
+]
+
+[[package.files]]
+sha = "493bc2805d5a6a18b2f531cf84b6b2e0a4fd577ec16fbe93e29e606c59190c4f"
+path = "effs/zlib.c"
+
+[[package.files]]
+sha = "dac1abdb84c21dbcb9f23f8f7db131a0891c89ae383c12a9e9f15a6c47fc1b33"
+path = "effs/zlib.js"
+
+[[package.files]]
+sha = "26819b66c2b6ef035610228c99eb604c27a17699f9c068ee0be9189f99cf86c8"
+path = "zlib.bend"
+
+[[package]]
 name = "bend-ml-autograd"
 version = "0.1.1.0"
 hash = "0x0ed882696c6c048c64c66242a999a426"
@@ -9,9 +634,18 @@ dependencies = [
     "bend-ml-nat-lemmas@0.1.0.0",
     "bend-ml-tensor@0.1.0.0",
 ]
-types = [
-    "G",
-    "NE",
+constructors = [
+    "GAdd",
+    "GCst",
+    "GExp",
+    "GMul",
+    "GRelu",
+    "GTanh",
+    "GVar",
+    "NAdd",
+    "NCst",
+    "NMul",
+    "NX",
 ]
 
 [[package.files]]
@@ -28,7 +662,7 @@ version = "0.1.0.0"
 hash = "0xa7aa06c09e97c6747c12cc64bb5203d9"
 source = "hub"
 dependencies = []
-types = []
+constructors = []
 
 [[package.files]]
 sha = "7b28854c86d77ef5953513f14c020ff5932fdbb1059eab7ba75bbe7fa24ef048"
@@ -44,7 +678,7 @@ version = "0.1.1.0"
 hash = "0x2bbe4207657ea8b1158567d930651411"
 source = "hub"
 dependencies = []
-types = []
+constructors = []
 
 [[package.files]]
 sha = "7b28854c86d77ef5953513f14c020ff5932fdbb1059eab7ba75bbe7fa24ef048"
@@ -60,7 +694,7 @@ version = "0.1.0.0"
 hash = "0xf9837737d2c3f58ae1d0c5df42255584"
 source = "hub"
 dependencies = ["bend-ml-nat-lemmas@0.1.0.0"]
-types = [
+constructors = [
     "Mat",
     "Vec",
 ]
@@ -79,12 +713,13 @@ version = "0.1.14.0"
 hash = "0x0f6479f09ada7ae614e64e31e8f5a730"
 source = "hub"
 dependencies = []
-types = [
+constructors = [
     "AL",
     "BL",
+    "BLeaf",
+    "BNode",
     "BRow",
     "BV",
-    "Bands",
     "CB",
     "CR",
     "G",
@@ -105,7 +740,8 @@ types = [
     "PK",
     "PKK",
     "PKT",
-    "PT",
+    "PLeaf",
+    "PNode",
     "R",
     "RW",
     "S3",
@@ -131,82 +767,111 @@ version = "0.1.0.0"
 hash = "0x1689e5deb278c16abd3bd45eac101ef3"
 source = "hub"
 dependencies = []
-types = [
-    "AddStep",
+constructors = [
+    "ANode",
+    "AStep",
+    "Accumulated",
+    "Add",
+    "Adds",
     "Advanced",
-    "Aligned.Step",
-    "Alignment",
+    "Aligns",
+    "AmbiguousInferred",
     "ArrStep",
     "ArrayObservationModel",
-    "AxesFacts",
-    "Axis",
-    "AxisChoice",
+    "AxesLengthMismatch",
+    "AxisEqual",
+    "AxisLeftOne",
+    "AxisOutOfBounds",
+    "AxisRightOne",
+    "BAlign",
+    "BFalse",
+    "BPlan",
+    "BTrue",
+    "Backward",
     "Batch",
-    "Binary",
+    "BatchedMatmul",
+    "BatchedProduct",
+    "Beyond",
     "BinaryModel",
-    "BoolCase",
     "BoundBy",
     "Bounds",
-    "Broadcast",
-    "BroadcastPlan",
+    "BroadcastError",
     "BroadcastToContract",
     "Bumped",
+    "CStep",
+    "CValues",
+    "CWord",
     "CanonicalStep",
-    "Capacity",
+    "CapacityExceeded",
     "Cell",
     "CellAt",
     "Certified",
-    "CheckedCoordinate",
+    "Checked",
     "CheckedFrame",
     "CheckedObservationModel",
     "CheckedUpdateModel",
     "CheckedUpdatePair",
+    "Clashes",
     "CloneContract",
     "CloneMeaning",
     "CloneWrite",
     "Cloned",
     "Compatible",
-    "ConstructResult",
+    "Constant",
     "ConstructionDone",
     "ConstructionModel",
     "ConstructionOutcome",
     "ConstructionWitness",
+    "Continue",
     "Contribution",
     "ConvertedCertificate",
-    "Coordinate.Step",
     "CoordinateInside",
+    "CoordinateOutOfBounds",
+    "CoordinateRankMismatch",
     "CoordinateRead",
     "CopyMeaning",
     "CopyObservation",
     "CopyStepSuccess",
     "CopySuccess",
+    "CrossEntropy",
     "CursorExact",
     "CursorWitness",
+    "DanglingOperand",
     "Decoded",
     "Decomposed",
     "Delivered",
+    "Descend",
+    "Dimensions",
     "DimensionsModel",
     "Dims",
+    "Divide",
+    "Done",
     "DoneWitness",
     "DotMeaning",
     "DotRun",
     "DotStep",
-    "Dynamic",
+    "DuplicateAxis",
     "DynamicRead",
     "DynamicReadSuccess",
     "DynamicRestoreSuccess",
     "DynamicSourceRead",
     "DynamicSourceReadKeeps",
     "DynamicSumSuccess",
-    "Effect",
     "Eight",
+    "ElementCountMismatch",
     "ElementPoint",
     "ElementsOutcome",
+    "Empty",
     "Entry",
-    "Error",
+    "Exact",
+    "ExpLeft",
     "ExpectedSame",
     "ExpectedValue",
-    "Extent",
+    "F32",
+    "FIndex",
+    "FNext",
+    "FStep",
+    "FZero",
     "Fact",
     "Factors",
     "Facts",
@@ -215,91 +880,142 @@ types = [
     "Fibers",
     "FillOutcome",
     "FillSuccess",
-    "Fin.Step",
-    "Fired",
-    "Fits.Step",
+    "FiredKept",
+    "FiredStopped",
+    "First",
+    "FirstSlot",
     "FittingSources",
-    "FlatIndex",
+    "FlatIndexOutOfBounds",
     "FoldContract",
+    "Forward",
+    "Free",
     "FromValuesContract",
     "FromValuesModel",
+    "Frozen",
+    "GatherError",
+    "Gathered",
+    "GatheredBy",
     "Geometry",
     "Get",
     "GetFull",
+    "GradientError",
+    "Held",
     "Hit",
     "Holds",
     "IdentityModel",
     "Impossible",
+    "IncompatibleBroadcast",
     "IndependentBinaryModel",
     "IndependentModel",
     "IndependentPlannedModel",
     "Index",
-    "Indexing",
+    "IndexRankMismatch",
+    "IndexSelected",
+    "IndexShapeMismatch",
+    "Indexed",
     "IndicesDone",
-    "Inspection",
+    "Inferred",
+    "InnerDimensionMismatch",
     "InspectionModel",
     "Interpretation",
+    "InvalidIndex",
+    "InvalidLearningRate",
     "InvariantModel",
+    "KeepLeft",
+    "Kept",
     "KnownCheckedUpdate",
     "KnownUpdate",
+    "Last",
     "Layout",
+    "LayoutError",
+    "Leaf",
+    "Left",
     "Length",
     "LengthValid",
-    "ListFacts",
+    "Lists",
+    "LogLeft",
     "LogicalCell",
     "LogicalStep",
-    "Lookup",
     "LoopCertificate",
+    "LossError",
+    "Mapped",
     "MappedValue",
-    "Mapping",
     "MappingDone",
+    "MappingError",
     "MappingModel",
     "MappingSuccess",
-    "MaskMode",
+    "Matches",
+    "Matmul",
     "MatmulContract",
+    "MatmulNT",
     "MatmulPairContract",
     "MatmulSoleContract",
     "MatmulSuccess",
     "MatrixBounds",
+    "MatrixError",
     "MatrixFacts",
     "MatrixInputs",
     "MetadataContract",
+    "Minus",
+    "Misaligned",
+    "MseGrad",
+    "MseLoss",
+    "Mul",
+    "Narrowed",
     "NaturalCertificate",
-    "NaturalCopy",
+    "NaturalContinue",
+    "NaturalCopied",
+    "NaturalError",
     "NaturalSources",
-    "NaturalStep",
+    "NaturalStop",
     "NaturalSuccess",
+    "Neg",
+    "NegateLeft",
     "NewMetadata",
     "NewReads",
-    "Node",
+    "NoCells",
+    "Normal",
+    "NotBroadcastable",
+    "NotLeaf",
+    "NotLogits",
+    "NotReducible",
     "ObsStep",
     "ObservationModel",
     "ObserveBridge",
-    "OffMode",
+    "Off",
     "OneContract",
-    "Op",
+    "OneHotGrad",
     "Operand",
-    "Operation",
-    "Order",
-    "Outcome",
-    "PadMinimal",
+    "Operands",
+    "OutOfBounds",
+    "OutOfRange",
+    "OwnSlot",
+    "Owned",
+    "PLeftZero",
+    "PRightZero",
+    "Packed",
     "PairContract",
     "PairFoldContract",
     "Pass",
-    "Passed",
+    "PassKept",
+    "PassStopped",
     "PastFrame",
+    "Permutation",
     "PermutationInverse",
     "PermutationRestoration",
+    "Permute",
     "PermuteContract",
     "PermuteFailure",
     "PermuteOutput",
     "Pick",
+    "PickNegated",
+    "Picks",
     "Plan",
     "PlanStatus",
     "PlanSuccess",
     "Planned",
+    "Plus",
     "PointwiseContract",
-    "Position",
     "Prefix",
     "PrefixModel",
     "PrefixRoutes",
@@ -310,11 +1026,14 @@ types = [
     "Product",
     "ProductCell",
     "ProductFacts",
+    "ProductNT",
     "ProductPrefix",
-    "Property",
     "PublicModel",
     "PublicSuccess",
+    "RankExceeded",
+    "RankMismatch",
     "RankTwo",
+    "Raw",
     "Read",
     "ReadCheckedKeeps",
     "ReadCheckedModel",
@@ -328,8 +1047,14 @@ types = [
     "ReadValueModel",
     "Recipe",
     "Recorded",
+    "ReduceError",
     "ReduceToContract",
     "RefusalModel",
+    "Refused",
+    "Relu",
+    "ReluBackward",
+    "ReluLeft",
+    "RepeatedInferred",
     "Request",
     "RequestedTranspose",
     "ReshapeBuiltModel",
@@ -353,16 +1078,25 @@ types = [
     "RetainedFailure",
     "RetainedSourceModel",
     "Retention",
+    "Right",
     "Row",
-    "Run",
-    "Saved",
+    "SBuilt",
+    "SError",
+    "SShape",
+    "Second",
     "Selected",
-    "Shape",
+    "Selection",
+    "ShapeError",
+    "ShapeMismatch",
     "Sized",
-    "Slicing",
-    "Slot",
+    "Skipped",
+    "Skips",
+    "Slice",
+    "SliceError",
+    "Sliced",
+    "SoftmaxGrad",
     "SoleContract",
-    "Source",
+    "Some",
     "SourceDot",
     "SourceDynamicSum",
     "SourceKept",
@@ -375,53 +1109,77 @@ types = [
     "SourceSumResult",
     "SourceValue",
     "Split",
+    "SquaredError",
     "Started",
     "State",
     "Status",
     "Step",
     "StepCertificate",
+    "StepNotPositive",
     "StepSources",
     "StepSuccess",
-    "Stepped",
     "Stop",
-    "Storage",
+    "Stopped",
+    "StorageError",
+    "StorageLengthMismatch",
     "StorageReadKeeps",
     "StorageReadModel",
     "StorageWriteSuccess",
     "StridedRun",
     "StridedStep",
+    "Sub",
     "Success",
     "SuccessfulStep",
+    "Sum",
+    "SumDims",
     "SumMeaning",
     "SumResult",
     "Summed",
     "Swap",
     "SwapFull",
+    "Swapped",
+    "TTensor",
     "Taken",
     "Tape",
     "TargetInfo",
-    "Tensor",
+    "TargetOutOfRange",
     "TensorDone",
+    "TensorError",
+    "Times",
+    "TooLarge",
     "TotalDynamicSum",
     "TotalMatmul",
     "TotalSum",
+    "TransformError",
+    "Transpose",
     "TransposeContract",
     "TransposeDecidedFailure",
     "TransposeFailure",
     "TransposeInverse",
     "TransposeObservation",
     "TransposeRestoration",
+    "True",
     "TypedPermutation",
+    "U32",
+    "Unindexed",
+    "Unit",
+    "UnknownNode",
+    "Unsaved",
+    "Unset",
     "UpdateCheckedModel",
     "UpdateModel",
+    "Value",
+    "ValueCountMismatch",
     "View",
+    "WStep",
     "Walk",
+    "WalkedSlot",
     "WholeCopyModel",
     "Width",
     "WithModel",
+    "Within",
     "Words",
     "WordsSuccess",
-    "WordsValidStep",
     "Write",
     "WriteContract",
     "WriteInfo",
@@ -429,8 +1187,10 @@ types = [
     "WriteOutside",
     "WriteSuccess",
     "Written",
+    "Wrote",
     "ZeroCell",
     "ZeroPrefix",
+    "ZeroProduct",
     "ZeroResult",
     "Zeros",
     "ZerosModel",

@@ -97,6 +97,40 @@ relevant entry before changing performance-sensitive code or a law.
     `bendtorch-core@0.1.0.0`, over the same 196 files. So the file
     set, the paths, the digests and the hash are the compiler's, byte
     for byte.
+- **The datasets come from HuggingFace (2026-10-21).** Two new packages:
+  `mlbend-hf` (a HuggingFace client: the dataset page, the file tree, a
+  file's bytes, and the rows server's JSON rows) and `mlbend-datasets`
+  (the datasets of scikit-learn, fetched at run time). The iris dataset
+  comes from the file the dataset's own repository holds, which holds the
+  same numbers scikit-learn ships: 150 rows of four features and the class
+  of each, as a `Mat<150n, 4n>` and a list of the labels. Nothing but
+  Bend: `bend-kit-http` for the HTTP, `bend-kit-json` for the JSON, and a
+  parser of my own for the rows.
+  - **The shape of the code is Bend's, not mine.** The checker will not
+    let a match scrutinize a computed value, so every helper that
+    unwraps a `Maybe` takes it as a parameter and matches on that, and a
+    caller gets one call each. A def must also come before the defs that
+    use it, which is a rule I broke often enough to write a sorter for.
+  - **The toolchain is up.** `clang` 22 (the Fedora RPMs, unpacked into
+    `~/opt/llvm-tree`, no root) and a native `bend` 2.0.37 at
+    `~/.bend/bin/bend` (a compiled bun binary; a build is 0.8 s). Without
+    clang the bend compiler cannot build anything.
+- **The ecosystem's other package manager does not compile (2026-10-21).**
+  `ezx` is on the hub: "ez, the package manager for Bend 2", by
+  noah-emp, v1.5.0.0, 74 files. Its manifest is `ez.toml`, a ledger of
+  every dependency with its hash and its origin (a hub name or a git
+  commit with a NAR hash), it vendors into `.ez/lib`, and it pins tools.
+  It does not compile against bend 2.0.37: `emerging-ezhttp` declares
+  `Body.Text{text: String}` and Base's `Event` declares
+  `Event.Text{text: String}`, and a program that imports both has two
+  `Text` constructors in scope. `bendenv lock` now says so before you
+  try:
+  `Text: 0xf1c957a470368870a6d1d62a8c0cbe32, bend2/base.bend, ezx`.
+  That is the second time the collision report has earned its place: Base
+  is not on the hub and it moves, so a constructor it gains can break a
+  package published before it.
+  - **ezx pins its dependencies by hash, not by name.** All five of them.
+    The resolver follows those now.
 - **The data (2026-10-20).** iris (150 rows, 4 features) and breast cancer
   (569 rows, 30 features) are in `mlbend-datasets/data/`, taken from
   scikit-learn's copies (which come from UCI). A hub package is one file, so
