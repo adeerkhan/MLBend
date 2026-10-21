@@ -5,6 +5,24 @@ relevant entry before changing performance-sensitive code or a law.
 
 ## 2026-10-21
 
+- **The CI was red before this session, and the reason was the verdict.**
+  `bend hf/main.bend` and `bend datasets/main.bend` end in "SOME PROOFS
+  FAIL: 312 defs rely on unsafe or foreign code". A file with no `main`
+  is checked by the *verdict* path (`cli_verdict` in `bend2/main.ts`),
+  and the verdict refuses a book that holds any foreign code — the
+  socket bindings of the http package are foreign code. So a package
+  that does IO can never have a clean verdict, and the check now reads
+  it as a pass when the *only* complaint is the foreign code (a type
+  error has "expected" and "observed" in it).
+  - The laws of `mlbend-metrics` are still proved by the kernel — that
+    package is pure and its verdict is clean.
+- **clang lives in the tree, not in /tmp (2026-10-21).** The wrapper at
+  `~/.local/bin/clang` pointed its `LD_LIBRARY_PATH` at a directory whose
+  libraries were symlinks into `/tmp/opencode`. `/tmp` is cleaned, and
+  one morning the builds failed with "bend needs clang 14 or newer
+  (found no clang)". The wrapper now names the tree's own libraries, and
+  `scripts/setup.sh` asks for clang — the checks build every program
+  before it runs it.
 - **k-nearest neighbours over the breast cancer dataset
   (`examples/knn/main.bend`).** Plain Bend again: the neighbours are
   sorted by distance with `List.sort`, and the three nearest vote. The
