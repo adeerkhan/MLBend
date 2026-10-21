@@ -2025,7 +2025,7 @@ path = "src/tensor/write_contract.bend"
 [[package]]
 name = "mlbend-datasets"
 version = "0.1.2.0"
-hash = "0x6c9973057e36d3d487ff4e25ff7b2701"
+hash = "0x0dff2f50a5df2b0c3828d4134707bab9"
 source = "local"
 dependencies = []
 constructors = []
@@ -2035,7 +2035,7 @@ sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
 path = "LICENSE"
 
 [[package.files]]
-sha = "d659376a37131e954b8b25d14f5cdca443b796e0ec43d7b11b3fe92794ad70b8"
+sha = "0c183aa9ddfbac997a730ada5f9cade5980e6656673655456187fa21d571f94d"
 path = "main.bend"
 
 [[package]]
