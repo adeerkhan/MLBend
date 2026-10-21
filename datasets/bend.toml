@@ -1,7 +1,8 @@
 [project]
 name = "mlbend-datasets"
-version = "0.1.0.0"
+version = "0.1.1.0"
 description = "The datasets of scikit-learn, fetched from HuggingFace at run time."
 
 [dependencies]
 bend-ml-tensor-array = "0.1.14.0"
+mlbend-huggingface = "0.1.0.0"

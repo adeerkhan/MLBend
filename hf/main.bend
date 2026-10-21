@@ -1,4 +1,4 @@
-# mlbend-hf: a HuggingFace client for Bend 2.
+# mlbend-huggingface: a HuggingFace client for Bend 2.
 #
 #   import mlbend-hf@0.1.0.0/main.bend as Hf
 #

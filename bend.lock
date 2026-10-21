@@ -1979,3 +1979,27 @@ path = "src/tensor/word_injective.bend"
 [[package.files]]
 sha = "342b22591847de45b3c1b34c9697967f0aca0401f08fdb5855120516326cca71"
 path = "src/tensor/write_contract.bend"
+
+[[package]]
+name = "mlbend-huggingface"
+version = "0.1.0.0"
+hash = "0xeb7d1be9a5e941fbb49616e152f5e5f1"
+source = "hub"
+dependencies = [
+    "bend-kit-bytes@0.3.2.0",
+    "bend-kit-http@0.36.0.0",
+    "bend-kit-json@0.6.1.1",
+]
+constructors = [
+    "ErrJson",
+    "ErrNet",
+    "ErrStatus",
+]
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "6f922717fba6d648e3aaa69a834f4887661d58019205dae1ffeb1281ee615651"
+path = "main.bend"

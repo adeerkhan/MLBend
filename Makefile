@@ -8,7 +8,7 @@ BEND := $(or $(BEND_BIN),$(HOME)/.bend/bin/bend)
 BEND_VERSION := 2.0.37
 BEND_REF := ../bend-ref
 
-.PHONY: setup check laws sync-bend clean lint env env-check
+.PHONY: setup check laws sync-bend clean lint env env-check release
 
 setup:            ## Bend, Lean and the Python venv
 	scripts/setup.sh
@@ -26,6 +26,10 @@ env:              ## the environment: one lock, one env, for every package here
 env-check:        ## the environment against the lock, and the example over it
 	$(BENDENV) check
 	$(BENDENV) run -- $(BEND) examples/stacks/main.bend
+
+release:          ## release one package to the hub and to GitHub: make release PKG=hf
+	@test -n "$(PKG)" || (echo "usage: make release PKG=<package directory>" && false)
+	scripts/release.sh $(PKG)
 
 sync-bend:       ## a read-only copy of the pinned Bend source, for reading the compiler
 	rm -rf $(BEND_REF)

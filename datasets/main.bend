@@ -19,7 +19,7 @@
 #   5.1,3.5,1.4,0.2,Iris-setosa
 
 import Base
-import ../hf/main.bend as Hf
+import mlbend-huggingface@0.1.0.0/main.bend as Hf
 import bend-ml-tensor-array@0.1.14.0/main.bend as TA
 
 # A dataset: the features and the labels beside them. The flat tensor is

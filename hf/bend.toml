@@ -1,6 +1,6 @@
 [project]
-name = "mlbend-hf"
-version = "0.1.0.0"
+name = "mlbend-huggingface"
+version = "0.1.1.0"
 description = "A HuggingFace client for Bend 2: the dataset page, the file tree, a file's bytes, and the rows server's JSON rows."
 
 [dependencies]
