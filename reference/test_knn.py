@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
@@ -42,7 +43,7 @@ def load():
 
 def bend_knn():
     """The accuracy, from the Bend program."""
-    binary = "/tmp/opencode/mlbend-knn-test"
+    binary = os.path.join(tempfile.mkdtemp(), "mlbend-knn-test")
     build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/knn/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:

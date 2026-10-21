@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 import numpy as np
 
@@ -25,7 +26,7 @@ if os.path.isdir(ENV_DIR):
 
 def bend_kmeans():
     """The inertia and the cluster sizes, from the Bend program."""
-    binary = "/tmp/opencode/mlbend-kmeans-test"
+    binary = os.path.join(tempfile.mkdtemp(), "mlbend-kmeans-test")
     build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/kmeans/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:

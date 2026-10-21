@@ -95,7 +95,7 @@ def main():
         run(f"{f}: ALL PROOFS CHECK", BEND.split() + [f], verdict_ok)
         if lean_here():
             run(f"{f} --verdict (the kernel, as Lean)", BEND.split() + [f, "--verdict"],
-                lambda o, c: o.strip().endswith("ALL PROOFS CHECK"))
+                verdict_ok)
         else:
             print(f"skip {f} --verdict (no Lean 4.34.0 on this machine; CI runs it)")
 
