@@ -47,6 +47,8 @@ dataset, in plain Bend, with no gradients and no library.
   CI proves them.
 - `make check` → **28/28** on this machine, with the kernel check skipped
   (no Lean here).
+- CI (run 39641765719) → **31/31**, with the kernel check: the law of
+  `mlbend-metrics` is *proved* by Lean 4.34.0.
 
 **What was broken, and is fixed now.**
 - **The CI was red before this session.** Every run since 09:55 failed. The
