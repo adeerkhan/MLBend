@@ -58,6 +58,26 @@ def main() -> int:
                 print(f"{os.path.relpath(path, ROOT)}: the sibling versions are fixed")
                 if WRITE:
                     open(path, "w").write(new)
+
+        # the manifest of the package names its siblings too, and the
+        # version there is the one the workspace resolves
+        manifest = os.path.join(directory, "bend.toml")
+        text = open(manifest).read()
+        new = text
+        for other, (other_version, _) in pkgs.items():
+            if other == name:
+                continue
+            new = re.sub(
+                r'^(\s*' + re.escape(other) + r'\s*=\s*)"[^"]+"',
+                r'\1"' + other_version + '"',
+                new,
+                flags=re.M,
+            )
+        if new != text:
+            changed += 1
+            print(f"{os.path.relpath(manifest, ROOT)}: the sibling versions are fixed")
+            if WRITE:
+                open(manifest, "w").write(new)
     if changed == 0:
         print("every sibling import holds the current version")
     elif not WRITE:

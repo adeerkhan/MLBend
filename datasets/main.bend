@@ -2,8 +2,13 @@
 #
 #   import mlbend-datasets@0.1.0.0/main.bend as Datasets
 #
-# The features of a dataset and its labels beside them: a `Mat<r, c>` of
-# the features and a list of the labels.
+# The features of a dataset and its labels beside them: the rows of the
+# features and a list of the labels.
+#
+# The rows are plain lists, not a tensor: which tensor a model wants is
+# the model's business. The flat tensor of bend-ml is fifty times faster
+# and has no autodiff behind it; the list one has the autodiff. A dataset
+# that holds neither lets the model choose.
 #
 # Every dataset here comes from HuggingFace, over the network, at run
 # time: the effect is at the edge and the data that comes back is a
@@ -20,12 +25,10 @@
 
 import Base
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
-import bend-ml-tensor-array@0.1.14.0/main.bend as TA
 
-# A dataset: the features and the labels beside them. The flat tensor is
-# a Type, so the record that holds it is one too.
-type Table is Type:
-  Table{features: TA.Mat<150n, 4n>, labels: List<&2, Nat>}
+# A dataset: the rows of the features and the labels beside them.
+type Table is Data:
+  Table{rows: List<&2, List<&2, F32>>, labels: List<&2, Nat>}
 
 # One row of the file: its four numbers and its class.
 type Row is Data:
@@ -35,13 +38,13 @@ type Row is Data:
 type Rows is Data:
   Rows{rows: List<&2, Row>, labels: List<&2, Nat>}
 
-# The class of a row: 0, 1 or 2 for the three iris species.
-def add_features(acc: List<&2, F32>, r: Row) -> List<&2, F32>:
+# The dataset the rows make.
+def add_features(acc: List<&2, List<&2, F32>>, r: Row) -> List<&2, List<&2, F32>>:
   match r:
     case Row{features, +label}:
-      List.append(&2, F32, acc, features)
+      List.append(&2, List<&2, F32>, acc, features <> Nil{})
 
-# The dataset the rows make.
+# The matrix the features make, when it is one.
 def add_row_of(acc: Rows, r: Result<&1, &1, String, Row>) -> Rows:
   match acc:
     case Rows{rows, labels}:
@@ -142,24 +145,22 @@ def build_data(d: Result<&1, &1, String, Table>) -> Result<&1, &1, Hf.Err, Table
     case Done{table}:
       Done{table}
 
-# The text of a file that may be there, and the dataset it makes.
-def matrix_of_mat(m: Maybe<&1, TA.Mat<150n, 4n>>, labels: List<&2, Nat>) ->
+# The rows of the features, and the labels.
+def feature_rows(rs: List<&2, Row>) -> List<&2, List<&2, F32>>:
+  List.foldl(&2, Row, List<&2, List<&2, F32>>, add_features, rs, Nil{})
+
+# One row's features, appended to the rows so far.
+def table_of(+rs: List<&2, List<&2, F32>>, labels: List<&2, Nat>) ->
   Result<&1, &1, String, Table>:
-  match m:
-    case Some{matrix}:
-      Done{Table{matrix, labels}}
-    case None{}:
-      Fail{"the rows are not 150 of four"}
+  Bool.pick(Result<&1, &1, String, Table>, Nat.is_eq(List.length(&2, List<&2, F32>, rs), 150n),
+    Done{Table{rs, labels}},
+    Fail{"the rows are not 150 of four"})
 
-# The rows of a file, and the dataset they make.
-def matrix_of(fs: List<&2, F32>, labels: List<&2, Nat>) -> Result<&1, &1, String, Table>:
-  matrix_of_mat(TA.Mat.of_list(150n, 4n, fs), labels)
-
-# The matrix the features make, when it is one.
+# The rows of the features of every row, one after the other.
 def data_of(acc: Rows) -> Result<&1, &1, String, Table>:
   match acc:
     case Rows{rows, labels}:
-      matrix_of(List.foldl(&2, Row, List<&2, F32>, add_features, rows, Nil{}), labels)
+      table_of(feature_rows(rows), labels)
 
 # The matrix the features make, and the labels.
 def build_rows(r: Result<&1, &1, String, Rows>) -> Result<&1, &1, Hf.Err, Table>:

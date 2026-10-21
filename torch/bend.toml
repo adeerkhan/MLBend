@@ -1,0 +1,7 @@
+[project]
+name = "mlbend-torch"
+version = "0.1.0.0"
+description = "The same linear model over bendtorch's tape: the forward records the nodes, the backward walks them, and the step reads the gradients off the leaves."
+
+[dependencies]
+bendtorch-core = "0.1.0.0"

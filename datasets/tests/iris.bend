@@ -1,8 +1,8 @@
 # The iris dataset, fetched from the hub: 150 rows, four features, three
 # classes.
 import Base
-import ../main.bend as Datasets
-import ../../hf/main.bend as Hf
+import mlbend-datasets@0.1.2.0/main.bend as Datasets
+import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 def at_of(m: Maybe<&2, Nat>) -> Nat:
   match m:

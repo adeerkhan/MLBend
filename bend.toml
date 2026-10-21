@@ -3,15 +3,25 @@ name = "mlbend"
 version = "0.1.0"
 description = "Machine learning for Bend 2, in the shape scikit-learn has."
 
-# The workspace: one lockfile and one environment for every package
-# here. The dependencies below are the ones the packages share; a member
-# that names one takes the version the workspace gives it, so one lock
-# holds one version of each package.
+[dependencies]
+bend-ml-autograd = "*"
+bend-ml-bpe-tokenizer = "*"
+bend-ml-tensor = "0.1.0.0"
+bend-ml-tensor-array = "*"
+bend-ml-tensor-fork = "*"
+bendtorch-core = "0.1.0.0"
+
 [workspace]
-members = ["metrics", "hf", "datasets"]
+members = [
+    "metrics",
+    "hf",
+    "datasets",
+    "nn",
+    "torch",
+]
 
 [workspace.dependencies]
+bend-ml-autograd = "0.1.1.0"
 bend-ml-nat-lemmas = "0.1.1.0"
 bend-ml-tensor-array = "0.1.14.0"
-bend-ml-autograd = "0.1.1.0"
 bendtorch-core = "0.1.0.0"

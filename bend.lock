@@ -657,6 +657,27 @@ sha = "e7e81962862ab2fe4e7608608caedbdcd26f3070618b4ce605fc9d8e8444e8de"
 path = "main.bend"
 
 [[package]]
+name = "bend-ml-bpe-tokenizer"
+version = "0.1.3.0"
+hash = "0x559a0abb492a951db15be435191b6d0a"
+source = "hub"
+dependencies = ["bend-ml-nat-lemmas@0.1.0.0"]
+constructors = [
+    "B",
+    "Cnt",
+    "M",
+    "Rule",
+]
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "c80a08751a17a7fedf0f35d0e2cfc2c3218c30dc2c29748f5731649a295597ea"
+path = "main.bend"
+
+[[package]]
 name = "bend-ml-nat-lemmas"
 version = "0.1.0.0"
 hash = "0xa7aa06c09e97c6747c12cc64bb5203d9"
@@ -759,6 +780,27 @@ path = "LICENSE"
 
 [[package.files]]
 sha = "cb48e87c2b13837b125d72ac8e0291eaf8df814e5ea2345fe2789d11244a9864"
+path = "main.bend"
+
+[[package]]
+name = "bend-ml-tensor-fork"
+version = "0.1.2.0"
+hash = "0x5734508f2a6198d9a87a28d4c58bfbae"
+source = "hub"
+dependencies = ["bend-ml-tensor-array@0.1.14.0"]
+constructors = [
+    "B2",
+    "B3",
+    "B4",
+    "PE",
+]
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "e8442eeb6de648fe2d4c7dcbb9ee7638b9a76a66336fcb0251a7807409bee8f2"
 path = "main.bend"
 
 [[package]]
@@ -1983,7 +2025,7 @@ path = "src/tensor/write_contract.bend"
 [[package]]
 name = "mlbend-datasets"
 version = "0.1.2.0"
-hash = "0xad30062b0524c338451286e334fa0726"
+hash = "0x6c9973057e36d3d487ff4e25ff7b2701"
 source = "local"
 dependencies = []
 constructors = []
@@ -1993,31 +2035,7 @@ sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
 path = "LICENSE"
 
 [[package.files]]
-sha = "1b6f2abfa604b22efcda8fde69003c08df81d33afd1f997194f1e8f55e62a92c"
-path = "main.bend"
-
-[[package]]
-name = "mlbend-huggingface"
-version = "0.1.0.0"
-hash = "0xeb7d1be9a5e941fbb49616e152f5e5f1"
-source = "hub"
-dependencies = [
-    "bend-kit-bytes@0.3.2.0",
-    "bend-kit-http@0.36.0.0",
-    "bend-kit-json@0.6.1.1",
-]
-constructors = [
-    "ErrJson",
-    "ErrNet",
-    "ErrStatus",
-]
-
-[[package.files]]
-sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
-path = "LICENSE"
-
-[[package.files]]
-sha = "6f922717fba6d648e3aaa69a834f4887661d58019205dae1ffeb1281ee615651"
+sha = "d659376a37131e954b8b25d14f5cdca443b796e0ec43d7b11b3fe92794ad70b8"
 path = "main.bend"
 
 [[package]]
@@ -2050,4 +2068,28 @@ path = "LICENSE"
 
 [[package.files]]
 sha = "603ce9258cd251b67a3710196423d8f5ba53716be33ae2d3faabe369005d1c61"
+path = "main.bend"
+
+[[package]]
+name = "mlbend-nn"
+version = "0.1.0.0"
+hash = "0xb7a5bbd2f76612d267aa642a2c7d5242"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "14beb8fd11f9df4beb5e0aa11b10ca49b4c6df515339fb6dd40d0239b96bf715"
+path = "main.bend"
+
+[[package]]
+name = "mlbend-torch"
+version = "0.1.0.0"
+hash = "0x2f62a9480eea2c4f43b4e4c2523c344d"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "1a26c30f197b7cce14af82c25530defbfa9e8c8b82d950401f2ba4722ff250c4"
 path = "main.bend"

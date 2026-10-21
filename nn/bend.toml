@@ -1,0 +1,8 @@
+[project]
+name = "mlbend-nn"
+version = "0.1.0.0"
+description = "The neural-network surface: linear layers with gradients, over bend-ml's tensors and its autodiff."
+
+[dependencies]
+bend-ml-tensor = "0.1.0.0"
+bend-ml-autograd = "0.1.1.0"
