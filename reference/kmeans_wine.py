@@ -24,7 +24,8 @@ def load():
     rows = []
     for line in lines[1:]:
         cells = line.split(",")
-        rows.append([float(c) for c in cells[:-1]])
+        # the label is the quality: the column before the last one
+        rows.append([float(c) for c in cells[:-2]])
     return np.array(rows, dtype=np.float64)
 
 

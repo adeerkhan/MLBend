@@ -15,6 +15,14 @@ rows), wine (6497), breast cancer (683) and heart failure (299). The first
 model that is *not* a neural network is next to them: k-means over the wine
 dataset, in plain Bend, with no gradients and no library.
 
+**What was published.**
+- `mlbend-datasets@0.1.3.0` → `0xa77cd723e17e54a2544513eecb372be6`, and then
+  `mlbend-datasets@0.1.4.0` → `0x805aa9d73de5385dd9f66c3249152265`: the
+  generic CSV loader and then the loader that leaves out the columns at
+  the end of a row, so the label of the wine dataset is the quality and
+  not the `is_red` column next to it. Both are on the hub and on
+  GitHub, under the tag of the same version.
+
 **What was run.**
 - `bendenv run -- bend datasets/tests/datasets.bend` (built with `bend -o`,
   see below) → `iris: 150 rows, 150`, `wine: 6497 rows, 6497`,
@@ -27,11 +35,18 @@ dataset, in plain Bend, with no gradients and no library.
   (57343.812 against 57344.11955916257).
 - `reference/.venv/bin/python reference/kmeans_wine.py` → the NumPy side on
   its own: rows 6497, inertia 57344.12, sizes 1071 717 4709.
+- `bend -o /tmp/knn examples/knn/main.bend && /tmp/knn` → `train rows: 546`,
+  `test rows: 137`, `accuracy: 0.9781022`.
+- `reference/.venv/bin/python reference/test_knn.py` → scikit-learn's
+  `KNeighborsClassifier(n_neighbors=3)` over the same split gives
+  0.9781021897810219.
 
 **What was not run.**
 - `make check` end to end: the machine had bend 2.0.38 where the repository
-  pins 2.0.37, so `scripts/setup.sh` was started to put 2.0.37 back. The
-  Lean kernel check was not run on this machine.
+  pins 2.0.37, so `scripts/setup.sh` put 2.0.37 back, and the check was
+  started again. The Lean toolchain (4.34.0) was still downloading, so the
+  kernel check (`--verdict`) was skipped: the laws are *checked*, not
+  *proved*, on this machine. CI proves them.
 - The examples are not part of `make check`: the checks live in
   `reference/test_*.py` and in the packages' own `tests/`.
 
@@ -61,6 +76,9 @@ dataset, in plain Bend, with no gradients and no library.
 3. The bendtorch tape path (`examples/tape/tape.bend`): the weight
    orientation and the rank of the bias are still unsettled, and the
    reference is `bendtorch/examples/mnist/train.bend`.
+4. A regression model over the wine quality: the dataset now carries the
+   quality as its label (eleven features), so the least squares is the
+   next estimator, and `mlbend-preprocess` is what makes it fit.
 
 ## 2026-10-20 — the environment, and v0.1 `mlbend-metrics`
 
