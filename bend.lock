@@ -1981,6 +1981,22 @@ sha = "342b22591847de45b3c1b34c9697967f0aca0401f08fdb5855120516326cca71"
 path = "src/tensor/write_contract.bend"
 
 [[package]]
+name = "mlbend-datasets"
+version = "0.1.2.0"
+hash = "0xad30062b0524c338451286e334fa0726"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "1b6f2abfa604b22efcda8fde69003c08df81d33afd1f997194f1e8f55e62a92c"
+path = "main.bend"
+
+[[package]]
 name = "mlbend-huggingface"
 version = "0.1.0.0"
 hash = "0xeb7d1be9a5e941fbb49616e152f5e5f1"
@@ -2002,4 +2018,36 @@ path = "LICENSE"
 
 [[package.files]]
 sha = "6f922717fba6d648e3aaa69a834f4887661d58019205dae1ffeb1281ee615651"
+path = "main.bend"
+
+[[package]]
+name = "mlbend-huggingface"
+version = "0.1.1.0"
+hash = "0x9f97047b6ffb57443a7a2a2f0adefcbd"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "c728bab40a1f9fe6f6cfa6c95c0f3a86c718e75bf949b64da6f7ed17d1b998ff"
+path = "main.bend"
+
+[[package]]
+name = "mlbend-metrics"
+version = "0.1.0.0"
+hash = "0x9afaa60ee4d17706cb14d6ec20d1d4ae"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "603ce9258cd251b67a3710196423d8f5ba53716be33ae2d3faabe369005d1c61"
 path = "main.bend"

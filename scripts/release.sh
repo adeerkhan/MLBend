@@ -47,6 +47,11 @@ if [ ! -x "$BENDENV" ]; then
 fi
 
 echo "== $name $version"
+echo "-- the sibling versions"
+# a sibling that moved takes its import with it, or the program reads the
+# published sibling rather than the one beside it
+python3 "$ROOT/scripts/fix_versions.py" --write
+
 echo "-- the hub"
 cd "$DIR"
 out="$("$BENDENV" publish main.bend 2>&1)"
