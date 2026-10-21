@@ -131,6 +131,29 @@ relevant entry before changing performance-sensitive code or a law.
   package published before it.
   - **ezx pins its dependencies by hash, not by name.** All five of them.
     The resolver follows those now.
+- **The tensors and the autodiff are bend-ml's and bendtorch's (2026-10-21).**
+  Two packages of our own, `mlbend-nn` and `mlbend-torch`, re-implemented
+  what bend-ml and bendtorch already provide, and they are gone. The
+  examples use the libraries directly: the forward pass is `AG.linear`,
+  the loss is `AG.ce_loss`, the gradient of the loss is `AG.ce_grad`, the
+  backward of the layer is `AG.linear_bwd`, the step is `AG.sgd`, and on
+  the other side the tape is `Backward.leaf`, `Backward.linear`,
+  `Backward.cross_entropy`, `Backward.backward` and `Sgd.step`.
+  - What this repository adds is the classic-ML surface around them:
+    the metrics, the datasets, and the estimators that come next.
+  - The logistic example over the online iris dataset loses 1.0986 to
+    1.0672 in three steps. The learning rate is 0.01 because the
+    features are not standardised: at 0.5 the loss *rises* (1.099 to
+    1.537 to 6.88), which is the step overshooting and not a wrong
+    gradient. `mlbend-preprocess`, which standardises, is what makes a
+    larger rate sane.
+  - The bendtorch path compiles and runs -- the data, the weights and
+    the bias are built, the leaves go on the tape, the loss reads back --
+    and the `linear` node still refuses the operands (error 106, an inner
+    dimension mismatch). The shape convention of the weights (PyTorch's
+    `[out, in]` or the mathematical `[in, out]`) and the rank of the
+    bias are not settled yet; bendtorch's own MNIST demo is the
+    reference.
 - **The data (2026-10-20).** iris (150 rows, 4 features) and breast cancer
   (569 rows, 30 features) are in `mlbend-datasets/data/`, taken from
   scikit-learn's copies (which come from UCI). A hub package is one file, so

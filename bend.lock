@@ -2069,27 +2069,3 @@ path = "LICENSE"
 [[package.files]]
 sha = "603ce9258cd251b67a3710196423d8f5ba53716be33ae2d3faabe369005d1c61"
 path = "main.bend"
-
-[[package]]
-name = "mlbend-nn"
-version = "0.1.0.0"
-hash = "0xb7a5bbd2f76612d267aa642a2c7d5242"
-source = "local"
-dependencies = []
-constructors = []
-
-[[package.files]]
-sha = "14beb8fd11f9df4beb5e0aa11b10ca49b4c6df515339fb6dd40d0239b96bf715"
-path = "main.bend"
-
-[[package]]
-name = "mlbend-torch"
-version = "0.1.0.0"
-hash = "0x2f62a9480eea2c4f43b4e4c2523c344d"
-source = "local"
-dependencies = []
-constructors = []
-
-[[package.files]]
-sha = "1a26c30f197b7cce14af82c25530defbfa9e8c8b82d950401f2ba4722ff250c4"
-path = "main.bend"

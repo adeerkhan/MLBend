@@ -32,6 +32,16 @@ estimator surface on top of it and does not repeat it.
 | Package | What it is | Status |
 |---|---|---|
 | [`mlbend-metrics`](metrics) | the evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | v0.1: written, checked, one law proved |
+| [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the rows server's JSON rows | v0.1: written, checked, published |
+| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, fetched at run time | v0.1: written, checked, published |
+
+The tensors and the autodiff are **not** ours: they are
+[bend-ml](https://github.com/nuxyel/bend-ml)'s and
+[bendtorch](https://github.com/aaaxn/bendtorch)'s, and this repository
+depends on them. What this repository adds is the classic-ML surface
+around them — the estimators, the transformers, the pipelines, the
+metrics and the datasets — and the
+[examples](examples) that use them.
 
 More are planned; the order and the stop criteria are in [`docs/PLAN.md`](docs/PLAN.md).
 

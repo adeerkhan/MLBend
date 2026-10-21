@@ -16,8 +16,6 @@ members = [
     "metrics",
     "hf",
     "datasets",
-    "nn",
-    "torch",
 ]
 
 [workspace.dependencies]
