@@ -41,11 +41,18 @@ every package here, built by `bendenv` (https://github.com/adeerkhan/bend-env).
   (numpy 2.5.4, scikit-learn 1.9.1, Python 3.14).
 - `make check` → 11/11 locally (the kernel check is skipped without Lean,
   and says so) and 12/12 in CI.
-- `make env` → the lock and the environment: 6 packages, 196 files.
+- `make env` → the lock and the environment: 27 packages.
 - `make env-check` → the environment matches the lock, and
   `examples/stacks/main.bend` runs over it:
   `bend-ml-tensor-array: [12, 12, 12, 12] | bendtorch-core: built a
   tensor of 4 words`.
+- `bendenv run -- bend examples/logistic/main.bend` → a logistic
+  regression over the iris dataset, fetched from HuggingFace at run
+  time, trained with bend-ml's autodiff: `loss before: 1.0986128` then
+  `1.086162`, `1.0759476`, `1.0671557`.
+- `bendenv run -- bend examples/tape/tape.bend` → the same model over
+  bendtorch's tape: it compiles and runs, and the `linear` node refuses
+  the operands (error 106).
 - `bendenv hash bendtorch.bend` on `aaaxn/bendtorch`'s checkout →
   `0x1689e5deb278c16abd3bd45eac101ef3` over 196 files, the hash the hub
   holds for `bendtorch-core@0.1.0.0`.
@@ -55,13 +62,11 @@ public and permanent, and it needs `bend login`. Only the hash was
 computed, and it matches the hub's.
 
 **What is next.** `docs/PLAN.md` has the order; the two open issues have
-the detail. The next piece of work is the training step: the iris data
-is here as a typed matrix, and no estimator has read it yet. Two ways:
-a nearest-centroid or k-means fit in pure Bend over the flat tensor, or
-the gradient of a linear model written out by hand — because the flat
-tensor has no autodiff behind it (bend-ml-autograd is written against
-the list-based bend-ml-tensor), which is the gap the collision report
-named.
+the detail. The next piece of work is an estimator over the online
+data: the iris rows are here, the models are bend-ml's and bendtorch's,
+and the examples show both driving a training step. The open question is
+the shape convention of bendtorch's weights, which its `linear` node
+refuses (error 106); its own MNIST demo is the reference.
 - issue #1: the accounting law (the samples right and the samples wrong
   add up to the number of samples), `r2`, the log loss, the macro averages.
 - issue #2: the containers — lists or bend-ml's `Mat` over a flat
