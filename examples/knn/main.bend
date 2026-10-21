@@ -10,7 +10,7 @@
 # The rows are split: the first four fifths train, the last fifth test.
 # For every test row the three nearest training rows vote.
 import Base
-import mlbend-datasets@0.1.3.0/main.bend as Datasets
+import mlbend-datasets@0.1.4.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # A neighbour: how far it is, and what it is.

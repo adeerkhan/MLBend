@@ -17,7 +17,7 @@ import Base
 import bendtorch-core@0.1.0.0/src/tensor/core.bend as Core
 import bendtorch-core@0.1.0.0/src/autograd/tensor_backward.bend as Backward
 import bendtorch-core@0.1.0.0/src/autograd/sgd.bend as Sgd
-import mlbend-datasets@0.1.3.0/main.bend as Datasets
+import mlbend-datasets@0.1.4.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # The model: the weights of the layer and its bias.

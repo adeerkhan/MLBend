@@ -10,7 +10,7 @@
 # columns up, and a fold over a row adds the cells up. Nothing counts a
 # column by its place, so a row may be short.
 import Base
-import mlbend-datasets@0.1.3.0/main.bend as Datasets
+import mlbend-datasets@0.1.4.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # Two rows, added cell by cell.
