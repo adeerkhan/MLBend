@@ -60,3 +60,13 @@ say "Python environment"
 reference/.venv/bin/pip install -q --upgrade pip
 reference/.venv/bin/pip install -q -r reference/requirements.txt
 reference/.venv/bin/python -c "import numpy, sklearn; print('numpy', numpy.__version__, '| sklearn', sklearn.__version__)"
+
+# --- 4. clang (Bend builds binaries with it) ----------------------------------------------
+say "clang"
+if command -v clang >/dev/null 2>&1; then
+  clang --version | head -1
+else
+  echo "ERROR: clang is not on the path: Bend needs clang 14 or newer to build"
+  echo "       binaries (the checks build every program before it runs it)."
+  exit 1
+fi

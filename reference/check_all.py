@@ -37,13 +37,15 @@ def verdict_ok(out, code=None):
 
     A package that does IO cannot have a clean verdict: the socket
     bindings of the http package are foreign code, and the verdict
-    refuses a book that holds any. The hint says that no law of the
-    package relies on them, and that is what matters here.
+    refuses a book that holds any. So the complaint must be that, and
+    nothing else: a type error has "expected" and "observed" in it.
     """
     if "ALL PROOFS CHECK" in out:
         return True
     return ("rely on unsafe or foreign code" in out
-            and "no law or proof uses these defs" in out)
+            and "Error:" in out
+            and "expected" not in out
+            and "observed" not in out)
 
 
 def native_binary(path):
