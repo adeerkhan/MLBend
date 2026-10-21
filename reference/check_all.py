@@ -32,7 +32,7 @@ def golden(path):
     return tidy("\n".join(lines)) if lines else None
 
 
-def verdict_ok(out):
+def verdict_ok(out, code=None):
     """Whether a file checks.
 
     A package that does IO cannot have a clean verdict: the socket
