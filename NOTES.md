@@ -3,6 +3,66 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-21
+
+- **k-nearest neighbours over the breast cancer dataset
+  (`examples/knn/main.bend`).** Plain Bend again: the neighbours are
+  sorted by distance with `List.sort`, and the three nearest vote. The
+  accuracy over the last fifth of the rows is 0.9781022, and
+  scikit-learn's `KNeighborsClassifier(n_neighbors=3)` over the same
+  split gives 0.9781021897810219 (`reference/test_knn.py`).
+  - Two Bend details cost the most here. `List.sort` takes its
+    comparator as a *template*: `List.sort(~Neighbour, ~nearer, xs)`,
+    with the `~` at the call site.
+  - A vote that counts the labels must count them over the whole list,
+    not over the tail of the recursion: the count is computed once and
+    the recursion only walks to the end.
+- **The datasets are the UCI sets, not scikit-learn's subsets.** The `mstz`
+  mirrors on HuggingFace carry the whole file: wine is 6497 rows (not 178),
+  breast cancer 683 (not 569), heart failure 299. The loader is now one
+  generic CSV reader instead of a function per dataset: `mlbend-datasets`
+  fetches the file over the hub client, drops the header, reads every cell
+  as a number (`True` is 1, `False` is 0) and takes the last column as the
+  label. The labels are `F32`, not `Nat`: a class label is the index of the
+  class and a regression label is the value, and the model decides which.
+- **k-means over the wine dataset (`examples/kmeans/main.bend`).** Plain
+  Bend: no gradients, no library, no tensors. The features are standardised
+  first (the wine columns run from 0 to 160), the first three rows are the
+  centres, and ten rounds of Lloyd's algorithm follow.
+  - The result matches NumPy: the cluster sizes are the same (1071, 717,
+    4709) and the inertia agrees to the fifth digit (57343.812 against
+    57344.120). `reference/test_kmeans.py` runs the Bend program and
+    `reference/kmeans_wine.py` is the NumPy side.
+  - The arithmetic is done on whole rows, never by the place of a column:
+    a fold over the rows adds the columns up (`zip_add`), a fold over a row
+    adds the cells up. A row may then be short, which the wine file's last
+    row is.
+- **A counter is never a decreasing argument (2026-10-21).** The checker
+  reads the arguments of a self-call left to right and wants the first
+  changed argument to *shrink*: the parameter has to be a constructor and
+  the argument a subterm of it (`term_descend` in `bend2/bend.ts`). So
+  `f(Nat.sub(k, 1n), ...)` is refused: `Nat.sub(k, 1n)` is a call, not a
+  smaller term. A loop over a number is written with `List.range(n)` and a
+  loop over a list with the tail, and the index rides along as an
+  accumulator. This is the same rule as "no forward references" and it
+  costs the same number of round trips.
+- **A def body has one result.** `def f(): e1` and then `e2` is a parse
+  error: the second statement wants a new `def`. Several effects go in a
+  `do IO<Unit>:` block, and a `match` heads a def body, so it cannot be a
+  statement inside a `do` block: it goes in a def of its own.
+- **The interpreter's stack is a few hundred frames.** `bend file.bend`
+  overflows on a fold over 300 rows (`memory fault (machine stack
+  overflow?)`); the same program built with `bend -o` runs. Every test in
+  `reference/check_all.py` is therefore built and then run.
+- **`scripts/reuse.py` and `scripts/sort_defs.py` (2026-10-21).** Bend
+  consumes a value once unless it is bound with `+`, and the error for a
+  value read twice ("consumed more than once") came up once per def.
+  `scripts/reuse.py` marks the parameters, the pattern binders and the
+  binds that the body reads twice; it is a script over the source, not a
+  change to the language. `scripts/sort_defs.py` now keeps a comment with
+  the def it describes: the comments at the end of a block belong to the
+  next one.
+
 ## 2026-10-20
 
 - **v0.1: `mlbend-metrics`.** The first package: the evaluation surface (MSE,

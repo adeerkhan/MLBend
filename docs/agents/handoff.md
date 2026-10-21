@@ -7,6 +7,61 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-21 — the datasets, and k-means over one of them
+
+**Where we are.** The datasets package grew a generic CSV loader, and four
+datasets come from HuggingFace over the network at run time: iris (150
+rows), wine (6497), breast cancer (683) and heart failure (299). The first
+model that is *not* a neural network is next to them: k-means over the wine
+dataset, in plain Bend, with no gradients and no library.
+
+**What was run.**
+- `bendenv run -- bend datasets/tests/datasets.bend` (built with `bend -o`,
+  see below) → `iris: 150 rows, 150`, `wine: 6497 rows, 6497`,
+  `cancer: 683 rows, 683`, `heart: 299 rows, 299`, and the same numbers are
+  pinned in the file.
+- `bend -o /tmp/kmeans examples/kmeans/main.bend && /tmp/kmeans` →
+  `inertia: 57343.812` and `cluster sizes: 1071 717 4709`.
+- `reference/.venv/bin/python reference/test_kmeans.py` → the cluster sizes
+  are the same as NumPy's (1071, 717, 4709) and the inertia agrees
+  (57343.812 against 57344.11955916257).
+- `reference/.venv/bin/python reference/kmeans_wine.py` → the NumPy side on
+  its own: rows 6497, inertia 57344.12, sizes 1071 717 4709.
+
+**What was not run.**
+- `make check` end to end: the machine had bend 2.0.38 where the repository
+  pins 2.0.37, so `scripts/setup.sh` was started to put 2.0.37 back. The
+  Lean kernel check was not run on this machine.
+- The examples are not part of `make check`: the checks live in
+  `reference/test_*.py` and in the packages' own `tests/`.
+
+**What I learned (the cost of the day).**
+- **A counter is never a decreasing argument.** The checker reads the
+  arguments of a self-call left to right and wants the first changed one to
+  shrink structurally (`term_descend` in `bend2/bend.ts`), so
+  `f(Nat.sub(k, 1n), ...)` is refused. A counted loop is
+  `List.range(n)` and a loop over a list is the tail; the index rides along
+  as an accumulator. This is the rule I lost the most time to.
+- **A def body has one result.** Two statements in a row are a parse error;
+  effects go in a `do IO<Unit>:` block, and a `match` heads a def body, so
+  it needs a def of its own.
+- **The interpreter's stack is a few hundred frames.** A fold over 300 rows
+  overflows `bend file.bend`; the built program runs. Every test in
+  `reference/check_all.py` is now built and then run.
+- **`scripts/reuse.py`** marks the parameters, the pattern binders and the
+  binds that a body reads twice, so the `+` that Bend wants is not found by
+  hand. **`scripts/sort_defs.py`** now keeps a comment with the def it
+  describes.
+
+**What is next.**
+1. `mlbend-preprocess`: standardise the features as a package, so the
+   logistic example can use a learning rate that is not 0.01.
+2. The estimators of `docs/PLAN.md` v0.3–v0.6 over the online data: the
+   nearest-centroid classifier, k-NN, and the linear model.
+3. The bendtorch tape path (`examples/tape/tape.bend`): the weight
+   orientation and the rank of the bias are still unsettled, and the
+   reference is `bendtorch/examples/mnist/train.bend`.
+
 ## 2026-10-20 — the environment, and v0.1 `mlbend-metrics`
 
 **Where we are.** Two things. The first package is written, checked and
