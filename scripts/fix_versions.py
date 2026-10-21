@@ -34,14 +34,28 @@ def packages():
     return out
 
 
+def bend_files(directory):
+    """The Bend files of a package, and of the examples beside it."""
+    out = []
+    for entry in sorted(os.listdir(directory)):
+        if entry.endswith(".bend"):
+            out.append(os.path.join(directory, entry))
+    examples = os.path.join(ROOT, "examples")
+    if os.path.isdir(examples):
+        for sub in sorted(os.listdir(examples)):
+            path = os.path.join(examples, sub)
+            if os.path.isdir(path):
+                for entry in sorted(os.listdir(path)):
+                    if entry.endswith(".bend"):
+                        out.append(os.path.join(path, entry))
+    return out
+
+
 def main() -> int:
     pkgs = packages()
     changed = 0
     for name, (version, directory) in sorted(pkgs.items()):
-        for entry in sorted(os.listdir(directory)):
-            if not entry.endswith(".bend"):
-                continue
-            path = os.path.join(directory, entry)
+        for path in bend_files(directory):
             text = open(path).read()
             new = text
             for other, (other_version, _) in pkgs.items():

@@ -14,6 +14,10 @@ BEND = os.environ.get("BEND_BIN") or os.path.expanduser("~/.bend/bin/bend")
 BEND_PIN = os.environ.get("BEND_PIN") or "2.0.37"
 ENV = dict(os.environ, BEND_NO_TELEMETRY="1",
            PATH=os.path.expanduser("~/.elan/bin") + ":" + os.environ["PATH"])
+ENV_DIR = os.path.join(ROOT, ".bend", "env")
+if os.path.isdir(ENV_DIR):
+    # the environment the packages are checked in: the same one the examples run in
+    ENV["BEND_LIB"] = ENV_DIR
 results = []
 
 
@@ -26,6 +30,11 @@ def golden(path):
     """The expected output of a test file, in its #| lines (None when it has none)."""
     lines = [l[2:] for l in open(path).read().split("\n") if l.startswith("#|")]
     return tidy("\n".join(lines)) if lines else None
+
+
+def native_binary(path):
+    """Where the built form of a program goes: the interpreter's stack is small."""
+    return os.path.join("/tmp", "mlbend-test-" + path.replace("/", "-").replace(".bend", ""))
 
 
 def run(name, cmd, ok_if=None, timeout=1800):
@@ -107,8 +116,11 @@ def main():
                 continue
             f = f"{pkg}/tests/{name}"
             want = golden(os.path.join(ROOT, f))
-            out = run(f"{f}: runs", BEND.split() + [f],
+            out = run(f"{f}: builds", BEND.split() + ["-o", native_binary(f), f],
                       lambda o, c: "SOME PROOFS FAIL" not in o and "Error:" not in o)
+            if "SOME PROOFS FAIL" not in out and "Error:" not in out:
+                out = run(f"{f}: runs", [native_binary(f)],
+                          lambda o, c: "SOME PROOFS FAIL" not in o and "Error:" not in o)
             if want is not None:
                 got = tidy(out)
                 results.append(got == want)

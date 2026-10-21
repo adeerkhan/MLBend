@@ -27,6 +27,7 @@ CALL = re.compile(r"(?<![.\w])([a-z][\w]*)\s*(\(|,)")
 def blocks(lines):
     """the file's pieces: the head, then the types and laws, then the defs"""
     head, kinds = [], []
+    pending = []
     i = 0
     while i < len(lines):
         m = DEF.match(lines[i]) or TYPE.match(lines[i]) or LAW.match(lines[i])
@@ -35,13 +36,19 @@ def blocks(lines):
             i += 1
             continue
         kind = "def" if DEF.match(lines[i]) else ("type" if TYPE.match(lines[i]) else "law")
-        body = [lines[i]]
+        body = pending + [lines[i]]
+        pending = []
         j = i + 1
         while j < len(lines) and not (DEF.match(lines[j]) or TYPE.match(lines[j]) or LAW.match(lines[j])):
             body.append(lines[j])
             j += 1
+        # the comments at the end of a block belong to the next one
+        while body and (not body[-1].strip() or body[-1].lstrip().startswith("#")):
+            pending.insert(0, body.pop())
         kinds.append((kind, m.group(1), body))
         i = j
+    if pending:
+        head.extend(pending)
     return head, kinds
 
 
