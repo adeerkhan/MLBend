@@ -5,6 +5,12 @@ relevant entry before changing performance-sensitive code or a law.
 
 ## 2026-10-22
 
+- **48/48 on the consolidated tree (2026-10-22).** `make check` after the six
+  packages became one repository: every proof checks, the two programs that
+  must be refused are refused, the pinned outputs match, and the NumPy and
+  scikit-learn numbers match. The kernel `--verdict` was skipped for want of
+  Lean 4.34.0 here; CI runs it. Verification is the same command as before —
+  consolidation changed where the packages live, not what they compute.
 - **One repository for the six packages (2026-10-22).** The per-package
   `mlbend-*` repositories were a mistake in shape, not in content: the packages
   were always developed side by side in the workspace `bend.toml`, and the

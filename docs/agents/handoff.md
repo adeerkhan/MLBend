@@ -38,8 +38,11 @@ package.
 
 **What was run.** `bash -n scripts/release.sh` and
 `python3 scripts/fix_versions.py` → every sibling import holds its current
-version. `make check` ran on this tree: no Bend source moved, only the
-datasets README, the release script and the maps.
+version. `make check` → **48/48 checks passed** on this tree (the proofs, the
+rejected programs, the pinned outputs and the scikit-learn comparisons). Lean
+4.34.0 was not installed here, so the kernel `--verdict` was skipped and CI
+runs it, as usual; no Bend source moved, only the datasets README, the release
+script and the maps.
 
 **What is next.** Delete the six `adeerkhan/mlbend-*` GitHub repositories;
 their history is in this repository and their published bytes are on the hub.
