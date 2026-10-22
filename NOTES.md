@@ -75,6 +75,62 @@ relevant entry before changing performance-sensitive code or a law.
   `Mat` type: using it would mean a second matrix in the ecosystem,
   which `docs/PLAN.md` forbids.
 
+- **The bendtorch tape trains (2026-10-22).** The 106 was the shape after
+  all: bendtorch's `linear` records `x @ W^T`, so the weights are
+  `[out, in]` — three rows of four for the iris data, not four rows of
+  three — and the bias is a vector of `[out]`. The second half of the
+  puzzle was that a node's value is fixed when it is recorded: the loss
+  *after* the step is a second forward pass on the stepped tape, because
+  the step writes the new weights into the leaves. `examples/tape` now
+  trains, and `reference/test_tape.py` checks it against
+  `examples/logistic`: bendtorch and bend-ml are two implementations of
+  the same gradient step, and they agree to F32 precision (1.0986128
+  before, 0.7287295 and 0.7287296 after).
+- **The plan's v0.9 is reached (2026-10-22).** The iris dataset goes
+  through standardize -> logistic regression -> cross-validation, and
+  the accuracy matches scikit-learn's:
+  - the Bend program (5 stratified folds, seed 42) scores 0.9667, 0.9,
+    0.9333, 0.9, 0.9667 — a mean of 0.9333;
+  - scikit-learn's LogisticRegression over its own stratified folds
+    scores a mean of 0.9533.
+  - The folds are *not* the same folds: scikit-learn shuffles each class
+    with numpy's generator, the Bend program with bend-kit-random's
+    xoshiro128**. What agrees is the procedure, to within the spread of
+    two random partitions of 150 rows.
+- **`mlbend-preprocess` (v0.3, issue #5) is published** as
+  `mlbend-preprocess@0.1.0.0` (`0xa8182854f375cd61135ccd32993993cc`).
+  The transformers run over bend-ml's `Mat<r, c>` — bend-ml's matrix,
+  not one of ours — and the standardiser is bend-ml's own arithmetic:
+  `Mat.transpose`, then `Mat.layernorm` (which centres a row and scales
+  it by its own standard deviation), then `Mat.transpose` back. The
+  numbers match scikit-learn's `StandardScaler`, `MinMaxScaler` and
+  `Normalizer` to the precision of an F32.
+- **The PRNG question is answered.** `bend-kit-random@0.1.0.1` is on the
+  hub: xoshiro128**, pure (a draw returns the value beside the next
+  state), with unbiased ranges and Fisher-Yates shuffles. It is someone
+  else's package, so the split uses it rather than a generator of our
+  own. The plan's open question about the PRNG is closed.
+- **Bend facts paid for today.**
+  - A match cannot scrutinize a computed value — not even
+    `Nat.is_eq(fold, f)`; the comparison needs its own def, or the
+    value has to arrive as a parameter.
+  - A record has no field access: `l.before` is not a term. The record
+    is destructured by a match, and the fields come out as binders.
+  - `Bool.pick` evaluates both branches, so it cannot be used to choose
+    between two lists without building both.
+  - The decreasing argument of a self-call has to be *structurally*
+    smaller. A `Nat` counter does not shrink by arithmetic that the
+    checker can see (`Nat.sub(k, 1n)` is refused); it shrinks by being
+    unpacked (`case 1n+rest` and passing `rest`), the way
+    `bend-ml-nat-lemmas` proves `add_comm`. A list shrinks by its tail.
+  - `List.range(n)` takes the count alone, and it counts *down*:
+    `List.range(3n)` is `[2n, 1n, 0n]`.
+  - `List.append(a, -A, xs, ys)` takes the element type as its second
+    argument, and its two list arguments are the accumulator and the
+    element.
+  - The PRNG's shuffle returns a pair: the list and the generator that
+    comes after it, which has to be threaded by hand.
+
 ## 2026-10-21
 
 - **The CI was red before this session, and the reason was the verdict.**

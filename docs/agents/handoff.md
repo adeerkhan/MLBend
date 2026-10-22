@@ -7,6 +7,72 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-22 — the tape trains, and the plan's v0.9 is reached
+
+**Where we are.** Two things that were open are now done. The bendtorch
+tape trains (the 106 was the weight shape), and the iris dataset goes
+through standardize → logistic regression → cross-validation with the
+accuracy matching scikit-learn's — the plan's stop criterion for v0.9.
+
+**What was run.**
+- `bendenv run -- bend examples/tape/tape.bend` → `loss before:
+  1.0986128`, `loss after:  0.7287296`. bendtorch's tape and bend-ml's
+  autodiff, two implementations of the same gradient step.
+- `reference/.venv/bin/python reference/test_tape.py` → the two agree:
+  1.0986128 before, 0.7287295 (bend-ml) and 0.7287296 (bendtorch) after.
+- `bendenv run -- bend examples/crossval/main.bend` → five stratified
+  folds: 0.9667, 0.9, 0.9333, 0.9, 0.9667; **mean accuracy 0.9333**.
+- `reference/.venv/bin/python reference/test_crossval.py` →
+  scikit-learn's LogisticRegression over its own stratified folds gives a
+  mean of 0.9533; the Bend mean is within 0.02 of it. The folds are not
+  the same folds (numpy shuffles with its own generator, we shuffle with
+  bend-kit-random's xoshiro128**), so what agrees is the procedure.
+- `reference/.venv/bin/python reference/test_preprocess.py` → the five
+  transformers match scikit-learn's `StandardScaler`, `MinMaxScaler`,
+  `Normalizer` and `np.eye` to F32 precision.
+- `make check` → see below.
+
+**What was published.**
+- `mlbend-preprocess@0.1.0.0` → `0xa8182854f375cd61135ccd32993993cc`,
+  on the hub and on GitHub under the tag `v0.1.0.0`.
+
+**What was not run.**
+- The kernel check (`--verdict`) of the new package: Lean 4.34.0 is not
+  on this machine, so `mlbend-preprocess`'s law is *checked*, not
+  *proved*, here. CI proves it.
+
+**What I learned (the cost of the day).**
+- bendtorch's `linear` records `x @ W^T`, so the weights are **[out,
+  in]** and the bias a vector of **[out]** — this is in bendtorch's own
+  source (`src/tensor/matmul.bend`, `src/autograd/tensor_backward.bend`),
+  and it is what the 106 was about.
+- A node's value is fixed when it is recorded, so the loss *after* a
+  step is a second forward pass on the stepped tape.
+- A match cannot scrutinize a computed value — not even `Nat.is_eq(a,
+  b)`; a comparison needs its own def or the value has to arrive as a
+  parameter.
+- A record has no field access: `l.before` is not a term.
+- `Bool.pick` evaluates both branches, so it cannot choose between two
+  lists without building both.
+- A `Nat` counter does not shrink by arithmetic the checker can see
+  (`Nat.sub(k, 1n)` is refused as a self-call); it shrinks by being
+  unpacked (`case 1n+rest`, pass `rest`), the way
+  `bend-ml-nat-lemmas` proves `add_comm`. A list shrinks by its tail.
+- `List.range(n)` counts *down*, and `List.append` takes the element
+  type as its second argument.
+
+**What is next.**
+1. `mlbend-split` (v0.4): the fold logic of `examples/crossval` as a
+   package, with the partition law — the sizes add up and no index is in
+   both. `bend-kit-random@0.1.0.1` is the generator, so nothing of ours
+   generates numbers.
+2. The datasets package needs a law (issue #4): "the loader reads the
+   rows the file has" over the bytes, or the honest version of it.
+3. `mlbend-select` (v0.5): k-fold cross-validation on top of the split,
+   as a package rather than as the loop in the example.
+4. `mlbend-cluster` (v0.7): the k-means of `examples/kmeans` promoted to
+   a package, with the law that every point is in exactly one cluster.
+
 ## 2026-10-22 — the preprocess package, and the containers answered
 
 **Where we are.** `mlbend-preprocess` (v0.3, issue #5) is written, checked,
