@@ -1,0 +1,6 @@
+[project]
+name = "mlbend-cluster"
+version = "0.1.0.0"
+description = "k-means, functional: the centres after a fixed number of rounds, and the assignment of every row to its nearest centre."
+
+[dependencies]

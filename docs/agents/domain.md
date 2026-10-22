@@ -26,9 +26,9 @@ what the shape rules are, before it reads a line of Bend.
 | `mlbend-split` (`split/`) | a seeded, deterministic split of the rows, stratified by label | indices over `Mat<r, c>` |
 | `mlbend-select` (`select/`) | k-fold cross-validation on top of the split | indices over `Mat<r, c>` |
 | `mlbend-datasets` (`datasets/`) | the datasets of scikit-learn, fetched from HuggingFace at run time | `Table` |
+| `mlbend-cluster` (`cluster/`) | k-means, functional: the centres after a fixed number of rounds | `List<&2, F32>` rows |
 | `mlbend-huggingface` (`hf/`) | the HuggingFace client the datasets package reads through | bytes and JSON |
 | `mlbend-linear` (planned) | ordinary least squares, ridge, logistic regression | `Model<c, k>` |
-| `mlbend-cluster` (planned) | k-means, functional | `Vec<n>` |
 | `mlbend-pipeline` (planned) | a typed chain of the above | the chain's types |
 
 All of them are one repository: each package is a directory beside this file,

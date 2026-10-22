@@ -19,6 +19,7 @@ members = [
     "preprocess",
     "split",
     "select",
+    "cluster",
 ]
 
 [workspace.dependencies]

@@ -2043,6 +2043,22 @@ sha = "342b22591847de45b3c1b34c9697967f0aca0401f08fdb5855120516326cca71"
 path = "src/tensor/write_contract.bend"
 
 [[package]]
+name = "mlbend-cluster"
+version = "0.1.0.0"
+hash = "0x0c4fbc7d44d2e3e47247a6c1f12c05e0"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "c038abad5250e9c6a5364f414f996a102e4cdcb7f4c4bf04e6ee0f0b58aa0341"
+path = "main.bend"
+
+[[package]]
 name = "mlbend-datasets"
 version = "0.1.4.0"
 hash = "0x805aa9d73de5385dd9f66c3249152265"

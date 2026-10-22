@@ -5,9 +5,9 @@ the types and the structure proved by the kernel.
 
 ## Where things are
 
-- `metrics/`, `preprocess/`, `split/`, `select/`, `datasets/`, `hf/`: the six
+- `metrics/`, `preprocess/`, `split/`, `select/`, `cluster/`, `datasets/`, `hf/`: the seven
   packages (`mlbend-metrics`, `mlbend-preprocess`, `mlbend-split`,
-  `mlbend-select`, `mlbend-datasets`, `mlbend-huggingface`), one repository,
+  `mlbend-select`, `mlbend-cluster`, `mlbend-datasets`, `mlbend-huggingface`), one repository,
   one workspace (`bend.toml`), each published to BendHub. `bendenv` is the
   only piece that lives in a repository of its own: `adeerkhan/bend-env`.
 - `docs/PLAN.md`: the packages, the order and the stop criteria.

@@ -35,6 +35,7 @@ estimator surface on top of it and does not repeat it.
 | [`mlbend-preprocess`](preprocess) | the transformers of scikit-learn: standardize, min-max, one-hot, L1 and L2 normalization | v0.1: written, checked, published |
 | [`mlbend-split`](split) | a seeded, deterministic split of the rows, stratified by label | v0.1.1: written, checked, published |
 | [`mlbend-select`](select) | k-fold cross-validation on top of the split | v0.1: written, checked, published |
+| [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, and one cluster per row | v0.1: written, checked |
 | [`mlbend-datasets`](datasets) | the datasets of scikit-learn, fetched at run time | v0.1.4: written, checked, published |
 | [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the rows server's JSON rows | v0.1.1: written, checked, published |
 
@@ -46,7 +47,7 @@ around them — the estimators, the transformers, the pipelines, the
 metrics and the datasets — and the
 [examples](examples) that use them.
 
-The six packages live here, in this one repository, as the workspace in
+The seven packages live here, in this one repository, as the workspace in
 `bend.toml`; there is no repository per package. `make release PKG=<dir>`
 publishes one to BendHub and records it here under the tag
 `<name>-v<version>`. The package manager, `bendenv`, is the one thing that

@@ -1,13 +1,18 @@
 # The examples
 
-Programs that use the libraries, rather than packages of our own.
-Bend-ml and bendtorch are the libraries: nothing here re-implements
-them.
+Programs that use the libraries and the packages, rather than packages of
+their own. Bend-ml and bendtorch are the libraries: nothing here
+re-implements them.
 
 | Example | What it shows |
 |---|---|
 | [`logistic/main.bend`](logistic/main.bend) | a logistic regression over the iris dataset, fetched from HuggingFace at run time, with bend-ml's tensors and bend-ml's autodiff |
-| [`tape/tape.bend`](tape/tape.bend) | the same model over bendtorch's tape: the forward records the nodes, the backward walks them, the step reads the gradients off the leaves |
+| [`mlp/main.bend`](mlp/main.bend) | a two-layer network with a rectifier, over the same data and the same library: the chain of gradients through both layers |
+| [`tape/tape.bend`](tape/tape.bend) | the logistic model over bendtorch's tape: the forward records the nodes, the backward walks them, the step reads the gradients off the leaves |
+| [`regression/main.bend`](regression/main.bend) | ridge regression over the wine dataset, over bendtorch's tape with `mse_loss` and a weight decay in the step |
+| [`kmeans/main.bend`](kmeans/main.bend) | k-means over the wine dataset, through `mlbend-cluster`, after standardising the columns |
+| [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
+| [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → standardise → logistic regression → stratified folds → accuracy |
 | [`stacks/main.bend`](stacks/main.bend) | the two stacks side by side, over one environment |
 
 ## The logistic example
@@ -31,12 +36,61 @@ which is the step overshooting and not a wrong gradient.
 `mlbend-preprocess`, which standardises, is what makes a larger rate
 sane.
 
+## The MLP example
+
+```console
+$ bendenv run -- bend examples/mlp/main.bend
+loss before: 1.1172239
+loss after:  0.11065235
+accuracy: 0.97333336
+```
+
+Eight rectified hidden units between the features and the three classes,
+400 full-batch steps at 0.5. The forward pass is `AG.linear`,
+`AG.mask.rows` (the rectifier) and `AG.linear` again; the loss is
+`AG.ce_loss`; the backward pass is `AG.ce_grad`, `AG.linear_bwd`,
+`AG.relu_bwd` and `AG.linear_bwd` again; the step is `AG.sgd` and
+`AG.sgd_vec`. The starting weights are a fixed small pattern, so the run
+is reproducible: the weights are varied by place, because zero weights
+would leave the hidden units with no gradient at all.
+
+scikit-learn's `MLPClassifier` with eight hidden units reaches the same
+0.9733 on the same data (`reference/test_mlp.py`); it trains with Adam
+and another initialisation, so what agrees is the result, not the path.
+
 ## The tape example
 
-The same model, over bendtorch's tape. It compiles and runs: the data,
-the weights and the bias are built, the leaves go on the tape, and the
-loss reads back from it. The `linear` node still refuses the operands —
-error 106, an inner dimension mismatch — so the shape convention of the
-weights (PyTorch's `[out, in]` or the mathematical `[in, out]`) and the
-rank of the bias are not settled yet. `bendtorch`'s own MNIST demo is the
-reference for both.
+The same logistic model, over bendtorch's tape. It compiles and runs: the
+data, the weights and the bias are built, the leaves go on the tape, and
+the loss reads back from it. The weights are `[out, in]` (PyTorch's
+layout) and the bias is `[out]`, so the tape's `linear` accepts them; the
+losses of the step agree with `examples/logistic`'s to F32 precision.
+
+## The regression example
+
+Ridge regression over the wine dataset, on bendtorch's tape. The features
+and the target are standardised, the forward is `linear`, the loss is
+`mse_loss`, and the step is `sgd` over the weights and the bias, with a
+weight decay applied to the gradient. The MSE is compared with
+scikit-learn's `Ridge` (`reference/test_regression.py`).
+
+## The k-means example
+
+The wine dataset, standardised, clustered by `mlbend-cluster` into three
+clusters for ten rounds. The example only holds the data and the
+standardising; the algorithm lives in the package, where every row is
+proved to get exactly one cluster.
+
+## The cross-validation example
+
+The whole chain: the iris dataset comes from HuggingFace, the features are
+standardised by `mlbend-preprocess`, the model is trained with bend-ml's
+autodiff, the folds come from `mlbend-select` over `mlbend-split`, and the
+score is `mlbend-metrics`. The program adds the loop over the folds and
+nothing else.
+
+## The stacks example
+
+bend-ml's tensors and bendtorch's tensors in one program, resolved by one
+lockfile and materialized into one environment. A broken environment shows
+up as a missing import rather than as a silent difference.
