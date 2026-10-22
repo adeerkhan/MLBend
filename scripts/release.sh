@@ -8,11 +8,12 @@
 #
 #   1. the package's files are published to the hub, and the name and
 #      the version are linked to the hash the hub gives;
-#   2. the same files are pushed to the package's own GitHub repository,
-#      with a tag of the same version.
+#   2. the release is committed here, in this one repository, and tagged
+#      <name>-v<version>; the branch and the tag are pushed to origin.
 #
-# The GitHub repository and the hub therefore hold the same bytes at the
-# same version, and the hub's hash is the identity of both.
+# There is no repository per package: every package is a directory of this
+# one. The hub's hash is the identity of the published bytes, and the tag
+# is the point in this repository's history at which they went out.
 #
 # The hub's names are four numbers and never move: a change is a new
 # version, and a published version is public and permanent.
@@ -47,6 +48,16 @@ if [ ! -x "$BENDENV" ]; then
 fi
 
 echo "== $name $version"
+
+# a release is a commit of this repository: fix_versions.py below writes the
+# sibling versions, so the tree must hold nothing else when it runs
+cd "$ROOT"
+if [ -n "$(git status --porcelain)" ]; then
+  echo "the working tree is not clean: commit or stash before a release" >&2
+  git status --short >&2
+  exit 1
+fi
+
 echo "-- the sibling versions"
 # a sibling that moved takes its import with it, or the program reads the
 # published sibling rather than the one beside it
@@ -77,36 +88,19 @@ if [ "${SKIP_LINK:-0}" != "1" ]; then
   fi
 fi
 
-echo "-- github"
-REPO="$HOME/github/bend/$name"
-if [ ! -d "$REPO/.git" ]; then
-  echo "no checkout of the repository at $REPO" >&2
-  exit 1
-fi
-# the package's files, and nothing else: the same set the hub holds
-rm -rf "$REPO/.files"
-mkdir -p "$REPO/.files"
-for f in "$DIR"/*; do
-  base="$(basename "$f")"
-  case "$base" in
-    tests) continue ;;
-    bend.toml) continue ;;
-  esac
-  cp -r "$f" "$REPO/.files/"
-done
-cd "$REPO"
-rm -rf -- *
-mv .files/* . 2>/dev/null || true
-rmdir .files 2>/dev/null || true
-cp "$MANIFEST" ./bend.toml
+echo "-- git"
+cd "$ROOT"
+tag="$name-v$version"
+# the sibling versions fix_versions.py rewrote, and the package, are the
+# release: the tree was clean when the publish started, so this is all of it
 git add -A
 if git diff --cached --quiet; then
-  echo "the repository is already at these files"
+  echo "this version is already committed"
 else
   git -c user.name="adeerkhan" -c user.email="adeerkhan@users.noreply.github.com" \
     commit -q -m "$name $version: the release of $name"
 fi
-git tag -f "v$version" -m "$name $version" >/dev/null
+git tag -f "$tag" -m "$name $version" >/dev/null
 git push -q origin HEAD
-git push -q -f origin "refs/tags/v$version"
-echo "pushed $name $version to github and to the hub ($hash)"
+git push -q -f origin "refs/tags/$tag"
+echo "$name $version is on the hub ($hash) and tagged $tag on GitHub"
