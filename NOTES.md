@@ -21,12 +21,23 @@ relevant entry before changing performance-sensitive code or a law.
     four features) and the bias as `[3]`, and standardises the features
     through `mlbend-preprocess` so it trains the same model as
     `examples/logistic`.
-  - **What still fails**: the tape example refuses with 106, an inner
-    dimension mismatch, and the refusal comes from the *matrix* layer
-    rather than from the shape of the operands as documented. The next
-    step is to read the shapes back out of the tensors (bendtorch keeps
-    them in `Core.shape`, whose second component is a dependent pair) and
-    compare them with what the tape recorded.
+  - **The 106 was the shape, after all.** bendtorch's `linear` records
+    `x @ W^T`, so the inner dimensions are x's columns and W's columns:
+    with the data of [150, 4] the weights must be [3, 4] and not [4, 3].
+    The bias is [3], a vector of the outputs. With the shapes right the
+    refusal is gone.
+  - **A node's value is fixed when it is recorded.** The loss *after* the
+    step is therefore a second forward pass on the stepped tape: the step
+    writes the new weights into the leaves, and a recording after it
+    reads them ("Recording an operation after a step reads the new
+    values", as bendtorch's sgd.bend says). bendtorch's own MNIST demo
+    rebuilds the tape each step for the same reason.
+  - **The two stacks agree.** `examples/tape` (bendtorch) and
+    `examples/logistic` (bend-ml) train the same model on the same
+    standardised iris data with a learning rate of 0.5, and the losses
+    agree to F32 precision: 1.0986128 before, 0.7287295 and 0.7287296
+    after (`reference/test_tape.py`). Two independent libraries, one
+    gradient step.
 
 - **`mlbend-preprocess` (v0.3, issue #5).** The transformers of
   scikit-learn over **bend-ml's** matrix: `Mat<r, c>` from
