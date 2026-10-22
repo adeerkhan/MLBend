@@ -7,6 +7,53 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-22 — the preprocess package, and the containers answered
+
+**Where we are.** `mlbend-preprocess` (v0.3, issue #5) is written, checked,
+published to the hub (`0xa8182854f375cd61135ccd32993993cc`) and on GitHub
+under the tag `v0.1.0.0`. The transformers are standardize, min-max, L1
+and L2 normalisation and one-hot, and they run over **bend-ml's** matrix
+(`bend-ml-tensor`'s `Mat<r, c>`) — not over a container of ours. The
+logistic example now standardises its features, so the learning rate of
+0.5 is sane.
+
+**What was run.**
+- `bend preprocess/main.bend --check-only` → `ALL PROOFS CHECK`.
+- `bend preprocess/tests/ok.bend` → the standardised, min-maxed, L1 and
+  L2 normalised and one-hot matrices, and the number of rows of the
+  one-hot, matching the `#|` block pinned in the file.
+- `reference/.venv/bin/python reference/test_preprocess.py` → the numbers
+  match scikit-learn's `StandardScaler`, `MinMaxScaler`, `Normalizer`
+  (l1 and l2) and `np.eye`, to the precision of an F32.
+- `bend -o /tmp/logistic examples/logistic/main.bend && /tmp/logistic` →
+  `loss before: 1.0986128`, then `0.7287295`, `0.6035278`, `0.5403903`
+  at a learning rate of 0.5. On the raw features that rate makes the
+  loss rise.
+
+**What was not run.**
+- The kernel check (`--verdict`) of the new package: Lean 4.34.0 is not
+  on this machine. CI proves it.
+- `make check` end to end after the last commits; it was green before
+  them (run 39641765719, 31/31).
+
+**What I learned.**
+- A transformer over `Mat<r, c>` must declare `+r: Nat, +c: Nat`
+  (linear): bend-ml's `transpose` and `layernorm` take the width as a
+  runtime argument, and the dimensions are erased type parameters.
+- `List.replicate` and a "replace the nth element" fold are the cheap
+  way to build a one-hot row; a counter is never a decreasing argument.
+
+**What is next.**
+1. `mlbend-split` (v0.4): a seeded, stratified split, with the partition
+   law — the first law about the data rather than about arithmetic, and
+   the first one the kernel can prove.
+2. The bendtorch tape path (`examples/tape/tape.bend`): the weight
+   orientation and the rank of the bias are still unsettled, and the
+   reference is `bendtorch/examples/mnist/train.bend`.
+3. `mlbend-cluster` (v0.7): the k-means of `examples/kmeans/main.bend`
+   promoted to a package, with the law that every point is in exactly
+   one cluster.
+
 ## 2026-10-21 — the datasets, and k-means over one of them
 
 **Where we are.** The datasets package grew a generic CSV loader, and four

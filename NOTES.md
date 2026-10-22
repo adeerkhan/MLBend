@@ -3,6 +3,44 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-22
+
+- **`mlbend-preprocess` (v0.3, issue #5).** The transformers of
+  scikit-learn over **bend-ml's** matrix: `Mat<r, c>` from
+  `bend-ml-tensor`, the one bend-ml's autodiff takes. MLBend writes no
+  matrix of its own.
+  - The standardiser is bend-ml's own arithmetic: a column-wise
+    normalisation is `Mat.transpose`, then `Mat.layernorm` (which
+    centres a row and scales it by its own standard deviation), then
+    `Mat.transpose` back. The layernorm's variance is the population
+    one (divided by the count), the same as scikit-learn's.
+  - The numbers match scikit-learn's `StandardScaler`,
+    `MinMaxScaler`, `Normalizer` (l1 and l2) and `np.eye` on the same
+    matrix, to the precision of an F32 (`reference/test_preprocess.py`).
+  - What is proved: the one-hot matrix has one row for every label
+    (`one_hot_count_length`, an induction over the labels). What is
+    only tested: the values, because F32 is opaque to the checker.
+    "The standardised column has mean 0 and variance 1" is the debt of
+    the issue.
+  - `Mat.transpose` and `Mat.layernorm` take the *width* as a runtime
+    argument, so a generic transformer over `Mat<r, c>` has to declare
+    `+r: Nat, +c: Nat` (linear) — the dimensions are erased type
+    parameters, and a transformer that needs them at run time cannot
+    have them erased.
+- **The logistic example standardises its features (2026-10-22).** With
+  the standardiser the learning rate of 0.5 is sane: the loss goes
+  1.0986128, 0.7287295, 0.6035278, 0.5403903. On the raw features (which
+  run from 0.1 to 7) that same rate overshoots and the loss *rises* —
+  the step overshooting, not a wrong gradient.
+- **Issue #2 (the containers) is answered by the work.** The matrix is
+  bend-ml's `bend-ml-tensor` `Mat`: it is a list of rows with the
+  dimensions in the type, it is the one `bend-ml-autograd` takes (so
+  the estimators can feed a model without a copy), and it has
+  `col_sums`, `to_rows`, `transpose` and `layernorm` — everything the
+  transformers need. The flat `bend-ml-tensor-array` is a *different*
+  `Mat` type: using it would mean a second matrix in the ecosystem,
+  which `docs/PLAN.md` forbids.
+
 ## 2026-10-21
 
 - **The CI was red before this session, and the reason was the verdict.**
