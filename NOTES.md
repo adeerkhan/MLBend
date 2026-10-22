@@ -3,6 +3,34 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-23
+
+- **The tape accumulates gradients until `zero_grad` (2026-10-23).** A
+  backward pass in bendtorch adds its contribution to each working slot, and
+  `Sgd.step` keeps the slot after it steps (`Backward.zero_grad` is what
+  empties it). A training loop that calls `backward` and `step` without
+  `zero_grad` therefore applies the sum of every gradient so far: the first
+  regression run printed 0.9000 after 200 steps at 0.1 and 0.9293 after 1000
+  steps at 0.3 — more steps, worse loss, because the step was growing. With
+  `Backward.zero_grad(tape)` after each step the same run reaches **0.7078516**
+  where scikit-learn's `LinearRegression` gives **0.7078631**
+  (`reference/test_regression.py`). The one-step `examples/tape` had hidden
+  this: one backward, one step, nothing to accumulate.
+- **The two-layer network is the rectifier's chain (2026-10-23).** A hidden
+  layer of eight rectified units over iris, trained with `AG.linear`,
+  `AG.mask.rows`, `AG.linear`, `AG.ce_loss`, `AG.ce_grad`,
+  `AG.linear_bwd`, `AG.relu_bwd` and `AG.linear_bwd` again, reaches accuracy
+  **0.9733** after 400 steps at 0.5, the same accuracy scikit-learn's
+  `MLPClassifier(hidden_layer_sizes=(8,))` reaches on the same data. The
+  starting weights are a fixed small pattern: all-zero weights leave the
+  hidden units with a zero gradient, because the gradient of the rectifier at
+  zero is zero.
+- **k-means is a package now (2026-10-23).** `mlbend-cluster@0.1.0.0` carries
+  the Lloyd rounds, the assignment and the inertia from `examples/kmeans`,
+  with the law `cluster_covers` (one label per row). The example that read the
+  wine dataset keeps only the data and the standardising, and the numbers did
+  not move: inertia 50645.64, sizes 2384 990 3123.
+
 ## 2026-10-22
 
 - **48/48 on the consolidated tree (2026-10-22).** `make check` after the six
