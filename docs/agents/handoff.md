@@ -47,9 +47,11 @@ logistic example now standardises its features, so the learning rate of
 1. `mlbend-split` (v0.4): a seeded, stratified split, with the partition
    law — the first law about the data rather than about arithmetic, and
    the first one the kernel can prove.
-2. The bendtorch tape path (`examples/tape/tape.bend`): the weight
-   orientation and the rank of the bias are still unsettled, and the
-   reference is `bendtorch/examples/mnist/train.bend`.
+2. The bendtorch tape path (`examples/tape/tape.bend`): the shapes are
+   settled (the weight is [out, in], the bias is [out] — see NOTES.md),
+   and the example now builds them so, but it still refuses with 106.
+   The next step is to read the shapes back out of the tensors and
+   compare them with what the tape recorded.
 3. `mlbend-cluster` (v0.7): the k-means of `examples/kmeans/main.bend`
    promoted to a package, with the law that every point is in exactly
    one cluster.

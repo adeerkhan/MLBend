@@ -67,6 +67,11 @@ def strip_strings(text: str) -> str:
     return re.sub(r'"[^"]*"', '""', text)
 
 
+def strip_comments(text: str) -> str:
+    """The text without its comments: a name in a comment is not a read."""
+    return "\n".join(re.sub(r"#.*$", "", l) for l in text.split("\n"))
+
+
 def rewrite_params(params: str, body: str) -> str:
     """The parameters of a def, with the twice-read ones made reusable."""
     parts = split_params(params)
@@ -74,7 +79,7 @@ def rewrite_params(params: str, body: str) -> str:
         nm = name_of(part)
         if nm is None or part.strip().startswith("+"):
             continue
-        reads = len(re.findall(r"\b%s\b" % re.escape(nm), strip_strings(body)))
+        reads = len(re.findall(r"\b%s\b" % re.escape(nm), strip_strings(strip_comments(body))))
         if reads > 1:
             lead = part[: len(part) - len(part.lstrip())]
             parts[k] = lead + "+" + part.lstrip()
@@ -108,7 +113,7 @@ def rewrite_cases(text: str) -> str:
             if line2.strip() and (len(line2) - len(line2.lstrip())) <= indent:
                 break
             arm.append(line2)
-        block = strip_strings("\n".join(arm))
+        block = strip_strings(strip_comments("\n".join(arm)))
         changed = []
         for nm, part in binders:
             reads = len(re.findall(r"\b%s\b" % re.escape(nm), block))

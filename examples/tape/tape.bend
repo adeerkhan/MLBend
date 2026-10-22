@@ -13,14 +13,26 @@
 #
 # The nodes of the tape: the weights are leaf 0, the bias leaf 1, the
 # data leaf 2, the logits node 3 and the loss node 4.
+#
+# bendtorch's `linear` records `x @ W^T` with the weights of [out, in]
+# (PyTorch's layout) and the bias of [out]: so the weights here are three
+# rows of four (three classes, four features) and the bias is three
+# numbers.
+#
+# The features are standardised by `mlbend-preprocess`, over bend-ml's
+# matrix, so that this program and `examples/logistic` train the same
+# model on the same data and can be compared.
 import Base
 import bendtorch-core@0.1.0.0/src/tensor/core.bend as Core
 import bendtorch-core@0.1.0.0/src/autograd/tensor_backward.bend as Backward
 import bendtorch-core@0.1.0.0/src/autograd/sgd.bend as Sgd
+import bend-ml-tensor@0.1.0.0/main.bend as T
 import mlbend-datasets@0.1.4.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
+import mlbend-preprocess@0.1.0.0/main.bend as P
 
 # The model: the weights of the layer and its bias.
+
 type Model is Type:
   Model{weights: Core.Dynamic, bias: Core.Dynamic}
 
@@ -42,9 +54,13 @@ type Err is Data:
 def add_row(acc: List<&2, F32>, row: List<&2, F32>) -> List<&2, F32>:
   List.append(&2, F32, acc, row)
 
+# One label, as the class index the tape wants.
+def target_of(+label: F32) -> U32:
+  U32.from_nat(U32.to_nat(F32.to_u32(label)))
+
 # count numbers, all zero.
-def add_target(acc: List<&2, U32>, n: Nat) -> List<&2, U32>:
-  List.append(&2, U32, acc, U32.from_nat(n) <> Nil{})
+def add_target(acc: List<&2, U32>, n: F32) -> List<&2, U32>:
+  List.append(&2, U32, acc, target_of(n) <> Nil{})
 
 def add_zero(acc: List<&2, F32>, n: Nat) -> List<&2, F32>:
   List.append(&2, F32, acc, 0.0 <> Nil{})
@@ -148,7 +164,7 @@ def flat_of(rows: List<&2, List<&2, F32>>) -> List<&2, F32>:
   List.foldl(&2, List<&2, F32>, List<&2, F32>, add_row, rows, Nil{})
 
 # One row's numbers, appended to the numbers so far.
-def data_of(rows: List<&2, List<&2, F32>>) -> Result<&2, &1, Core.Error, Core.Dynamic>:
+def data_of(+rows: List<&2, List<&2, F32>>) -> Result<&2, &1, Core.Error, Core.Dynamic>:
   Core.construct([150, 4], flat_of(rows))
 
 # The weights as bendtorch's own tensor: four rows of three, all zero.
@@ -204,7 +220,7 @@ def step_of(t: Tape, lr: F32) -> Result<&1, &1, Err, (F32 & Tape)>:
 
 # The loss before the step, and the tape to step.
 def second(t: Tape, before: F32) -> String:
-  again(step_of(t, 0.01), before)
+  again(step_of(t, 0.5), before)
 
 # The second step, and the two losses.
 def first(r: Result<&1, &1, Err, (F32 & Tape)>) -> String:
@@ -217,11 +233,17 @@ def first(r: Result<&1, &1, Err, (F32 & Tape)>) -> String:
 
 # The step again, and the loss before it.
 def training(t: Tape) -> String:
-  first(step_of(t, 0.01))
+  first(step_of(t, 0.5))
 
 # The first step, and the loss before it.
 def show_tape(t: Result<&1, &1, Err, Tape>) -> IO(Unit):
   match t:
+    case Fail{ErrBackward{error}}:
+      IO.print(String.append("the tape failed: ", U32.show(Backward.error_code(error))))
+    case Fail{ErrSgd{error}}:
+      IO.print(String.append("the step failed: ", U32.show(Sgd.error_code(error))))
+    case Fail{ErrCore{code}}:
+      IO.print(String.append("the tensor failed: ", U32.show(code)))
     case Fail{e}:
       IO.print("the tape failed")
     case Done{tape}:
@@ -269,11 +291,11 @@ def tape_of_rows(rows: List<&2, List<&2, F32>>, targets: List<&2, U32>) ->
   with_data(data_of(rows), targets)
 
 # The tape, with the data to go.
-def targets_of(labels: List<&2, Nat>) -> List<&2, U32>:
-  List.foldl(&2, Nat, List<&2, U32>, add_target, labels, Nil{})
+def targets_of(+labels: List<&2, F32>) -> List<&2, U32>:
+  List.foldl(&2, F32, List<&2, U32>, add_target, labels, Nil{})
 
 # One label, appended to the labels so far.
-def show_rows(+rows: List<&2, List<&2, F32>>, +labels: List<&2, Nat>) -> IO(Unit):
+def show_rows(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>) -> IO(Unit):
   show_tape(tape_of_rows(rows, targets_of(labels)))
 
 def show_table(t: Datasets.Table) -> IO(Unit):

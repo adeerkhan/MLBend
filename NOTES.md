@@ -5,6 +5,29 @@ relevant entry before changing performance-sensitive code or a law.
 
 ## 2026-10-22
 
+- **bendtorch's shapes are settled (2026-10-22).** The question the
+  handoff carried — the weight orientation and the rank of the bias — is
+  answered by bendtorch's own source, not by guessing:
+  - `src/tensor/matmul.bend`: "x @ W^T for x of [rows, inner] and W of
+    [columns, inner]: cell (row, column) adds x[row, k] * W[column, k]".
+    So the weight is **[out, in]** (PyTorch's layout) and the input is
+    [rows, in].
+  - `src/autograd/tensor_backward.bend`: "Linear: records x @ W^T with W
+    of [out, in], PyTorch's layout, then adds the bias b of [out] to
+    every row." So the bias is a **vector of [out]**.
+  - The MNIST demo agrees: `weight1 [128, 784]`, `bias1 [128]`,
+    `weight2 [10, 128]`, `bias2 [10]`.
+  - The tape example now builds the weights as `[3, 4]` (three classes,
+    four features) and the bias as `[3]`, and standardises the features
+    through `mlbend-preprocess` so it trains the same model as
+    `examples/logistic`.
+  - **What still fails**: the tape example refuses with 106, an inner
+    dimension mismatch, and the refusal comes from the *matrix* layer
+    rather than from the shape of the operands as documented. The next
+    step is to read the shapes back out of the tensors (bendtorch keeps
+    them in `Core.shape`, whose second component is a dependent pair) and
+    compare them with what the tape recorded.
+
 - **`mlbend-preprocess` (v0.3, issue #5).** The transformers of
   scikit-learn over **bend-ml's** matrix: `Mat<r, c>` from
   `bend-ml-tensor`, the one bend-ml's autodiff takes. MLBend writes no
