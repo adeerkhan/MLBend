@@ -5,6 +5,20 @@ relevant entry before changing performance-sensitive code or a law.
 
 ## 2026-10-22
 
+- **One repository for the six packages (2026-10-22).** The per-package
+  `mlbend-*` repositories were a mistake in shape, not in content: the packages
+  were always developed side by side in the workspace `bend.toml`, and the
+  release script existed only to copy each directory into a repository of its
+  own. A package's identity is its name and version on BendHub, not a
+  repository; the commit and the tag `<name>-v<version>` here record where the
+  published bytes came from. `bend-env` keeps its repository because it is a
+  tool, not a package, and is consumed by checkout rather than by the hub.
+- **The one file that had drifted.** The datasets README was newer in the
+  standalone clone than in `datasets/`: the four-dataset table, the `Table`
+  type and the `drop` argument were only there. The package's `main.bend` was
+  identical in both places, so the hub hash was never in question; the README
+  is merged now.
+
 - **bendtorch's shapes are settled (2026-10-22).** The question the
   handoff carried — the weight orientation and the rank of the bias — is
   answered by bendtorch's own source, not by guessing:

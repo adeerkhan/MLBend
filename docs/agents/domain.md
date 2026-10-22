@@ -19,17 +19,21 @@ what the shape rules are, before it reads a line of Bend.
 
 ## The packages
 
-| Package | What it is | The shape it uses |
+| Package (`directory`) | What it is | The shape it uses |
 |---|---|---|
-| `mlbend-metrics` | the evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts | `List<&2, F32>` and `List<&2, Nat>` (the values may be read twice) |
-| `mlbend-linalg` (v0.2) | `Vec<n>`, `Mat<r, c>` and the inner-product lemmas | `Mat<r, c>` |
-| `mlbend-preprocess` (v0.3) | standardize, min-max, one-hot, L1 and L2 normalization | `Mat<r, c>` |
-| `mlbend-split` (v0.4) | a seeded, deterministic train/test split | indices over `Mat<r, c>` |
-| `mlbend-linear` (v0.5) | ordinary least squares, ridge, logistic regression | `Model<c, k>` |
-| `mlbend-cluster` (v0.6) | k-means, functional | `Vec<n>` |
-| `mlbend-pipeline` (v0.7) | a typed chain of the above | the chain's types |
-| `mlbend-datasets` (v0.8) | the fetchers, as effects | `Mat<r, c>` |
-| `mlbend-select` (v0.9) | k-fold cross-validation | over the split |
+| `mlbend-metrics` (`metrics/`) | the evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts | `List<&2, F32>` and `List<&2, Nat>` (the values may be read twice) |
+| `mlbend-preprocess` (`preprocess/`) | standardize, min-max, one-hot, L1 and L2 normalization | `Mat<r, c>` |
+| `mlbend-split` (`split/`) | a seeded, deterministic split of the rows, stratified by label | indices over `Mat<r, c>` |
+| `mlbend-select` (`select/`) | k-fold cross-validation on top of the split | indices over `Mat<r, c>` |
+| `mlbend-datasets` (`datasets/`) | the datasets of scikit-learn, fetched from HuggingFace at run time | `Table` |
+| `mlbend-huggingface` (`hf/`) | the HuggingFace client the datasets package reads through | bytes and JSON |
+| `mlbend-linear` (planned) | ordinary least squares, ridge, logistic regression | `Model<c, k>` |
+| `mlbend-cluster` (planned) | k-means, functional | `Vec<n>` |
+| `mlbend-pipeline` (planned) | a typed chain of the above | the chain's types |
+
+All of them are one repository: each package is a directory beside this file,
+and `bend.toml` at the root is the workspace that lists them. There is no
+`mlbend-linalg`: the tensors and the lemmas are `bend-ml`'s and the kit's.
 
 The order and the stop criteria are in `docs/PLAN.md`.
 

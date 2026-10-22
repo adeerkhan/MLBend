@@ -7,6 +7,44 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-22 — one repository for the six packages
+
+**Where we are.** The six hub packages — `mlbend-metrics`,
+`mlbend-preprocess`, `mlbend-split`, `mlbend-select`, `mlbend-datasets`,
+`mlbend-huggingface` — are directories of this repository, in the workspace
+`bend.toml`, and nothing else. The per-package GitHub repositories
+(`adeerkhan/mlbend-*`) are redundant and are being deleted; `bend-env` stays
+in a repository of its own, because it is the package manager and not a
+package.
+
+**What changed.**
+- `scripts/release.sh` no longer copies a package into a repository of its
+  own. It publishes to the hub, commits the released tree here (after
+  refusing to start on a dirty tree), tags it `<name>-v<version>` and pushes
+  the branch and the tag to `origin`. Tags already given per package
+  (`v0.1.0.0`) would collide here; the name is in the tag now.
+- The released versions of the six packages are tagged in this repository at
+  the commit whose package directory holds the published bytes:
+  `mlbend-metrics-v0.1.0.0`, `mlbend-preprocess-v0.1.0.0`,
+  `mlbend-split-v0.1.1.0`, `mlbend-select-v0.1.0.0`,
+  `mlbend-datasets-v0.1.4.0`, `mlbend-huggingface-v0.1.1.0`.
+- The datasets README was the one file newer in the standalone repository
+  (the four datasets, the `Table` type, the `drop` argument); it is here now,
+  so both trees hold the same bytes.
+- `README.md`, `AGENTS.md` and `docs/agents/domain.md` list all six packages
+  and say there is one repository; the stale `mlbend-linalg` row is gone.
+- `mlbend-datasets/data/` — the 132 KB of CSVs from the old design — was
+  removed; the loader fetches the files at run time.
+
+**What was run.** `bash -n scripts/release.sh` and
+`python3 scripts/fix_versions.py` → every sibling import holds its current
+version. `make check` ran on this tree: no Bend source moved, only the
+datasets README, the release script and the maps.
+
+**What is next.** Delete the six `adeerkhan/mlbend-*` GitHub repositories;
+their history is in this repository and their published bytes are on the hub.
+`make release PKG=<dir>` is the only release path from here.
+
 ## 2026-10-22 — the split and the select, and the plan's v0.9 reached
 
 **Where we are.** Three of the plan's items are now done. The

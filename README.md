@@ -32,8 +32,11 @@ estimator surface on top of it and does not repeat it.
 | Package | What it is | Status |
 |---|---|---|
 | [`mlbend-metrics`](metrics) | the evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | v0.1: written, checked, one law proved |
-| [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the rows server's JSON rows | v0.1: written, checked, published |
-| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, fetched at run time | v0.1: written, checked, published |
+| [`mlbend-preprocess`](preprocess) | the transformers of scikit-learn: standardize, min-max, one-hot, L1 and L2 normalization | v0.1: written, checked, published |
+| [`mlbend-split`](split) | a seeded, deterministic split of the rows, stratified by label | v0.1.1: written, checked, published |
+| [`mlbend-select`](select) | k-fold cross-validation on top of the split | v0.1: written, checked, published |
+| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, fetched at run time | v0.1.4: written, checked, published |
+| [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the rows server's JSON rows | v0.1.1: written, checked, published |
 
 The tensors and the autodiff are **not** ours: they are
 [bend-ml](https://github.com/nuxyel/bend-ml)'s and
@@ -43,7 +46,13 @@ around them — the estimators, the transformers, the pipelines, the
 metrics and the datasets — and the
 [examples](examples) that use them.
 
-More are planned; the order and the stop criteria are in [`docs/PLAN.md`](docs/PLAN.md).
+The six packages live here, in this one repository, as the workspace in
+`bend.toml`; there is no repository per package. `make release PKG=<dir>`
+publishes one to BendHub and records it here under the tag
+`<name>-v<version>`. The package manager, `bendenv`, is the one thing that
+stays in its own repository ([bend-env](https://github.com/adeerkhan/bend-env)).
+
+More packages are planned; the order and the stop criteria are in [`docs/PLAN.md`](docs/PLAN.md).
 
 ## What is proved, and what is trusted
 

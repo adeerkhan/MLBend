@@ -5,7 +5,11 @@ the types and the structure proved by the kernel.
 
 ## Where things are
 
-- `metrics/`: the first package (`mlbend-metrics`), published to BendHub.
+- `metrics/`, `preprocess/`, `split/`, `select/`, `datasets/`, `hf/`: the six
+  packages (`mlbend-metrics`, `mlbend-preprocess`, `mlbend-split`,
+  `mlbend-select`, `mlbend-datasets`, `mlbend-huggingface`), one repository,
+  one workspace (`bend.toml`), each published to BendHub. `bendenv` is the
+  only piece that lives in a repository of its own: `adeerkhan/bend-env`.
 - `docs/PLAN.md`: the packages, the order and the stop criteria.
 - `docs/AUDIT.md`: what is proved, what is tested, what is trusted.
 - `NOTES.md`: every finding and every discarded hypothesis, by date.
@@ -54,7 +58,8 @@ here would be wrong tomorrow.
 Work on `devel`: every commit and push goes there, and CI checks it. `main`
 only receives releases, through a pull request `devel` → `main` merged after
 its CI passes; the version tag and the GitHub release are made on `main` after
-that merge.
+that merge. A *package* release (`make release PKG=<dir>`) publishes to BendHub
+and tags the commit it released in this repository as `<name>-v<version>`.
 
 ## Rules
 
