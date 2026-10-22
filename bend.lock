@@ -2069,3 +2069,19 @@ path = "LICENSE"
 [[package.files]]
 sha = "603ce9258cd251b67a3710196423d8f5ba53716be33ae2d3faabe369005d1c61"
 path = "main.bend"
+
+[[package]]
+name = "mlbend-preprocess"
+version = "0.1.0.0"
+hash = "0xa8182854f375cd61135ccd32993993cc"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "c726c7a0524d23119fe11f22345f234ad74873d3c00c8eb3126dfa39da24c792"
+path = "main.bend"

@@ -1,0 +1,7 @@
+[project]
+name = "mlbend-preprocess"
+version = "0.1.0.0"
+description = "The transformers of scikit-learn: standardize, min-max, one-hot, L1 and L2 normalization, over bend-ml's matrix."
+
+[dependencies]
+bend-ml-tensor = "0.1.0.0"

@@ -16,6 +16,7 @@ members = [
     "metrics",
     "hf",
     "datasets",
+    "preprocess",
 ]
 
 [workspace.dependencies]
