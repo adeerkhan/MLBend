@@ -7,6 +7,63 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-23 — the cluster package, and two more examples
+
+**Where we are.** The seven packages now include `mlbend-cluster` (k-means),
+and two examples sit beside the existing ones: a two-layer network on
+bend-ml and a linear regression on bendtorch's tape. `examples/kmeans` no
+longer holds the algorithm; it holds the data and the standardising, and the
+clustering is the package's.
+
+**What was published.**
+- `mlbend-cluster@0.1.0.0` → `0x0c4fbc7d44d2e3e47247a6c1f12c05e0`, on the hub
+  and tagged `mlbend-cluster-v0.1.0.0` in this repository. Its law,
+  `cluster_covers` (every row gets exactly one cluster), is checked by Bend's
+  checker. The package imports only Base, so the kernel has no foreign code to
+  refuse — unlike the split and the select, whose verdict carries
+  bend-kit-random's two operating-system defs.
+
+**What was run.**
+- `make check` → **56/56 checks passed**: the six older packages and the
+  cluster, the refused programs, the pinned outputs, and every NumPy and
+  scikit-learn comparison, including the new `test_cluster.py`,
+  `test_mlp.py` and `test_regression.py`.
+- `examples/mlp`: loss 1.1172239 → 0.11065235, accuracy **0.9733**, against
+  scikit-learn's `MLPClassifier(hidden_layer_sizes=(8,))` on the same data,
+  also 0.9733.
+- `examples/regression`: MSE 1.0000114 → **0.7078516**, against
+  scikit-learn's `LinearRegression` at **0.7078631** (0.002 % apart).
+- `examples/kmeans` through the package: inertia **50645.64**, sizes
+  **2384 990 3123** — the numbers it had before the move.
+- A resolution check with `BEND_LIB` unset: `cluster/tests/ok.bend` builds and
+  runs against the hub's copy, so CI does not depend on a local workspace.
+
+**What was not run.** The kernel `--verdict`: Lean 4.34.0 is not installed
+here, so CI runs it. The cluster's laws are checked by the checker and the
+verdict is expected to certify them, because the package holds no foreign
+code; I have not seen that verdict on this machine.
+
+**What I learned.**
+- bendtorch's backward accumulates into the slots, and `Sgd.step` keeps the
+  slot, so a training loop needs `Backward.zero_grad` between steps. Without
+  it, 1000 steps ended at 0.9293 where 200 ended at 0.9000: more steps,
+  worse loss. `NOTES.md` has the detail.
+- A rectified network cannot start from zero weights: the gradient of the
+  rectifier at zero is zero, so the hidden units never move. The example
+  starts from a fixed small pattern and is reproducible.
+
+**What is next.**
+1. `mlbend-linear` (v0.6): ordinary least squares, ridge and logistic
+   regression as a package. `examples/regression` is the prototype and
+   `examples/logistic` the second.
+2. `mlbend-pipeline` (v0.8): the typed chain of the transformers and an
+   estimator.
+3. The standardising is written three times now (`kmeans`, `regression`, and
+   `crossval`), in list form. Either it moves into a package of its own or the
+   two examples move onto `mlbend-preprocess` over bend-ml's matrix; decide
+   when the pipeline lands, because the pipeline is the thing that would
+   absorb it.
+
 ## 2026-10-22 — one repository for the six packages
 
 **Where we are.** The six hub packages — `mlbend-metrics`,
