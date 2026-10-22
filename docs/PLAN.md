@@ -43,7 +43,7 @@ both) is the open part: the count that depends on an element's *value*
 cannot be lifted to the shape the checker wants, which is the same wall
 issue #1 records for the metrics' accounting law.
 
-**v0.7 is written** (2026-10-22), before v0.6: `mlbend-cluster`, the k-means
+**v0.7 is written and published** (2026-10-23), before v0.6: `mlbend-cluster`, the k-means
 from `examples/kmeans` promoted to a package, with the law that every row
 gets exactly one cluster, and the example rewritten on top of it. The order
 of the table is the order of the work, not a dependency: k-means needed only

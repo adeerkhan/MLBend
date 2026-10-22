@@ -38,10 +38,11 @@ clustering is the package's.
 - A resolution check with `BEND_LIB` unset: `cluster/tests/ok.bend` builds and
   runs against the hub's copy, so CI does not depend on a local workspace.
 
-**What was not run.** The kernel `--verdict`: Lean 4.34.0 is not installed
-here, so CI runs it. The cluster's laws are checked by the checker and the
-verdict is expected to certify them, because the package holds no foreign
-code; I have not seen that verdict on this machine.
+**What CI ran.** The kernel `--verdict` is not installed here (no Lean 4.34.0),
+so CI ran it: run 39839677275 on `478fd1f` finished green in 18m37s with
+**63/63 checks passed**, and `cluster/main.bend --verdict` says **ALL PROOFS
+CHECK** — the kernel certifies `cluster_covers`, as expected for a package
+that holds no foreign code. The other seven verdicts are the same as before.
 
 **What I learned.**
 - bendtorch's backward accumulates into the slots, and `Sgd.step` keeps the
