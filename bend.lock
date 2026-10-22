@@ -2107,9 +2107,9 @@ sha = "c726c7a0524d23119fe11f22345f234ad74873d3c00c8eb3126dfa39da24c792"
 path = "main.bend"
 
 [[package]]
-name = "mlbend-split"
+name = "mlbend-select"
 version = "0.1.0.0"
-hash = "0x97faf074f5fec7518a7b67151e3be4f7"
+hash = "0xf6594aa2392363c8ab774bc81fb20b9d"
 source = "local"
 dependencies = []
 constructors = []
@@ -2119,5 +2119,21 @@ sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
 path = "LICENSE"
 
 [[package.files]]
-sha = "b7e8cb47ee7bc22c598592f1a10ffe419af861dbbdf2b99ad83346bb843521e3"
+sha = "ef624670e1badbe3be41546296b24f61a1659c49440293e27994a3c5d26d5e00"
+path = "main.bend"
+
+[[package]]
+name = "mlbend-split"
+version = "0.1.1.0"
+hash = "0xe8b7953f71ec5b441a90a08e0961269b"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "465045335e087de674713db0866814e854caf2860c3cd0abb954e410bca6a251"
 path = "main.bend"

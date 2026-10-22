@@ -28,7 +28,8 @@ Questions to ask of each law:
 |---|---|---|
 | `mlbend-metrics` | `count_length` | the number of samples is the length of the list of labels |
 | `mlbend-preprocess` | `one_hot_count_length` | the one-hot matrix has one row for every label |
-| `mlbend-split` | `fold_covers` | every row of the dataset is placed in a fold, so the folds partition the rows |
+| `mlbend-split` | `split_covers` | every row of the dataset is placed in a fold, so the folds partition the rows |
+| `mlbend-select` | `select_covers` | every row of the dataset is in exactly one fold |
 
 Besides laws, the **types** carry guarantees that no law restates: a metric's
 two sequences are `List<&2, F32>` (the values may be read twice) and

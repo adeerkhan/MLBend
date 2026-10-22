@@ -18,9 +18,13 @@ The labels are class indices, `0` to the number of classes.
 | --- | --- |
 | `folds(labels, seed, k)` | the fold of every row, in the order of the rows |
 | `split(labels, seed, k, f)` | the rows that test in fold `f`, and the rows that train |
+| `test_of(fs, f)` | the rows that test in fold `f`, given the fold list |
+| `train_of(fs, f)` | the rows that train in fold `f`, given the fold list |
 
 `split` gives the indices of the rows, so the rows themselves are picked
-out of the dataset by index.
+out of the dataset by index. `test_of` and `train_of` take the fold list
+instead, so the folds are computed once and asked of as many times as
+needed.
 
 ## What is proved
 

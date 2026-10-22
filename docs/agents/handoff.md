@@ -7,11 +7,13 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
-## 2026-10-22 — the split package, and the plan's v0.9 reached
+## 2026-10-22 — the split and the select, and the plan's v0.9 reached
 
-**Where we are.** Two of the plan's items are now done. The cross-validation
-over the iris dataset reaches the plan's stop criterion for v0.9, and
-`mlbend-split` (v0.4) is written, with a proved law.
+**Where we are.** Three of the plan's items are now done. The
+cross-validation over the iris dataset reaches the plan's stop criterion
+for v0.9, and the plan's v0.4 (`mlbend-split`, the seeded stratified
+split) and v0.5 (`mlbend-select`, the folds of the cross-validation on
+top of it) are written, published and proved.
 
 **What was run.**
 - `bendenv run -- bend examples/crossval/main.bend` → five stratified
@@ -21,43 +23,56 @@ over the iris dataset reaches the plan's stop criterion for v0.9, and
   mean of 0.9533; the Bend mean is within 0.02 of it. The folds are not
   the same folds (numpy shuffles with its own generator, we shuffle with
   bend-kit-random's), so what agrees is the procedure.
-- `reference/.venv/bin/python reference/test_split.py` → the fold sizes
+- `reference/.venv/bin/python reference/test_split.py` and
+  `reference/.venv/bin/python reference/test_select.py` → the fold sizes
   and the class counts match scikit-learn's `StratifiedKFold` exactly:
   30 rows a fold and ten of each class a fold, on both sides.
-- `make check` → see below.
+- `make check` → see the log below.
 
 **What was published.**
-- `mlbend-split@0.1.0.0` -> `0x97faf074f5fec7518a7b67151e3be4f7`, on
-  the hub and on GitHub under the tag `v0.1.0.0`.
+- `mlbend-select@0.1.0.0` -> `0xf6594aa2392363c8ab774bc81fb20b9d`, on the
+  hub and on GitHub under the tag `v0.1.0.0`.
+- `mlbend-split@0.1.1.0` -> `0xe8b7953f71ec5b441a90a08e0961269b` (it gained
+  `test_of` and `train_of`), on the hub and on GitHub under the tag
+  `v0.1.1.0`; `mlbend-split@0.1.0.0` -> `0x97faf074f5fec7518a7b67151e3be4f7`
+  is the first one.
 - `mlbend-preprocess@0.1.0.0` went out earlier today.
 
 **What was not run.**
-- The kernel check (`--verdict`) of `mlbend-split`: Lean 4.34.0 was
-  installing during the session, so the law is *checked* here and CI
-  proves it. The package's verdict also carries bend-kit-random's
-  `entropy` and `from_os` — foreign code the split never calls — so the
-  verdict is a refusal to certify, the same shape as the HTTP packages.
+- The kernel check (`--verdict`) of the two new packages: Lean 4.34.0 was
+  still installing at the end of the session, so their laws are *checked*
+  here and CI proves them. Both packages' verdicts also carry
+  bend-kit-random's `entropy` and `from_os` — foreign code they never
+  call — so the verdict is a refusal to certify, the same shape as the
+  HTTP packages.
 
 **What I learned (the cost of the day).**
-- A `def` that proves a `law` takes the law's variables, and a `+` on
-  one of them is a syntax error. `scripts/reuse.py` now leaves those
-  defs alone.
+- A `def` that proves a `law` takes the law's variables, and a `+` on one
+  of them is a syntax error. `scripts/reuse.py` now leaves those defs
+  alone.
+- A `def` with no return type *fills a law*: the checker looks for a law
+  of the same name, so a helper needs a return type.
 - A hypothesis `%f(args) : {shape}` must have the *goal's* shape, with
   `_` marking the part the call fills in — not the lemma's own shape.
-- `Nat.add(a, b)` and `Nat.add(b, a)` are different terms to the
-  checker.
+- `Nat.add(a, b)` and `Nat.add(b, a)` are different terms to the checker.
 - A self-call has to pass its arguments unchanged until one shrinks, and
-  the shrinking one comes first.
+  the shrinking one comes first: a walk that counts *up* has to be written
+  with the `1n+rest` pattern and the recursion on `rest`.
+- A `case` binder read twice needs `++`: `case 1n++rest:`.
 - A record has no field access: `split(...).test` is not a term.
 - `Bool.pick` evaluates both branches.
 
 **What is next.**
-1. Publish `mlbend-split` to the hub and to its own GitHub repository,
-   with the tag of the same version.
-2. `mlbend-select` (v0.5): k-fold cross-validation on top of the split,
-   as a package rather than as the loop in `examples/crossval`.
-3. The datasets package needs a law (issue #4): "the loader reads the
-   rows the file has" over the bytes, or the honest version of it.
+1. `examples/crossval/main.bend` still assigns the folds itself; it should
+   sit on `mlbend-select` instead, so the packages are the only place the
+   split is written. The accuracies will move with the fold assignment,
+   and `reference/test_crossval.py` and the numbers in `NOTES.md` have to
+   follow.
+2. The sum law — "the sizes add up and no index is in both" — is the open
+   part of issue #7, and it is the same wall issue #1 records for the
+   metrics' accounting law: a count that depends on an element's *value*
+   cannot be lifted to the shape the checker wants.
+3. The datasets package needs a law (issue #6).
 4. `mlbend-linear` (v0.6) and `mlbend-cluster` (v0.7).
 
 ## 2026-10-22 — the tape trains, and the plan's v0.9 is reached

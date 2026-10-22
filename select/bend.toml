@@ -1,0 +1,7 @@
+[project]
+name = "mlbend-select"
+version = "0.1.0.0"
+description = "k-fold cross-validation on top of the split."
+
+[dependencies]
+mlbend-split = "0.1.1.0"

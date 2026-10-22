@@ -34,6 +34,15 @@ only Base and the packages below it.
 Lean kernel, the numbers against NumPy and scikit-learn. The rest of the table
 is the plan; the open issues carry the debt of each step.
 
+**v0.4 and v0.5 are written** (2026-10-22): `mlbend-split` (the seeded,
+stratified split) and `mlbend-select` (the folds of the cross-validation on
+top of it), each with a proved law and its numbers against scikit-learn's
+`StratifiedKFold`. The law both earn is the cover — every row is placed in
+a fold — and the plan's stronger wording (the sizes add up, no index in
+both) is the open part: the count that depends on an element's *value*
+cannot be lifted to the shape the checker wants, which is the same wall
+issue #1 records for the metrics' accounting law.
+
 **No `mlbend-linalg`.** The base layer already exists and is published:
 `bend-kit-csv` (an RFC 4180 reader), `bend-kit-bytes`, `bend-kit-f64` (a soft
 float, the numbers scikit-learn defaults to), `bend-kit-int` (U64, I64),

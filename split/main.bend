@@ -177,3 +177,27 @@ def split_covers(labels, orders, k, i):
     case Con{h, +t}:
       %split_covers(t, orders, k, Nat.add(i, 1n)) : {1n+count_rows(folds_from(t, orders, k, Nat.add(i, 1n))) == 1n+_ : Nat}
       {==}
+
+# The rows of the fold f: the ones that test.
+def test_of_go(+fs: List<&2, Nat>, +f: Nat, +i: Nat, +acc: List<&2, Nat>) -> List<&2, Nat>:
+  match fs:
+    case Nil{}:
+      acc
+    case Con{+h, t}:
+      test_of_go(t, f, Nat.add(i, 1n), test_row(h, f, acc, i))
+
+# The rows of the fold f: the ones that test.
+def test_of(fs: List<&2, Nat>, f: Nat) -> List<&2, Nat>:
+  test_of_go(fs, f, 0n, Nil{})
+
+# The rows of the fold f: the ones that train.
+def train_of_go(+fs: List<&2, Nat>, +f: Nat, +i: Nat, +acc: List<&2, Nat>) -> List<&2, Nat>:
+  match fs:
+    case Nil{}:
+      acc
+    case Con{+h, t}:
+      train_of_go(t, f, Nat.add(i, 1n), train_row(h, f, acc, i))
+
+# The rows of the fold f: the ones that train.
+def train_of(fs: List<&2, Nat>, f: Nat) -> List<&2, Nat>:
+  train_of_go(fs, f, 0n, Nil{})

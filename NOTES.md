@@ -140,7 +140,33 @@ relevant entry before changing performance-sensitive code or a law.
   reassociate — `bend-ml-nat-lemmas` has `add_comm` and `add_assoc`, but
   the hypothesis shape has to be the goal's shape, and neither lemma
   matches it.
+- **`mlbend-select` (v0.5) is written and published** as
+  `mlbend-select@0.1.0.0` (`0xf6594aa2392363c8ab774bc81fb20b9d`), on the
+  hub and on GitHub under the tag `v0.1.0.0`. It hands out the folds
+  `mlbend-split` makes, so the two agree by construction, and adds the
+  walk over the folds: the test rows of each fold, the training rows,
+  and the sizes. The law `select_covers` says every row of the dataset is
+  in exactly one fold. The fold sizes and the class counts match
+  scikit-learn's `StratifiedKFold` exactly (150 rows, three classes of
+  fifty, five folds: 30 rows a fold, ten of each class a fold, on both
+  sides).
+- **`mlbend-split` is at 0.1.1.0** (`0xe8b7953f71ec5b441a90a08e0961269b`):
+  it gained `test_of` and `train_of`, which take the fold list instead of
+  the labels, so the folds are computed once and asked of as many times
+  as needed.
 - **Bend facts paid for today.**
+  - A `def` with no return type *fills a law*: the checker looks for a
+    law of the same name, so a helper that is not a proof needs a
+    return type.
+  - A self-call has to pass its arguments unchanged until one of them
+    shrinks, and the shrinking one comes first. A walk that counts
+    *up* therefore has to be written with the `1n+rest` pattern and the
+    recursion on `rest`, and the fold it handles is `rest`, not `f`.
+  - A `case` binder read twice needs `++`: `case 1n++rest:`. The `+`
+    on a *def* parameter is a different marker.
+  - A hypothesis `%f(args) : {shape}` must have the *goal's* shape, with
+    `_` marking the part the call fills in — not the lemma's own
+    shape.
   - A match cannot scrutinize a computed value — not even
     `Nat.is_eq(fold, f)`; the comparison needs its own def, or the
     value has to arrive as a parameter.
