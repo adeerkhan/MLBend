@@ -110,8 +110,10 @@ relevant entry before changing performance-sensitive code or a law.
   state), with unbiased ranges and Fisher-Yates shuffles. It is someone
   else's package, so the split uses it rather than a generator of our
   own. The plan's open question about the PRNG is closed.
-- **`mlbend-split` is written (2026-10-22).** The package deals the
-  rows of a class out over the folds in turn, so every fold holds the same
+- **`mlbend-split` (v0.4) is written and published** as
+  `mlbend-split@0.1.0.0` (`0x97faf074f5fec7518a7b67151e3be4f7`), on the
+  hub and on GitHub under the tag `v0.1.0.0`. The package deals the rows
+  of a class out over the folds in turn, so every fold holds the same
   proportion of every class. The shuffle is `bend-kit-random`'s
   xoshiro128**, seeded: the same seed gives the same split, and another
   seed gives another one. The law `fold_covers` says every row of the

@@ -26,8 +26,10 @@ over the iris dataset reaches the plan's stop criterion for v0.9, and
   30 rows a fold and ten of each class a fold, on both sides.
 - `make check` → see below.
 
-**What was published.** Nothing new: `mlbend-preprocess@0.1.0.0` went out
-earlier today, and `mlbend-split` is not published yet.
+**What was published.**
+- `mlbend-split@0.1.0.0` -> `0x97faf074f5fec7518a7b67151e3be4f7`, on
+  the hub and on GitHub under the tag `v0.1.0.0`.
+- `mlbend-preprocess@0.1.0.0` went out earlier today.
 
 **What was not run.**
 - The kernel check (`--verdict`) of `mlbend-split`: Lean 4.34.0 was
