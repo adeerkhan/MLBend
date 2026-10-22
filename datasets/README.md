@@ -15,7 +15,7 @@ labels beside them.
 
 ```python
 type Table is Data:
-  Table{rows: List<&2, List<&2, F32>>, labels: List<&2, F32>}}
+  Table{rows: List<&2, List<&2, F32>>, labels: List<&2, F32>}
 ```
 
 The labels are numbers. A classification label is the index of the

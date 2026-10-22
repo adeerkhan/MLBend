@@ -3,7 +3,7 @@
 A seeded, deterministic split of the rows, stratified by label.
 
 ```python
-import mlbend-split@0.1.0.0/main.bend as Split
+import mlbend-split@0.1.1.0/main.bend as Split
 ```
 
 The rows of a class are shuffled and then dealt out over the folds, so

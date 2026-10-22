@@ -1,9 +1,9 @@
-# mlbend-hf
+# mlbend-huggingface
 
 A HuggingFace client for Bend 2.
 
 ```python
-import mlbend-hf@0.1.0.0/main.bend as Hf
+import mlbend-huggingface@0.1.1.0/main.bend as Hf
 ```
 
 Four calls, all JSON over HTTP:
