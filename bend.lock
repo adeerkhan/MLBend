@@ -475,6 +475,26 @@ sha = "5b432d08097d4aa15b08ebba93f08d94f52f99505b56deed201259fd87faac4a"
 path = "json.bend"
 
 [[package]]
+name = "bend-kit-random"
+version = "0.1.0.1"
+hash = "0x46b9429cbffa7a8c1111ce19c60a3d6a"
+source = "hub"
+dependencies = []
+constructors = ["Rng"]
+
+[[package.files]]
+sha = "87a5ec8e1fddd89d18813ec069a3adf81736066a9c1f1c100dbe1b7a0145a988"
+path = "effs/random.c"
+
+[[package.files]]
+sha = "4aeee2d10cd419c2707bb586a5a22be7f00d5079eeadfc4c0fb322c9e5e491bd"
+path = "effs/random.js"
+
+[[package.files]]
+sha = "f83e09861de5f6048367eb07f1e8e36f1b05a069afaf0ae2b32ce155814a75bc"
+path = "random.bend"
+
+[[package]]
 name = "bend-kit-resources"
 version = "0.1.0.0"
 hash = "0x8ef64648a1ae4481382be5e5ce2a9fc8"

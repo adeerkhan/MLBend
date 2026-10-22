@@ -20,6 +20,7 @@ members = [
 ]
 
 [workspace.dependencies]
+bend-kit-random = "0.1.0.1"
 bend-ml-autograd = "0.1.1.0"
 bend-ml-nat-lemmas = "0.1.1.0"
 bend-ml-tensor-array = "0.1.14.0"
