@@ -1,0 +1,7 @@
+[project]
+name = "mlbend-split"
+version = "0.1.0.0"
+description = "A seeded, deterministic split of the rows, stratified by label."
+
+[dependencies]
+bend-kit-random = "0.1.0.1"

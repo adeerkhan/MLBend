@@ -2105,3 +2105,19 @@ path = "LICENSE"
 [[package.files]]
 sha = "c726c7a0524d23119fe11f22345f234ad74873d3c00c8eb3126dfa39da24c792"
 path = "main.bend"
+
+[[package]]
+name = "mlbend-split"
+version = "0.1.0.0"
+hash = "0x97faf074f5fec7518a7b67151e3be4f7"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "b7e8cb47ee7bc22c598592f1a10ffe419af861dbbdf2b99ad83346bb843521e3"
+path = "main.bend"

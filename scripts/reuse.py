@@ -136,7 +136,10 @@ def rewrite_binds(text: str) -> str:
         params, i = params_of(text, m)
         body = body_after(text, i)
         out.append(text[pos : m.end()])
-        out.append(rewrite_params(params, body))
+        if is_proof(text, m.group(1)):
+            out.append(params)
+        else:
+            out.append(rewrite_params(params, body))
         out.append(text[i : i + 1])
         out.append(rewrite_binds_of(body))
         pos = i + 1 + len(body)
@@ -164,6 +167,19 @@ def rewrite_binds_of(body: str) -> str:
     return "\n".join(lines)
 
 
+LAW = re.compile(r"^law\s+([A-Za-z_][A-Za-z0-9_.]*)\s*:", re.M)
+
+
+def is_proof(text: str, name: str) -> bool:
+    """Whether a def is the one that proves a law.
+
+    The def that proves a law takes the law's variables, and the checker
+    reads them from the law: a `+` on such a parameter is a syntax error,
+    so the script leaves these defs alone.
+    """
+    return any(m.group(1) == name for m in LAW.finditer(text))
+
+
 def rewrite(text: str) -> str:
     out = []
     pos = 0
@@ -171,7 +187,12 @@ def rewrite(text: str) -> str:
         params, i = params_of(text, m)
         body = body_after(text, i)
         out.append(text[pos : m.end()])
-        out.append(rewrite_params(params, body))
+        if is_proof(text, m.group(1)):
+            # the def that proves a law: the checker reads the law's
+            # variables, so a `+` there is a syntax error
+            out.append(params)
+        else:
+            out.append(rewrite_params(params, body))
         out.append(text[i : i + 1])
         out.append(body)
         pos = i + 1 + len(body)

@@ -17,6 +17,7 @@ members = [
     "hf",
     "datasets",
     "preprocess",
+    "split",
 ]
 
 [workspace.dependencies]
