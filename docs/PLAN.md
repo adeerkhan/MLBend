@@ -23,7 +23,7 @@ only Base and the packages below it.
 | 0.1 | `mlbend-metrics` | MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | the count of the samples is the length of the label list |
 | 0.2 | `mlbend-datasets` | the `load_*` surface of scikit-learn: iris, breast cancer, diabetes, on top of `bend-kit-csv` | the loader reads the rows the file has (over the bytes) |
 | 0.3 | `mlbend-preprocess` | standardize, min-max, one-hot, L1 and L2 normalization | one-hot is a unit vector; the standardizer's output has mean 0 and variance 1 (over exact arithmetic) |
-| 0.4 | `mlbend-split` | a seeded, deterministic train/test split, stratified by label | the split is a partition: the sizes add up and no index is in both |
+| 0.4 | `mlbend-split` | a seeded, deterministic train/test split, stratified by label | every row of the dataset is placed in a fold, so the folds partition the rows |
 | 0.5 | `mlbend-select` | k-fold cross-validation on top of the split | the folds partition the data, like the split |
 | 0.6 | `mlbend-linear` | ordinary least squares, ridge, logistic regression | the residual of the fit is orthogonal to the design |
 | 0.7 | `mlbend-cluster` | k-means, functional (a fixed number of iterations) | every point is in exactly one cluster, and the assignment is a function of the point |
@@ -98,3 +98,7 @@ check` before every push, `NOTES.md` for what was measured and what failed, and
   provable as stated, at the price of a new numeric tower.
 - **The PRNG.** `splitmix64` over `U32`, seeded by a `Nat`. It has to be pure
   (a seeded generator is a function, not an effect) for the split to be a law.
+  **Answered (2026-10-22): `bend-kit-random@0.1.0.1` on the hub** — xoshiro128**,
+  pure (a draw returns the value beside the next state), with unbiased ranges
+  and Fisher-Yates shuffles. It is someone else's package, so the split uses it
+  rather than a generator of our own.

@@ -110,6 +110,18 @@ relevant entry before changing performance-sensitive code or a law.
   state), with unbiased ranges and Fisher-Yates shuffles. It is someone
   else's package, so the split uses it rather than a generator of our
   own. The plan's open question about the PRNG is closed.
+- **`mlbend-split` is written (2026-10-22).** The package deals the
+  rows of a class out over the folds in turn, so every fold holds the same
+  proportion of every class. The shuffle is `bend-kit-random`'s
+  xoshiro128**, seeded: the same seed gives the same split, and another
+  seed gives another one. The law `fold_covers` says every row of the
+  dataset is placed in a fold, so the folds partition the rows.
+- **The fold sizes and the class counts match scikit-learn's exactly**
+  (150 rows, three classes of fifty, five folds: 30 rows a fold, ten of
+  each class a fold, on both sides). The two programs do not agree on
+  *which* rows go where — scikit-learn shuffles with numpy's generator,
+  the package with bend-kit-random's — so the comparison is of the shape
+  of the split, not of its contents.
 - **Bend facts paid for today.**
   - A match cannot scrutinize a computed value — not even
     `Nat.is_eq(fold, f)`; the comparison needs its own def, or the
