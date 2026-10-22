@@ -162,6 +162,17 @@ relevant entry before changing performance-sensitive code or a law.
   it gained `test_of` and `train_of`, which take the fold list instead of
   the labels, so the folds are computed once and asked of as many times
   as needed.
+- **The two new packages' laws are checked, not certified (2026-10-22).**
+  `mlbend-split` and `mlbend-select` depend on `bend-kit-random`, which
+  carries `entropy` and `from_os` — two defs that call the operating
+  system. Neither package calls them (both seed the generator), but
+  Bend's verdict refuses a book that holds any foreign code, and it
+  cannot tell that nothing calls them. So the two laws are *checked* by
+  Bend's checker, and the verdict is a refusal to certify — the same
+  shape as the HTTP packages. The metrics package's law has no such
+  dependency and is certified. The price of not writing a generator of
+  our own is a weaker guarantee, and the READMEs and `docs/AUDIT.md` say
+  so.
 - **Bend facts paid for today.**
   - A `def` with no return type *fills a law*: the checker looks for a
     law of the same name, so a helper that is not a proof needs a

@@ -51,6 +51,13 @@ two sequences are `List<&2, F32>` (the values may be read twice) and
    `add_zero` is what the `count_length` proof leans on). That package is
    trusted as far as its own audit says: its laws are proved by the same kernel,
    and its source is readable offline in the hub cache (`~/.bend/lib`).
+   `mlbend-split` and `mlbend-select` depend on `bend-kit-random@0.1.0.1`,
+   which carries two defs that call the operating system (`entropy` and
+   `from_os`). Neither package calls them — both seed the generator — but the
+   verdict refuses a book that holds any foreign code, so **their laws are
+   checked by Bend's checker and not certified by the kernel**. That is a
+   weaker guarantee than `mlbend-metrics`'s, and it is the price of not
+   writing a generator of our own.
 4. **The host's floating point.** `F32` arithmetic is IEEE-754 single precision;
    the sums are in the order the code writes them, so a run is reproducible on
    one machine and one compiler.

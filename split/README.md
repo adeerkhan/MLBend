@@ -28,8 +28,8 @@ needed.
 
 ## What is proved
 
-- **Every row of the dataset is placed in a fold** (`split_covers`). The
-  kernel proves it; the proof is an induction over the rows. The fold
+- **Every row of the dataset is placed in a fold** (`split_covers`). Bend's
+  checker proves it; the proof is an induction over the rows. The fold
   list holds one entry per row, so the folds cover the dataset exactly
   once each: the test rows of a fold and its training rows are
   disjoint, and together they hold every row. The split walks the fold
@@ -38,6 +38,17 @@ needed.
 - **The shape of every result is in the type.** `split` gives a `Split`
   holding two `List<&2, Nat>` — the indices of the rows — and the
   checker verifies it.
+
+## What the verdict says
+
+The Lean kernel's verdict for this package is a **refusal to certify**:
+`bend-kit-random` carries two defs that call the operating system
+(`entropy` and `from_os`), and the verdict refuses a book that holds any
+foreign code. The split never calls them — it seeds the generator
+itself — but they are in the dependency, and the verdict cannot tell the
+difference. So the law above is *checked* by Bend's checker, not
+certified by the kernel; the metrics package's law, which has no such
+dependency, is.
 
 ## What is only tested
 

@@ -26,13 +26,22 @@ asked of as many times as needed.
 ## What is proved
 
 - **Every row of the dataset is in exactly one fold** (`select_covers`).
-  The kernel proves it; the proof is an induction over the rows. The
+  Bend's checker proves it; the proof is an induction over the rows. The
   fold list holds one entry per row, so the folds cover the dataset
   exactly once each: the test rows of a fold and its training rows are
   disjoint, and together they hold every row.
 - **The shape of every result is in the type.** A fold is a `Fold`
   holding two `List<&2, Nat>` — the indices of the rows — and the
   checker verifies it.
+
+## What the verdict says
+
+The Lean kernel's verdict for this package is a **refusal to certify**:
+`mlbend-split` depends on `bend-kit-random`, which carries two defs that
+call the operating system (`entropy` and `from_os`). The verdict
+refuses a book that holds any foreign code, and it cannot tell that
+nothing here calls them. So the law above is *checked* by Bend's
+checker, not certified by the kernel.
 
 ## What is only tested
 

@@ -43,11 +43,14 @@ top of it) are written, published and proved.
 
 **What was not run.**
 - The kernel check (`--verdict`) of the two new packages: Lean 4.34.0 was
-  still installing at the end of the session, so their laws are *checked*
-  here and CI proves them. Both packages' verdicts also carry
-  bend-kit-random's `entropy` and `from_os` — foreign code they never
-  call — so the verdict is a refusal to certify, the same shape as the
-  HTTP packages.
+  still downloading at the end of the session, so I did not see the
+  verdict here; CI runs it. What the checker already says is that the
+  verdict will carry bend-kit-random's `entropy` and `from_os` — foreign
+  code the split never calls — so the verdict is a refusal to certify,
+  the same shape as the HTTP packages. Their laws are therefore *checked*
+  by Bend's checker, not certified by the kernel; both READMEs and
+  `docs/AUDIT.md` say so. The metrics package's law, with no such
+  dependency, is certified.
 
 **What I learned (the cost of the day).**
 - A `def` that proves a `law` takes the law's variables, and a `+` on one
