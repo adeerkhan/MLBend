@@ -17,7 +17,10 @@ top of it) are written, published and proved.
 
 **What was run.**
 - `bendenv run -- bend examples/crossval/main.bend` → five stratified
-  folds: 0.9667, 0.9, 0.9333, 0.9, 0.9667; **mean accuracy 0.9333**.
+  folds: 0.9667, 0.8333, 0.9667, 0.9333, 0.9667; **mean accuracy
+  0.9333**. The example sits on `mlbend-select` now, so the split is
+  written in one place; the per-fold numbers moved with the assignment,
+  the mean did not.
 - `reference/.venv/bin/python reference/test_crossval.py` →
   scikit-learn's LogisticRegression over its own stratified folds gives a
   mean of 0.9533; the Bend mean is within 0.02 of it. The folds are not
@@ -63,17 +66,12 @@ top of it) are written, published and proved.
 - `Bool.pick` evaluates both branches.
 
 **What is next.**
-1. `examples/crossval/main.bend` still assigns the folds itself; it should
-   sit on `mlbend-select` instead, so the packages are the only place the
-   split is written. The accuracies will move with the fold assignment,
-   and `reference/test_crossval.py` and the numbers in `NOTES.md` have to
-   follow.
-2. The sum law — "the sizes add up and no index is in both" — is the open
-   part of issue #7, and it is the same wall issue #1 records for the
-   metrics' accounting law: a count that depends on an element's *value*
-   cannot be lifted to the shape the checker wants.
-3. The datasets package needs a law (issue #6).
-4. `mlbend-linear` (v0.6) and `mlbend-cluster` (v0.7).
+1. The sum law — "the sizes add up and no index is in both" — is issue #8,
+   and it is the same wall issue #1 records for the metrics' accounting
+   law: a count that depends on an element's *value* cannot be lifted to
+   the shape the checker wants.
+2. The datasets package needs a law (issue #6).
+3. `mlbend-linear` (v0.6) and `mlbend-cluster` (v0.7).
 
 ## 2026-10-22 — the tape trains, and the plan's v0.9 is reached
 

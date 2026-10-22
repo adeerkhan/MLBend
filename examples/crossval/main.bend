@@ -4,14 +4,16 @@
 #
 # The whole chain, end to end: the dataset comes from HuggingFace, the
 # features are standardised by `mlbend-preprocess`, the model is trained
-# with bend-ml's autodiff, and the score is `mlbend-metrics`. The only
-# thing this program adds is the loop over the folds.
+# with bend-ml's autodiff, the folds come from `mlbend-select`, and the
+# score is `mlbend-metrics`. The only thing this program adds is the
+# loop over the folds.
 #
 # The folds are stratified: the rows of each class are shuffled and then
 # dealt out over the folds, so every fold holds the same classes in the
 # same proportion — the same rule scikit-learn's StratifiedKFold uses.
 # The shuffle is bend-kit-random's xoshiro128**, seeded: the same seed
-# gives the same folds, and a different seed gives other ones.
+# gives the same folds, and a different seed gives other ones. The split
+# itself is `mlbend-split`'s, and `mlbend-select` walks the folds.
 #
 # The iris dataset has 150 rows of four features, fifty of each class, so
 # a fold holds thirty rows (ten of each class) and the rest of the data
@@ -24,11 +26,11 @@
 import Base
 import bend-ml-tensor@0.1.0.0/main.bend as T
 import bend-ml-autograd@0.1.1.0/main.bend as AG
-import bend-kit-random@0.1.0.1/random.bend as Rand
 import mlbend-datasets@0.1.4.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 import mlbend-metrics@0.1.0.0/main.bend as M
 import mlbend-preprocess@0.1.0.0/main.bend as P
+import mlbend-select@0.1.0.0/main.bend as Select
 
 # A row of the dataset: its features, its label, and the fold it is in.
 
@@ -60,58 +62,9 @@ def with_fold(r: Row, f: Nat) -> Row:
       Row{features, label, f}
 
 # The rows, each with the fold it is in: the first rows of a class go to
-# the first fold, and so on.
-def assign_folds(+xs: List<&2, Row>, +chunk: Nat, +j: Nat) -> List<&2, Row>:
-  match xs:
-    case Nil{}:
-      Nil{}
-    case Con{h, t}:
-      Con{with_fold(h, Nat.div(j, chunk)), assign_folds(t, chunk, Nat.add(j, 1n))}
-
 # The class of a label.
 def class_of(label: F32) -> Nat:
   U32.to_nat(F32.to_u32(label))
-
-# The largest label of the rows, with the row in hand.
-def largest_of_row(+h: Row, +acc: Nat) -> Nat:
-  match h:
-    case Row{features, +label, fold}:
-      Bool.pick(Nat, Nat.is_gt(label, acc), label, acc)
-
-# The largest label of the rows.
-def largest_of(+rows: List<&2, Row>, +acc: Nat) -> Nat:
-  match rows:
-    case Nil{}:
-      acc
-    case Con{h, t}:
-      largest_of(t, largest_of_row(h, acc))
-
-# The number of classes of the rows: one more than the largest label.
-def classes_of(+rows: List<&2, Row>) -> Nat:
-  Nat.add(1n, largest_of(rows, 0n))
-
-# The rows of one class, with the row in hand.
-def rows_of_class_row(+h: Row, c: Nat, +acc: List<&2, Row>) -> List<&2, Row>:
-  match h:
-    case Row{features, label, fold}:
-      Bool.pick(List<&2, Row>, Nat.is_eq(label, c),
-        List.append(&2, Row, acc, Con{h, Nil{}}), acc)
-
-# The rows of one class.
-def rows_of_class_go(+rows: List<&2, Row>, +c: Nat, +acc: List<&2, Row>) -> List<&2, Row>:
-  match rows:
-    case Nil{}:
-      acc
-    case Con{h, t}:
-      rows_of_class_go(t, c, rows_of_class_row(h, c, acc))
-
-# The rows of one class.
-def rows_of_class(+rows: List<&2, Row>, c: Nat) -> List<&2, Row>:
-  rows_of_class_go(rows, c, Nil{})
-
-# The number of rows of one class.
-def count_of_class(+rows: List<&2, Row>, c: Nat) -> Nat:
-  List.length(&2, Row, rows_of_class(rows, c))
 
 # The label of a row.
 def label_of(+r: Row) -> Nat:
@@ -323,32 +276,15 @@ def crossval(+rows: List<&2, Row>) -> List<&2, F32>:
 def seed() -> U32:
   42
 
-# The list of a pair: the list, and the generator that comes after it.
-def shuffled_list(pair: List<&2, Row> & Rand.Rng) -> List<&2, Row>:
-  (xs, r) = pair
-  xs
-
-# The rows of one class, shuffled by the generator.
-def shuffle_class(+rows: List<&2, Row>, +c: Nat) -> List<&2, Row>:
-  shuffled_list(Rand.shuffle(~Row, rows_of_class(rows, c),
-    Rand.seed(U32.add(seed(), U32.from_nat(c)))))
-
-# The rows of one class, shuffled, each with the fold it is in.
-def fold_class(+rows: List<&2, Row>, +c: Nat) -> List<&2, Row>:
-  assign_folds(shuffle_class(rows, c), Nat.div(count_of_class(rows, c), folds()), 0n)
-
-# The rows of the dataset, each with the fold it is in.
-def folded_go(cs: List<&2, Nat>, +rows: List<&2, Row>, +acc: List<&2, Row>) -> List<&2, Row>:
-  match cs:
-    case Nil{}:
+# The rows of the dataset, each with the fold it is in: the folds come
+# from `mlbend-select`, which makes them the way scikit-learn's
+# StratifiedKFold does.
+def folded_rows(+rows: List<&2, Row>, +fs: List<&2, Nat>, +acc: List<&2, Row>) -> List<&2, Row>:
+  match rows fs:
+    case Con{h, t} Con{f, ft}:
+      folded_rows(t, ft, List.append(&2, Row, acc, Con{with_fold(h, f), Nil{}}))
+    case _ _:
       acc
-    case Con{h, t}:
-      folded_go(t, rows, List.append(&2, Row, acc, fold_class(rows, h)))
-
-# The rows of the dataset, each with the fold it is in: the rows of every
-# class shuffled and dealt out over the folds.
-def folded_rows(+rows: List<&2, Row>) -> List<&2, Row>:
-  folded_go(List.range(classes_of(rows)), rows, Nil{})
 
 # The loss: the mean cross-entropy of the logits against the labels.
 def loss(+m: Model, x: T.Mat<120n, 4n>, labels: List<&2, Nat>) -> F32:
@@ -418,9 +354,11 @@ def show_all(+fs: List<&2, Row>) -> IO(Unit):
   do IO<Unit>:
     show_scores(crossval(fs))
 
-# The cross-validation of the dataset.
+# The rows of the dataset, with the fold of each row.
 def show_rows(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>) -> IO(Unit):
-  show_all(folded_rows(rows_of(prepared(rows), labels)))
+  +rs = rows_of(prepared(rows), labels)
+  +fs = Select.folds(labels_of(rs), seed(), folds())
+  show_all(folded_rows(rs, fs, Nil{}))
 
 def show_table(t: Datasets.Table) -> IO(Unit):
   match t:

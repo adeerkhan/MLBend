@@ -86,6 +86,14 @@ relevant entry before changing performance-sensitive code or a law.
   `examples/logistic`: bendtorch and bend-ml are two implementations of
   the same gradient step, and they agree to F32 precision (1.0986128
   before, 0.7287295 and 0.7287296 after).
+- **The cross-validation example now sits on the packages (2026-10-22).** It
+  used to shuffle and deal the rows out itself; the folds come from
+  `mlbend-select` now, so the split is written in one place. The
+  assignment changed with it (the package deals the rows of a class out
+  in turn, the example dealt them out in blocks), so the per-fold
+  accuracies moved: 0.9667, 0.8333, 0.9667, 0.9333, 0.9667. The **mean is
+  the same, 0.9333**, and scikit-learn's is 0.9533, so
+  `reference/test_crossval.py` still agrees within 0.02.
 - **The plan's v0.9 is reached (2026-10-22).** The iris dataset goes
   through standardize -> logistic regression -> cross-validation, and
   the accuracy matches scikit-learn's:
