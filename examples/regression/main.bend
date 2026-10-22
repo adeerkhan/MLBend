@@ -256,7 +256,7 @@ def stepped_sgd(pair: Backward.Tape & Result<&2, &2, Sgd.Error, Unit>) ->
     case Fail{error}:
       Fail{Err{Sgd.error_code(error)}}
     case Done{unit}:
-      Done{tape}
+      Done{Backward.zero_grad(tape)}
 
 # The backward pass, and the step on the weights and the bias.
 def stepped_backward(pair: Backward.Tape & Result<&2, &2, Backward.Error, Unit>,
@@ -295,7 +295,7 @@ def stepped(pair: Backward.Tape & Result<&2, &2, Backward.Error, Nat>) ->
     case Fail{error}:
       Fail{Err{Backward.error_code(error)}}
     case Done{+id}:
-      stepped_value(Backward.value(tape, id), id, 0.1)
+      stepped_value(Backward.value(tape, id), id, 0.3)
 
 # One round: the prediction, the loss, the backward pass and the step.
 def step(tape: Backward.Tape) -> Result<&1, &1, Err, Backward.Tape>:
@@ -310,9 +310,9 @@ def advance(pair: Result<&1, &1, Err, Backward.Tape>, u: Nat) ->
     case Done{tape}:
       step(tape)
 
-# The training: 200 rounds at a learning rate of 0.1.
+# The training: 1000 rounds at a learning rate of 0.3.
 def training(tape: Backward.Tape) -> Result<&1, &1, Err, Backward.Tape>:
-  List.foldl(&2, Nat, Result<&1, &1, Err, Backward.Tape>, advance, List.range(200n),
+  List.foldl(&2, Nat, Result<&1, &1, Err, Backward.Tape>, advance, List.range(1000n),
     Done{tape})
 
 # The value of the loss, from the tape's read: the tape comes back too.
