@@ -27,7 +27,7 @@ env-check:        ## the environment against the lock, and the example over it
 	$(BENDENV) check
 	$(BENDENV) run -- $(BEND) examples/stacks/main.bend
 
-release:          ## release one package to the hub and to GitHub: make release PKG=hf
+release:          ## release one package to the hub and tag it here: make release PKG=hf
 	@test -n "$(PKG)" || (echo "usage: make release PKG=<package directory>" && false)
 	scripts/release.sh $(PKG)
 
