@@ -124,6 +124,22 @@ relevant entry before changing performance-sensitive code or a law.
   *which* rows go where — scikit-learn shuffles with numpy's generator,
   the package with bend-kit-random's — so the comparison is of the shape
   of the split, not of its contents.
+- **The sum law is the same wall as the accounting law (2026-10-22).** I
+  tried to prove "the rows of a fold and the rows outside it add up to all
+  the rows" (`Nat.add(count_in(xs, f), count_out(xs, f)) ==
+  List.length(xs)`) and the checker named the shape it wants:
+  `Nat.add(count_in_go(t, f, same_of(Nat.is_eq(h, f))),
+  count_out_go(t, f, same_of(Nat.is_ne(h, f)))) == 1n+_`. The head's
+  contribution is *data-dependent* — `same_of` is a `Bool` the checker
+  cannot reduce — so the tail's two counts do not line up with the
+  hypothesis's `Nat.add(count_in_go(t, f, 0n), count_out_go(t, f, 0n))`.
+  This is the wall issue #1 records for the metrics' accounting law: a
+  count that depends on the *value* of an element cannot be lifted to a
+  `1n + ...` shape. The way out is a count that walks with the test
+  decided by the caller, or arithmetic over `Nat` that the checker can
+  reassociate — `bend-ml-nat-lemmas` has `add_comm` and `add_assoc`, but
+  the hypothesis shape has to be the goal's shape, and neither lemma
+  matches it.
 - **Bend facts paid for today.**
   - A match cannot scrutinize a computed value — not even
     `Nat.is_eq(fold, f)`; the comparison needs its own def, or the
