@@ -52,6 +52,27 @@ relevant entry before changing performance-sensitive code or a law.
   IO)`, and the reverse (`do IO(Unit)`) reports `expected '<', observed '('`.
   Neither names the pair or the position; the minimal repro and the suggested
   message are for `bendlang/bend` (the `#1632` diagnostic series).
+- **The first transformer block, and the op it needs (2026-10-23).** A
+  single-head self-attention block over four tokens of eight features — Q, K,
+  V, scaled dot-product scores, row softmax, the weighted sum of V — is written
+  in plain Bend (`examples/attention`) and agrees with PyTorch to **1.5e-8**
+  on every output number (`reference/test_attention.py`). The weights are a
+  fixed formula, so the task is `attention-parity` and the checksum agrees to
+  3e-9.
+  **The gap is training.** BendTorch's tape records add, sub, mul, matmul,
+  relu, slice, gather, cross-entropy and MSE; it has no recorded `exp`, no
+  broadcast `div`, and therefore no softmax backward. A transformer cannot be
+  trained on it until those operations (and their VJPs) exist. The forward is
+  pure Bend over lists for now; the next upstream step is a BendTorch issue for
+  `softmax` (or `exp`/`div`/`sum_dims` with gradients), then a trained attention
+  task here.
+- **A function is a Type, so a builder cannot be passed and reused (2026-10-23).**
+  Writing one `row(builder, ...)` and passing `x_cell`, `wq_cell`, ... needs
+  `+f`, which the checker refuses: `+x` requires a `Data` type, and a function
+  is a `Type`. The example builds by a `kind` number instead
+  (`cell(kind, i, j)`), which is also what made the termination check simple:
+  the decreasing `n` must sit before the increasing column index in the
+  recursive call.
 - **Laws: what they are for here (2026-10-23).** A law belongs to a pure
   structural claim — a count, a partition, a cover, a composition — and the
   kernel proves it. A number (`F32`), a wall time, a dataset fetch and a W&B

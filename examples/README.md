@@ -12,6 +12,7 @@ re-implements them.
 | [`regression/main.bend`](regression/main.bend) | ridge regression over the wine dataset, over bendtorch's tape with `mse_loss` and a weight decay in the step |
 | [`kmeans/main.bend`](kmeans/main.bend) | k-means over the wine dataset, through `mlbend-cluster`, after standardising the columns |
 | [`pca/main.bend`](pca/main.bend) | the first principal component of wine, by power iteration: a transformer, not a trainer |
+| [`attention/main.bend`](attention/main.bend) | a single-head self-attention block over four tokens: the core of a transformer, checked against PyTorch |
 | [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
 | [`naive_bayes/main.bend`](naive_bayes/main.bend) | Gaussian naive Bayes over the same data: the gradient-free baseline the experiment layer keeps beside the learned models |
 | [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → scaler fitted on each training fold → logistic regression → stratified folds → accuracy, with no leakage |
@@ -90,6 +91,15 @@ breast cancer dataset: a gradient-free baseline that needs no library and
 no standardising. It scores 0.9854, the same as scikit-learn's
 `GaussianNB` on the same split. It is also a task in the experiment layer
 (`cancer-naive-bayes`).
+
+## The attention example
+
+The core of a transformer in plain Bend: Q, K and V projections, the scaled
+dot-product scores, a softmax over every row, and the weighted sum of V. Four
+tokens of eight features with fixed weights, the same formulas in the PyTorch
+reference; every output agrees within 1.5e-8 (`reference/test_attention.py`).
+This is the forward pass. Training the block needs a softmax/exp gradient on
+BendTorch's tape, which does not exist yet — that is the next upstream step.
 
 ## The PCA example
 

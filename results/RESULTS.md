@@ -9,6 +9,7 @@ Machine: Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 · 28 CPUs · Bend 2.
 
 | task | dataset | metric | Bend | reference | delta | Bend ms | Python ms | speed (Python/Bend) | ok |
 |---|---|---|---:|---:|---:|---:|---:|---:|:--:|
+| `attention-parity` | synthetic-attention (4x8) | checksum | 1.76295 | 1.76295 | 3.34167e-09 | 1 | 6 | 4.15x | ok |
 | `cancer-knn` | breast_cancer (683x9) | accuracy | 0.978102 | 0.978102 | 1.0219e-08 | 857 | 1450 | 1.69x | ok |
 | `cancer-naive-bayes` | breast_cancer (683x9) | accuracy | 0.985401 | 0.985401 | -9.85401e-09 | 701 | 680 | 0.97x | ok |
 | `iris-crossval` | iris (150x4) | mean_accuracy | 0.933333 | 0.953333 | -0.02 | 701 | 1345 | 1.92x | ok |

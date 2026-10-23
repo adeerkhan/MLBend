@@ -7,7 +7,39 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-23 — the first transformer block
+
+**Where we are.** The deep-learning track has started. `examples/attention` is
+a single-head self-attention block — Q, K, V, the scaled dot-product scores, a
+softmax over every row, the weighted sum of V — written in plain Bend over four
+tokens of eight features. The weights are a fixed formula, generated the same
+way in the PyTorch reference; every output number agrees to **1.5e-8**
+(`reference/test_attention.py`). It is a task in the experiment layer,
+`attention-parity` (checksum 1.76295, delta 3e-9).
+
+**The finding: training a transformer is blocked on BendTorch.** Its tape
+records add, sub, mul, matmul, relu, slice, gather, cross-entropy and MSE. It
+has no recorded `exp`, no broadcast `div`, and so no softmax backward. The
+forward pass is pure Bend today; a trained attention task needs those
+operations (and their VJPs) on the tape first.
+
+**What was run.**
+- `reference/test_attention.py` → max absolute difference **1.49e-8**, checksum
+  1.762954 against 1.762954.
+- `reference/experiment.py --task attention-parity` → PASS.
+- The full `make check` is running; the test is new and self-contained.
+
+**What is next.**
+1. An issue on `nuxyel/BendTorch` for `exp`, broadcast `div` and `sum_dims`
+   gradients (softmax), with the attention forward as the use case. If accepted,
+   a recorded `softmax` is the smaller surface.
+2. Then a trained attention task: same block, a sequence task, PyTorch as the
+   oracle.
+3. A BendTorch deep MLP task (the MNIST example is the prototype) to have a
+   trained deep model in the corpus before the transformer trains.
+
 ## 2026-10-23 — the pipeline, and no leakage
+
 
 **Where we are.** `mlbend-pipeline@0.1.0.0` is written, published
 (`0xea73a86e2118529cadd597fb3727979b`, tag `mlbend-pipeline-v0.1.0.0`) and

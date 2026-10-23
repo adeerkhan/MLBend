@@ -114,7 +114,23 @@ scikit-learn's `classification_report` and `confusion_matrix`. Whether this is
 a Bend package (`mlbend-report`) or a runner-side renderer depends on how much
 of the format is pure — the metric arithmetic is pure and belongs in Bend.
 
-### 5. The corpus and the scoreboard
+### 5. The deep-learning track
+
+The layer is trainer-agnostic, so a deep model is another task. The first one is
+`attention-parity`: a single-head self-attention block (Q, K, V, scaled dot
+product, row softmax, the weighted sum of V) over four tokens, written in plain
+Bend and compared number by number with PyTorch (1.5e-8). It is the forward
+pass; the weights are fixed.
+
+Training the block needs operations BendTorch's tape does not have: an
+elementwise exponential, a broadcast division, and their vector-Jacobian
+products (softmax is the composition). The next step is an issue on
+`nuxyel/BendTorch` for a `softmax` (or `exp`/`div` plus `sum_dims`) recorded
+operation, and then a trained attention task here. Until then, a deep model can
+enter as a PyTorch-trained forward whose weights are fixed in the program, which
+is what `attention-parity` demonstrates.
+
+### 6. The corpus and the scoreboard
 
 Grow the tasks beyond the six: more datasets from `mlbend-datasets`, the same
 model under different seeds, the two trainers on one task. Then publish the
@@ -122,7 +138,7 @@ results as a checked-in table with the manifest beside each row. The point is
 not a leaderboard for its own sake: it is the evidence that the ecosystem's
 numbers are real and repeatable.
 
-### 6. Weights & Biases
+### 7. Weights & Biases
 
 `--wandb` logs one run today. Next: a project per task family, the manifest as
 the run config, the report JSON as an artifact, and sweeps over the parameters

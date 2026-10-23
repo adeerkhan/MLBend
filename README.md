@@ -91,6 +91,9 @@ PASS
 report: results/raw/cancer-knn-....json
 ```
 
+The corpus is not only classical: `attention-parity` runs a single-head
+self-attention block and checks every output number against PyTorch.
+
 The manifest records the git commit and whether the tree was dirty, the Bend
 version, every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub
 hash, the machine, the seed, the tolerances, the **build time**, the **run
