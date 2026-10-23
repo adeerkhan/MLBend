@@ -137,7 +137,7 @@ def reference_wine_pca():
 
 TASKS = {
     "iris-crossval": {
-        "description": "logistic regression over iris, five stratified folds",
+        "description": "logistic regression over iris, five stratified folds, scaler fitted on the training rows only",
         "program": "examples/crossval/main.bend",
         "dataset": {"name": "iris", "rows": 150, "features": 4,
                     "source": "https://huggingface.co/datasets/mstz/iris"},
