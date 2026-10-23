@@ -22,6 +22,7 @@ import tempfile
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import StratifiedKFold
+from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,13 +67,17 @@ def bend_folds():
 
 
 def sklearn_folds(x, y):
-    """The accuracy of every fold, from scikit-learn."""
-    scaled = StandardScaler().fit_transform(x)
+    """The accuracy of every fold, from scikit-learn.
+
+    The scaler is fitted inside the fold (`Pipeline`), on the training rows
+    only, as `examples/crossval` now does: standardising the whole matrix
+    first would let the test rows into the means and the deviations.
+    """
     scores = []
-    for train, test in StratifiedKFold(n_splits=5, shuffle=True, random_state=42).split(scaled, y):
-        model = LogisticRegression(max_iter=1000)
-        model.fit(scaled[train], y[train])
-        scores.append(float((model.predict(scaled[test]) == y[test]).mean()))
+    for train, test in StratifiedKFold(n_splits=5, shuffle=True, random_state=42).split(x, y):
+        model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))
+        model.fit(x[train], y[train])
+        scores.append(float((model.predict(x[test]) == y[test]).mean()))
     return scores
 
 

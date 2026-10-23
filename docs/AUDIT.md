@@ -31,10 +31,11 @@ Questions to ask of each law:
 | `mlbend-split` | `split_covers` | every row of the dataset is placed in a fold, so the folds partition the rows |
 | `mlbend-select` | `select_covers` | every row of the dataset is in exactly one fold |
 | `mlbend-cluster` | `cluster_covers` | every row gets exactly one cluster, so no row is left out and none is in two |
+| `mlbend-pipeline` | `pipeline_preserves_rows` | transforming the rows keeps one output row for every input row |
 
 ### The experiment layer
 
-The seven packages are the substrate; the experiment layer is
+The eight packages are the substrate; the experiment layer is
 `reference/experiment.py`. It does not prove anything new: it makes the tested
 numbers auditable. For every task it runs the Bend program, computes the same
 number with NumPy or scikit-learn, and writes a report card with the delta and

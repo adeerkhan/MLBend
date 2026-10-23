@@ -11,9 +11,10 @@ engine. The only models that live here are gradient-free baselines.
 
 ## Where things are
 
-- `metrics/`, `preprocess/`, `split/`, `select/`, `cluster/`, `datasets/`, `hf/`: the seven
+- `metrics/`, `preprocess/`, `split/`, `select/`, `cluster/`, `pipeline/`, `datasets/`, `hf/`: the eight
   packages (`mlbend-metrics`, `mlbend-preprocess`, `mlbend-split`,
-  `mlbend-select`, `mlbend-cluster`, `mlbend-datasets`, `mlbend-huggingface`), one repository,
+  `mlbend-select`, `mlbend-cluster`, `mlbend-pipeline`, `mlbend-datasets`,
+  `mlbend-huggingface`), one repository,
   one workspace (`bend.toml`), each published to BendHub. `bendenv` is the
   only piece that lives in a repository of its own: `adeerkhan/bend-env`.
 - `reference/experiment.py`: the experiment runner — tasks, adapters,

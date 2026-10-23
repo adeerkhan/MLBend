@@ -3,10 +3,14 @@
 #   bendenv run -- bend examples/crossval/main.bend
 #
 # The whole chain, end to end: the dataset comes from HuggingFace, the
-# features are standardised by `mlbend-preprocess`, the model is trained
-# with bend-ml's autodiff, the folds come from `mlbend-select`, and the
-# score is `mlbend-metrics`. The only thing this program adds is the
-# loop over the folds.
+# scaler is fitted by `mlbend-pipeline` on the training rows of each fold
+# and applied to both sides, the model is trained with bend-ml's autodiff,
+# the folds come from `mlbend-select`, and the score is `mlbend-metrics`.
+# The only thing this program adds is the loop over the folds.
+#
+# The scaler sees the training rows only: the test rows never touch the
+# means and the deviations they are scored with. That is the leakage the
+# pipeline package exists to prevent.
 #
 # The folds are stratified: the rows of each class are shuffled and then
 # dealt out over the folds, so every fold holds the same classes in the
@@ -29,7 +33,7 @@ import bend-ml-autograd@0.1.1.0/main.bend as AG
 import mlbend-datasets@0.1.4.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 import mlbend-metrics@0.1.0.0/main.bend as M
-import mlbend-preprocess@0.1.0.0/main.bend as P
+import mlbend-pipeline@0.1.0.0/main.bend as Pipeline
 import mlbend-select@0.1.0.0/main.bend as Select
 
 # A row of the dataset: its features, its label, and the fold it is in.
@@ -159,11 +163,11 @@ def training(steps: Nat, +x: T.Mat<120n, 4n>, +labels: List<&2, Nat>) -> Model:
   training_go(steps, start(), x, labels)
 
 # The accuracy of one fold, when the test matrix is there.
-def scored_test(m: Maybe<&2, T.Mat<30n, 4n>>, x: T.Mat<120n, 4n>, +labels: List<&2, Nat>,
-  +test: List<&2, Row>) -> F32:
+def scored_test(m: Maybe<&2, T.Mat<30n, 4n>>, x: T.Mat<120n, 4n>,
+  labels: List<&2, Nat>, +test_labels: List<&2, Nat>) -> F32:
   match m:
     case Some{t}:
-      scored_model(training(60n, x, labels), t, labels_of(test))
+      scored_model(training(60n, x, labels), t, test_labels)
     case None{}:
       (0.0 - 1.0 : F32)
 
@@ -186,24 +190,33 @@ def features_of(+rows: List<&2, Row>) -> List<&2, List<&2, F32>>:
   features_of_go(rows, Nil{})
 
 # The test rows as bend-ml's matrix.
-def test_mat(+rows: List<&2, Row>) -> Maybe<&2, T.Mat<30n, 4n>>:
-  T.Mat.of(30n, 4n, features_of(rows))
+def test_mat(rows: List<&2, List<&2, F32>>) -> Maybe<&2, T.Mat<30n, 4n>>:
+  T.Mat.of(30n, 4n, rows)
 
-# The accuracy of one fold, when the training matrix is there.
-def scored_train(m: Maybe<&2, T.Mat<120n, 4n>>, +train: List<&2, Row>, +test: List<&2, Row>) -> F32:
-  match m:
+# The training rows as bend-ml's matrix.
+def train_mat(rows: List<&2, List<&2, F32>>) -> Maybe<&2, T.Mat<120n, 4n>>:
+  T.Mat.of(120n, 4n, rows)
+
+# The accuracy of one fold, when both matrices are there.
+def scored_matrices(train: Maybe<&2, T.Mat<120n, 4n>>, test: Maybe<&2, T.Mat<30n, 4n>>,
+  +train_labels: List<&2, Nat>, +test_labels: List<&2, Nat>) -> F32:
+  match train:
     case Some{x}:
-      scored_test(test_mat(test), x, labels_of(train), test)
+      scored_test(test, x, train_labels, test_labels)
     case None{}:
       (0.0 - 1.0 : F32)
 
-# The training rows as bend-ml's matrix.
-def train_mat(+rows: List<&2, Row>) -> Maybe<&2, T.Mat<120n, 4n>>:
-  T.Mat.of(120n, 4n, features_of(rows))
+# The accuracy of one fold, from the prepared rows.
+def scored_prepared(p: Pipeline.Prepared, +train_labels: List<&2, Nat>,
+  +test_labels: List<&2, Nat>) -> F32:
+  match p:
+    case Pipeline.Prepared{+train, +test}:
+      scored_matrices(train_mat(train), test_mat(test), train_labels, test_labels)
 
-# The accuracy of one fold: the training rows and the test rows.
+# The accuracy of one fold: the scaler is fitted on the training rows only.
 def scored(+train: List<&2, Row>, +test: List<&2, Row>) -> F32:
-  scored_train(train_mat(train), train, test)
+  +p = Pipeline.fold(features_of(train), features_of(test))
+  scored_prepared(p, labels_of(train), labels_of(test))
 
 # The fold of a row.
 def fold_of(+r: Row) -> Nat:
@@ -290,19 +303,6 @@ def folded_rows(+rows: List<&2, Row>, +fs: List<&2, Nat>, +acc: List<&2, Row>) -
 def loss(+m: Model, x: T.Mat<120n, 4n>, labels: List<&2, Nat>) -> F32:
   AG.ce_loss(120n, 3n, logits(m, x), labels)
 
-# The features of the dataset, standardised, when there is a matrix of them.
-def prepared_of(+rows: List<&2, List<&2, F32>>, m: Maybe<&2, T.Mat<150n, 4n>>) ->
-  List<&2, List<&2, F32>>:
-  match m:
-    case Some{matrix}:
-      T.Mat.to_rows(150n, 4n, P.standardize(150n, 4n, matrix))
-    case None{}:
-      rows
-
-# The features of the dataset, standardised, over bend-ml's matrix.
-def prepared(+rows: List<&2, List<&2, F32>>) -> List<&2, List<&2, F32>>:
-  prepared_of(rows, T.Mat.of(150n, 4n, rows))
-
 # The rows of the dataset, as rows of features and class index.
 def rows_of_go(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>, +acc: List<&2, Row>) ->
   List<&2, Row>:
@@ -356,7 +356,7 @@ def show_all(+fs: List<&2, Row>) -> IO(Unit):
 
 # The rows of the dataset, with the fold of each row.
 def show_rows(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>) -> IO(Unit):
-  +rs = rows_of(prepared(rows), labels)
+  +rs = rows_of(rows, labels)
   +fs = Select.folds(labels_of(rs), seed(), folds())
   show_all(folded_rows(rs, fs, Nil{}))
 

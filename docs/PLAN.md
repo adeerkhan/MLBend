@@ -68,21 +68,27 @@ the machine and the metric table.
 
 ## The roadmap
 
-### 1. The pipeline, without leakage
+### 1. The pipeline, without leakage — written (2026-10-23)
 
-`examples/crossval` standardises the whole matrix before the folds are made:
-the scaling has seen the test rows. The first real job of the layer is the
-pipeline that fits every transformer on the **training rows of the fold only**
-and applies it to both sides, with a law that says so:
+`examples/crossval` standardised the whole matrix before the folds were made:
+the scaling had seen the test rows. `mlbend-pipeline@0.1.0.0` fixes that:
+`fit` takes the training rows and nothing else, `transform` applies the fitted
+means and deviations to any rows, and `fold` does both for one split. The law
+`pipeline_preserves_rows` proves one output row per input row; the numbers are
+compared with scikit-learn's `StandardScaler` and with
+`Pipeline(StandardScaler, LogisticRegression)` on the same folds. `crossval`
+now uses it and its mean accuracy is unchanged (0.9333).
+
+The design decided while building it:
 
 - `fit(transform, train_rows)` consumes train rows only;
 - `transform(fitted, test_rows)` is pure;
 - the cross-validated score must match scikit-learn's `Pipeline` on the same
   folds, or the difference must be explained by the folds.
 
-Decide the shape while building it: a package (`mlbend-pipeline`) if the types
-carry the row counts cleanly, an example plus helpers if they do not. The law is
-the stop criterion either way.
+It is a package because the rows are lists and the counts are clean. The next
+transformer (min-max, one-hot) either joins it behind the same `fit`/`transform`
+shape or the package grows a chain; the law is the stop criterion either way.
 
 ### 2. The adapter protocol
 

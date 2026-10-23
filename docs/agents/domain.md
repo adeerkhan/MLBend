@@ -11,7 +11,7 @@ what the shape rules are, before it reads a line of Bend.
 | **metric** | a function of two equally long sequences that answers a number (and why it could not) |
 | **transformer** | a fitted value that changes the data: `s = Scaler.fit(x)`, then `s.transform(y)` |
 | **estimator** | a fitted value that predicts: `m = Linear.fit(x, y)`, then `m.predict(x2)` |
-| **pipeline** | a chain of transformers and an estimator, whose types are checked |
+| **pipeline** | a transformer fitted on the training rows only, then applied to both sides of a fold |
 | **the counts** | the `Nat` arithmetic every metric rests on (`count`, `count_true`, `count_pred`, `count_both`, `count_right`) |
 | **the shape** | the `r` and `c` of a `Mat<r, c>`: a type parameter, erased at run time, checked by the checker |
 | **law** | a statement the kernel proves; the proof is the `def` right below it |
@@ -32,8 +32,8 @@ what the shape rules are, before it reads a line of Bend.
 | `mlbend-select` (`select/`) | k-fold cross-validation on top of the split | indices over `Mat<r, c>` |
 | `mlbend-datasets` (`datasets/`) | the datasets of scikit-learn, fetched from HuggingFace at run time | `Table` |
 | `mlbend-cluster` (`cluster/`) | k-means, functional: the centres after a fixed number of rounds | `List<&2, F32>` rows |
+| `mlbend-pipeline` (`pipeline/`) | fit on the training rows only, transform both sides of a fold | `List<&2, List<&2, F32>>` rows |
 | `mlbend-huggingface` (`hf/`) | the HuggingFace client the datasets package reads through | bytes and JSON |
-| `mlbend-pipeline` (planned) | a chain that fits every transformer on the training rows only, with a no-leakage law | the chain's types |
 
 All of them are one repository: each package is a directory beside this file,
 and `bend.toml` at the root is the workspace that lists them. There is no

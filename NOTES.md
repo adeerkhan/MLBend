@@ -34,6 +34,24 @@ relevant entry before changing performance-sensitive code or a law.
   same split; PCA's first component explains **0.275443** of the variance,
   against scikit-learn's **0.2754426**. Neither needs standardising (a Gaussian
   is affine-invariant) or a trainer.
+- **The pipeline, and the leakage it removes (2026-10-23).** `mlbend-pipeline`
+  fits the scaler on the training rows of a fold and transforms both sides;
+  `examples/crossval` had standardised the whole matrix first, so the test rows
+  were in the means and the deviations. The law `pipeline_preserves_rows`
+  proves one output row per input row; the numbers are compared with
+  scikit-learn's `StandardScaler` and with `Pipeline(StandardScaler,
+  LogisticRegression)` on the same folds. The iris mean is unchanged (0.9333)
+  because standardising everywhere is nearly harmless there — the API is what
+  changed, and the leakage is now impossible by construction.
+- **CI hit its 30-minute ceiling (2026-10-23).** The run on `42ad0f4` was
+  cancelled at 30m16s: 58 checks, each building a program, do not fit in 30
+  minutes on a 4-vCPU runner. `.github/workflows/ci.yml` now allows 60, and
+  the retired `devel` branch is out of the push filter.
+- **The two spellings of an effect (2026-10-23).** A return type written
+  `IO<Unit>` rather than `IO(Unit)` reports `a declared datatype (unknown:
+  IO)`, and the reverse (`do IO(Unit)`) reports `expected '<', observed '('`.
+  Neither names the pair or the position; the minimal repro and the suggested
+  message are for `bendlang/bend` (the `#1632` diagnostic series).
 - **Laws: what they are for here (2026-10-23).** A law belongs to a pure
   structural claim — a count, a partition, a cover, a composition — and the
   kernel proves it. A number (`F32`), a wall time, a dataset fetch and a W&B

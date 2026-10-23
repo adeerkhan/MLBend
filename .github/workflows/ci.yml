@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, devel]
+    branches: [main]
   pull_request:
   workflow_dispatch:
   schedule:
@@ -12,7 +12,7 @@ jobs:
   check:
     name: the proofs, the kernel and the numbers
     runs-on: ubuntu-24.04      # pinned (ubuntu-latest moves to 26 on 2026-10-19); 4 vCPU, 16 GB RAM
-    timeout-minutes: 30
+    timeout-minutes: 60   # 58 checks, one build each; 30 was reached on 2026-10-23
     steps:
       - uses: actions/checkout@v7
 

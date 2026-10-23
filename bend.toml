@@ -20,6 +20,7 @@ members = [
     "split",
     "select",
     "cluster",
+    "pipeline",
 ]
 
 [workspace.dependencies]

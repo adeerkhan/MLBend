@@ -2107,6 +2107,22 @@ sha = "603ce9258cd251b67a3710196423d8f5ba53716be33ae2d3faabe369005d1c61"
 path = "main.bend"
 
 [[package]]
+name = "mlbend-pipeline"
+version = "0.1.0.0"
+hash = "0xea73a86e2118529cadd597fb3727979b"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "e498333c003bb608a98b15fb4e6516915aeac7e9e5525b12eb60e600953382fb"
+path = "main.bend"
+
+[[package]]
 name = "mlbend-preprocess"
 version = "0.1.0.0"
 hash = "0xa8182854f375cd61135ccd32993993cc"

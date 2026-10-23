@@ -1,0 +1,6 @@
+[project]
+name = "mlbend-pipeline"
+version = "0.1.0.0"
+description = "Fit a transformer on the training rows only: the scaler of one fold, applied to both sides, with a law that every input row keeps a row."
+
+[dependencies]

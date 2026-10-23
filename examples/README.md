@@ -14,7 +14,7 @@ re-implements them.
 | [`pca/main.bend`](pca/main.bend) | the first principal component of wine, by power iteration: a transformer, not a trainer |
 | [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
 | [`naive_bayes/main.bend`](naive_bayes/main.bend) | Gaussian naive Bayes over the same data: the gradient-free baseline the experiment layer keeps beside the learned models |
-| [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → standardise → logistic regression → stratified folds → accuracy |
+| [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → scaler fitted on each training fold → logistic regression → stratified folds → accuracy, with no leakage |
 | [`stacks/main.bend`](stacks/main.bend) | the two stacks side by side, over one environment |
 
 ## The logistic example
@@ -101,8 +101,9 @@ transformer, not a trainer, and it is a task in the experiment layer
 
 ## The cross-validation example
 
-The whole chain: the iris dataset comes from HuggingFace, the features are
-standardised by `mlbend-preprocess`, the model is trained with bend-ml's
+The whole chain: the iris dataset comes from HuggingFace, the scaler is fitted
+by `mlbend-pipeline` on the training rows of each fold — never on the whole
+dataset — the model is trained with bend-ml's
 autodiff, the folds come from `mlbend-select` over `mlbend-split`, and the
 score is `mlbend-metrics`. The program adds the loop over the folds and
 nothing else.
