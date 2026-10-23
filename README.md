@@ -53,7 +53,7 @@ harness needs one.
 | [`mlbend-split`](split) | a seeded, deterministic split of the rows, stratified by label | v0.1.1: written, checked, published |
 | [`mlbend-select`](select) | k-fold cross-validation on top of the split | v0.1: written, checked, published |
 | [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, one cluster per row | v0.1: written, checked, published |
-| [`mlbend-pipeline`](pipeline) | fit on the training rows only: the scaler of one fold, applied to both sides | v0.1: written, checked |
+| [`mlbend-pipeline`](pipeline) | fit on the training rows only: the scaler of one fold, applied to both sides | v0.1: written, checked, published |
 | [`mlbend-datasets`](datasets) | the datasets of scikit-learn, fetched at run time | v0.1.4: written, checked, published |
 | [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the JSON rows | v0.1.1: written, checked, published |
 

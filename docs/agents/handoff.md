@@ -7,7 +7,46 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-23 — the pipeline, and no leakage
+
+**Where we are.** `mlbend-pipeline@0.1.0.0` is written, published
+(`0xea73a86e2118529cadd597fb3727979b`, tag `mlbend-pipeline-v0.1.0.0`) and
+used by `examples/crossval`. The scaler is fitted on the training rows of a
+fold and applied to both sides; the leakage that standardised the whole matrix
+before the split is gone. The law `pipeline_preserves_rows` (one output row per
+input row) is checked by Bend's checker; `reference/test_pipeline.py` compares
+the means, the deviations and the transformed rows — unseen test rows included
+— with scikit-learn's `StandardScaler`, and `reference/test_crossval.py` now
+compares against `Pipeline(StandardScaler, LogisticRegression)`, the reference
+with no leakage of its own.
+
+**What was run.**
+- `make check` → **64/64** locally (the pipeline package, its test, and
+  `test_pipeline.py` added to the previous 58).
+- `reference/test_crossval.py` → Bend mean **0.9333**, scikit-learn **0.9533**;
+  the mean is unchanged, the gap is the two shuffles, not the scaling.
+- `reference/experiment.py --task iris-crossval` → PASS, 0.9333 against 0.9533.
+- A resolution check with `BEND_LIB` unset: the published package runs from the
+  hub, so CI does not need a local workspace.
+
+**What CI did.** The run on `42ad0f4` was cancelled at **30m16s**: 58 checks,
+each building a program, do not fit in 30 minutes on a 4-vCPU runner.
+`.github/workflows/ci.yml` now allows **60** minutes and pushes only on `main`
+(the old `devel` filter is gone). The next run validates the pipeline.
+
+**What was not run.** The kernel `--verdict` here (no Lean 4.34.0); CI runs it.
+The pipeline imports only Base, so the kernel has no foreign code to refuse.
+
+**What is next.**
+1. The results methodology: cache the datasets, split `fetch_ms` from
+   `compute_ms`, and put the dataset's SHA-256 in the manifest. The current
+   task timings include the HuggingFace fetch on both sides.
+2. The adapter protocol: BendTorch and bend-ml's autograd behind one task
+   interface, so a trainer changes without a task changing.
+3. Model selection and the report (grid/nested CV, confusion matrix, R²).
+
 ## 2026-10-23 — the experiment layer, on main, with results kept
+
 
 **Where we are.** `devel` was merged into `main` (fast-forward, 55 commits) and
 `main` is the work branch now. MLBend is no longer "the classic-ML half"; it is
