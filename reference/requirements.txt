@@ -2,3 +2,4 @@
 # Tested versions (2026-10-20): numpy 2.5.4, scikit-learn 1.9.1, on Python 3.14.7.
 numpy>=2.0
 scikit-learn>=1.4
+wandb>=0.17

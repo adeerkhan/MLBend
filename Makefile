@@ -8,7 +8,7 @@ BEND := $(or $(BEND_BIN),$(HOME)/.bend/bin/bend)
 BEND_VERSION := 2.0.37
 BEND_REF := ../bend-ref
 
-.PHONY: setup check laws sync-bend clean lint env env-check release
+.PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench
 
 setup:            ## Bend, Lean and the Python venv
 	scripts/setup.sh
@@ -26,6 +26,19 @@ env:              ## the environment: one lock, one env, for every package here
 env-check:        ## the environment against the lock, and the example over it
 	$(BENDENV) check
 	$(BENDENV) run -- $(BEND) examples/stacks/main.bend
+
+experiment:       ## run one task and write a report card: make experiment TASK=iris-crossval
+	@test -n "$(TASK)" || (echo "usage: make experiment TASK=<task> (see reference/experiment.py --list)" && false)
+	$(PY) reference/experiment.py --task $(TASK)
+
+experiments:      ## every task, with its report cards, saved under results/
+	$(PY) reference/experiment.py --all --repeat 2
+
+results:          ## regenerate results/RESULTS.md from the latest reports
+	$(PY) reference/experiment.py --summary
+
+bench:            ## a compute-only kernel benchmark, saved under results/
+	$(PY) reference/bench_matmul.py
 
 release:          ## release one package to the hub and tag it here: make release PKG=hf
 	@test -n "$(PKG)" || (echo "usage: make release PKG=<package directory>" && false)

@@ -22,3 +22,6 @@ data/
 
 # bend-lint (make lint)
 node_modules/
+
+# the W&B cache; the reports themselves live in results/ and are committed
+wandb/
