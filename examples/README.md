@@ -11,7 +11,9 @@ re-implements them.
 | [`tape/tape.bend`](tape/tape.bend) | the logistic model over bendtorch's tape: the forward records the nodes, the backward walks them, the step reads the gradients off the leaves |
 | [`regression/main.bend`](regression/main.bend) | ridge regression over the wine dataset, over bendtorch's tape with `mse_loss` and a weight decay in the step |
 | [`kmeans/main.bend`](kmeans/main.bend) | k-means over the wine dataset, through `mlbend-cluster`, after standardising the columns |
+| [`pca/main.bend`](pca/main.bend) | the first principal component of wine, by power iteration: a transformer, not a trainer |
 | [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
+| [`naive_bayes/main.bend`](naive_bayes/main.bend) | Gaussian naive Bayes over the same data: the gradient-free baseline the experiment layer keeps beside the learned models |
 | [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → standardise → logistic regression → stratified folds → accuracy |
 | [`stacks/main.bend`](stacks/main.bend) | the two stacks side by side, over one environment |
 
@@ -80,6 +82,22 @@ The wine dataset, standardised, clustered by `mlbend-cluster` into three
 clusters for ten rounds. The example only holds the data and the
 standardising; the algorithm lives in the package, where every row is
 proved to get exactly one cluster.
+
+## The naive Bayes example
+
+A Gaussian per feature per class, trained on the first four fifths of the
+breast cancer dataset: a gradient-free baseline that needs no library and
+no standardising. It scores 0.9854, the same as scikit-learn's
+`GaussianNB` on the same split. It is also a task in the experiment layer
+(`cancer-naive-bayes`).
+
+## The PCA example
+
+The covariance matrix of the standardised wine features, and a hundred
+power iterations for its first eigenvector. The explained variance ratio
+is 0.275443, against scikit-learn's 0.275443 on the same data. It is a
+transformer, not a trainer, and it is a task in the experiment layer
+(`wine-pca`).
 
 ## The cross-validation example
 
