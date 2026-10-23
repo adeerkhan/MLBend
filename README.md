@@ -1,75 +1,126 @@
 # MLBend
 
-Machine learning for [Bend 2](https://bend-lang.com), in the shape scikit-learn has:
-estimators, transformers, pipelines, metrics, model selection. What Bend changes
-is the ground under all of it: an estimator is a **value** and not an object with
-mutated state, the **shape** of the data is in the type, and the structural
-guarantees are **laws** that Bend's kernel checks.
+**The experiment layer for machine learning in [Bend 2](https://bend-lang.com):**
+a dataset in, a reproducible report out, over any Bend trainer.
 
-This is the classic-ML half of the ecosystem. The tensor, autodiff and model
-half lives in [bend-ml](https://github.com/nuxyel/bend-ml); MLBend builds the
-estimator surface on top of it and does not repeat it.
+[bend-ml](https://github.com/nuxyel/bend-ml) owns the tensors and the laws,
+[BendTorch](https://github.com/aaaxn/bendtorch) owns the training. MLBend owns
+the *experiment* around them: the data, the split, the transformations, the
+model selection, the metrics, and the evidence that a number is the number it
+claims to be. It writes no tensor, no autodiff and no optimizer of its own.
+
+What Bend changes is the ground under all of it: a fitted object is a **value**,
+the **shape** is in the type, the structural claims are **laws** the kernel
+checks, and every run can carry a **manifest** — dataset revision, seed, split,
+package hashes, hardware — so a second person can reproduce it.
+
+## The layers
+
+| Layer | Repository | Owns |
+|---|---|---|
+| primitives | [bend-ml](https://github.com/nuxyel/bend-ml) | tensors, shapes, type-level laws, the BPE tokenizer; `autograd` is frozen |
+| training | [BendTorch](https://github.com/aaaxn/bendtorch) | the tape, the layers, the losses, the optimizer |
+| experiment | **this repository** | datasets, splits, transformers, model selection, metrics, reports, benchmarks |
+
+A model enters MLBend through a **task**, not through a new engine. That is the
+boundary: gradient-trained models come from BendTorch or bend-ml's autograd;
+MLBend composes them, cross-validates them, scores them and records the run.
+The one kind of model it keeps is the gradient-free baseline — k-means, naive
+Bayes, k-nearest neighbours — because a baseline needs no trainer and the
+harness needs one.
 
 ## The design, in five rules
 
-1. **Values, not objects.** `scaler = Scaler.fit(x)` and then `z = scaler.transform(y)`:
-   a straight line of data, no `self`, nothing mutated. Bend's affine rule makes
-   this the only shape a program can have, and a fitted model is a value you can
-   pass, store and thread.
-2. **Shapes in the types.** `Mat<r, c>` for the data, a fitted model over `c`
-   features is `Model<c, k>`, and `predict : Mat<n, c> -> Mat<n, k>`. A model
-   applied to the wrong number of features does not compile.
+1. **Values, not objects.** A fitted transformer is a value: `scaler.transform(y)`,
+   no `self`, nothing mutated. Bend's affine rule makes this the only shape a
+   program can have.
+2. **Shapes in the types.** `Mat<r, c>` for the data; a model over `c` features is
+   `Model<c, k>`; a pipeline with the wrong shape does not compile.
 3. **Structure proved, numbers tested.** Sizes, partitions and compositions are
    laws the kernel checks; `F32` results are compared with NumPy and
    scikit-learn. `F32` is not a real number, so no value is ever proved.
 4. **Effects at the edges only.** Fetching a dataset, reading a file, seeding a
-   generator. The estimators themselves are pure, so a run is reproducible.
-5. **Errors are values.** A length that does not match is a `Result`, not a
-   crash: a metric answers `Done{value}` or `Fail{Mismatch{...}}`.
+   generator. Everything after the edge is pure and reproducible.
+5. **Every number has a manifest.** A score without the dataset revision, the
+   seed, the split and the package hashes is a claim, not a result.
 
-## Packages
+## The packages
 
 | Package | What it is | Status |
 |---|---|---|
-| [`mlbend-metrics`](metrics) | the evaluation surface: MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | v0.1: written, checked, one law proved |
-| [`mlbend-preprocess`](preprocess) | the transformers of scikit-learn: standardize, min-max, one-hot, L1 and L2 normalization | v0.1: written, checked, published |
+| [`mlbend-metrics`](metrics) | MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | v0.1: written, checked, one law proved |
+| [`mlbend-preprocess`](preprocess) | standardize, min-max, one-hot, L1 and L2 normalization | v0.1: written, checked, published |
 | [`mlbend-split`](split) | a seeded, deterministic split of the rows, stratified by label | v0.1.1: written, checked, published |
 | [`mlbend-select`](select) | k-fold cross-validation on top of the split | v0.1: written, checked, published |
-| [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, and one cluster per row | v0.1: written, checked, published |
+| [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, one cluster per row | v0.1: written, checked, published |
 | [`mlbend-datasets`](datasets) | the datasets of scikit-learn, fetched at run time | v0.1.4: written, checked, published |
-| [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the rows server's JSON rows | v0.1.1: written, checked, published |
+| [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the JSON rows | v0.1.1: written, checked, published |
 
-The tensors and the autodiff are **not** ours: they are
-[bend-ml](https://github.com/nuxyel/bend-ml)'s and
-[bendtorch](https://github.com/aaaxn/bendtorch)'s, and this repository
-depends on them. What this repository adds is the classic-ML surface
-around them — the estimators, the transformers, the pipelines, the
-metrics and the datasets — and the
-[examples](examples) that use them.
-
-The seven packages live here, in this one repository, as the workspace in
+The seven packages live here, in one repository, as the workspace in
 `bend.toml`; there is no repository per package. `make release PKG=<dir>`
-publishes one to BendHub and records it here under the tag
-`<name>-v<version>`. The package manager, `bendenv`, is the one thing that
-stays in its own repository ([bend-env](https://github.com/adeerkhan/bend-env)).
+publishes one to BendHub and records it under the tag `<name>-v<version>`.
+The package manager, `bendenv`, is the one piece that stays in its own
+repository ([bend-env](https://github.com/adeerkhan/bend-env)).
 
-More packages are planned; the order and the stop criteria are in [`docs/PLAN.md`](docs/PLAN.md).
+## The experiment layer
 
-## What is proved, and what is trusted
+[`reference/experiment.py`](reference/experiment.py) is the first product of
+the layer. A **task** is a dataset, a program and the numbers it must produce;
+the runner builds and runs the program, parses its output, computes the same
+numbers with NumPy or scikit-learn, and writes a **report card** as JSON.
 
-[`docs/AUDIT.md`](docs/AUDIT.md) says what each package proves, what it only
-tests, and what it trusts. The short version: the counts are proved, the `F32`
-numbers are tested against NumPy and scikit-learn.
+```console
+$ reference/.venv/bin/python reference/experiment.py --list
+iris-crossval      examples/crossval/main.bend      logistic regression over iris, five stratified folds
+iris-mlp           examples/mlp/main.bend           a two-layer rectified network over iris, 400 SGD steps
+wine-regression    examples/regression/main.bend    linear regression over wine quality, 1000 SGD steps
+wine-kmeans        examples/kmeans/main.bend        k-means over wine, three clusters for ten rounds
+cancer-naive-bayes examples/naive_bayes/main.bend   Gaussian naive Bayes over breast cancer, four fifths train
+cancer-knn         examples/knn/main.bend           three-nearest-neighbours over breast cancer, four fifths train
 
-## For an agent
+$ reference/.venv/bin/python reference/experiment.py --task cancer-knn
+task: cancer-knn  (three-nearest-neighbours over breast cancer, four fifths train)
+git: main ...
+bend: 2.0.37   run: 1.4 s
 
-Start at [`AGENTS.md`](AGENTS.md): the rules, the read order, the commands, and
-where the language lives (the guide and the Base source come with the pinned
-install; the language's own source is `bendlang/bend`, in its own repository, and
-is not vendored here). [`docs/agents/handoff.md`](docs/agents/handoff.md) says
-where the work is right now; [`docs/agents/domain.md`](docs/agents/domain.md) is
-the map of the packages; [`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md)
-is how the issues carry the work.
+metric                      bend     reference       delta  ok
+accuracy                0.978102      0.978102   1.022e-08  ok
+
+PASS
+report: results/raw/cancer-knn-....json
+```
+
+The manifest records the git commit and whether the tree was dirty, the Bend
+version, every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub
+hash, the machine, the seed, the tolerances, the **build time**, the **run
+time** (minimum of the repeats) and the **reference time**. The task timings
+include the dataset fetch on both sides; the build time is Bend's compiler and
+is reported separately. `--wandb` logs the same
+manifest to **Weights & Biases** (project `mlbend`), offline when there is no
+API key, so a run never blocks on the network.
+
+```console
+$ make experiment TASK=cancer-knn        # one report card, saved under results/
+$ make experiments                       # every task
+$ make results                           # rebuild results/RESULTS.md
+make bench                             # the compute-only kernel benchmark
+$ reference/.venv/bin/python reference/experiment.py --task iris-crossval --wandb
+```
+
+## The results
+
+The reports are committed, not thrown away:
+
+- [`results/RESULTS.md`](results/RESULTS.md) — the latest report card of every
+  task: dataset, Bend number, Python number, delta, milliseconds and speed
+  ratio.
+- [`results/BENCH.md`](results/BENCH.md) — the compute-only kernel benchmark
+  (one matrix-product workload, Bend against NumPy), with GFLOP/s.
+- `results/latest/<task>.json` and `results/raw/` — the full manifests and the
+  timestamped history.
+
+The task timings include the dataset fetch on both sides; the kernel benchmark
+has no dataset and no IO. `make experiments` and `make bench` regenerate them.
 
 ## Checks
 
@@ -77,9 +128,29 @@ is how the issues carry the work.
 make setup        # the pinned Bend 2.0.37, Lean 4.34.0 and the Python venv
 make check        # the proofs, the kernel (--verdict), the rejected programs, the NumPy comparison
 make laws         # every law statement of every package
+make experiment TASK=cancer-knn   # one task, one report card
+make experiments                 # every task
 ```
 
 `make check` is the gate before a commit; CI runs it on every push.
+`make experiments` is the gate for the layer itself: a task whose Bend number
+drifts from its reference turns red, and `make results` writes the comparison
+table that is committed.
+
+## What is proved, and what is trusted
+
+[`docs/AUDIT.md`](docs/AUDIT.md) says what each package proves, what it only
+tests, and what it trusts. The short version: the counts are proved, the `F32`
+numbers are tested against NumPy and scikit-learn, and every experiment reports
+both sides of the comparison.
+
+## For an agent
+
+Start at [`AGENTS.md`](AGENTS.md): the rules, the read order, the commands.
+[`docs/agents/handoff.md`](docs/agents/handoff.md) says where the work is;
+[`docs/agents/domain.md`](docs/agents/domain.md) is the vocabulary and the map;
+[`docs/agents/issue-tracker.md`](docs/agents/issue-tracker.md) is how the
+issues carry the work. The roadmap is [`docs/PLAN.md`](docs/PLAN.md).
 
 ## License
 

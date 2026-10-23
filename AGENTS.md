@@ -1,7 +1,13 @@
 # MLBend
 
-Machine learning for Bend 2, in the shape scikit-learn has, with the shapes in
-the types and the structure proved by the kernel.
+The experiment layer for machine learning in Bend 2: a dataset in, a
+reproducible report out, over any Bend trainer. The tensors and the laws are
+bend-ml's; the training is BendTorch's; the data, splits, transformations,
+selection, metrics, reports and manifests are ours.
+
+**The rule that keeps it distinct:** MLBend writes no tensor, no autodiff and
+no optimizer. A model enters through a task and an adapter, not through a new
+engine. The only models that live here are gradient-free baselines.
 
 ## Where things are
 
@@ -10,10 +16,14 @@ the types and the structure proved by the kernel.
   `mlbend-select`, `mlbend-cluster`, `mlbend-datasets`, `mlbend-huggingface`), one repository,
   one workspace (`bend.toml`), each published to BendHub. `bendenv` is the
   only piece that lives in a repository of its own: `adeerkhan/bend-env`.
-- `docs/PLAN.md`: the packages, the order and the stop criteria.
+- `reference/experiment.py`: the experiment runner — tasks, adapters,
+  references, report cards, manifests and the W&B sink.
+- `docs/PLAN.md`: the layer, the roadmap and the stop criteria.
 - `docs/AUDIT.md`: what is proved, what is tested, what is trusted.
 - `NOTES.md`: every finding and every discarded hypothesis, by date.
-- `reference/`: the NumPy and scikit-learn comparisons, and the runner.
+- `reference/`: the NumPy and scikit-learn comparisons, the per-task tests,
+  and `experiment.py`, the runner that writes the reports.
+- `reports/`: the generated report cards (ignored by git).
 - `docs/agents/`: the map of the work for an agent.
   - `docs/agents/handoff.md`: **where we are, what was run, what was not, what
     is next.** It is overwritten at the end of every session; read it first.
@@ -25,7 +35,7 @@ the types and the structure proved by the kernel.
 1. **Read, in this order**: this file, `docs/agents/handoff.md`, the issue the
    handoff names, `docs/PLAN.md`, `docs/agents/domain.md`, then
    `NOTES.md` for the part of the code you are about to touch.
-2. **One issue per work item**, on `devel`, in small commits. The acceptance
+2. **One issue per work item**, on `main`, in small commits. The acceptance
    criteria go in the issue (`docs/agents/issue-tracker.md`).
 3. **Run `make check` before you believe anything.** It checks the proofs, the
    kernel, the programs that must be refused, and the numbers against NumPy and
@@ -35,7 +45,10 @@ the types and the structure proved by the kernel.
    has no Lean, the law is *checked* but not *proved*, and the pull request
    must say so.
 5. **A law that cannot be proved yet is an issue**, not a package.
-6. **Write the handoff** before you stop: the next agent starts from it.
+6. **Run the experiment layer too**: `make experiment TASK=<task>` writes the
+   report card; `make experiments` runs the corpus. A task whose Bend number
+   drifts from its reference is a failure, not a note.
+7. **Write the handoff** before you stop: the next agent starts from it.
 
 ## Where the language lives
 
@@ -55,14 +68,17 @@ here would be wrong tomorrow.
 
 ## Branches
 
-Work on `devel`: every commit and push goes there, and CI checks it. `main`
-only receives releases, through a pull request `devel` → `main` merged after
-its CI passes; the version tag and the GitHub release are made on `main` after
-that merge. A *package* release (`make release PKG=<dir>`) publishes to BendHub
-and tags the commit it released in this repository as `<name>-v<version>`.
+Work on `main`: every commit and push goes there, and CI checks it. The
+`devel` branch was merged into `main` on 2026-10-23 and is kept for history; it
+is no longer the work branch. A *package* release (`make release PKG=<dir>`)
+publishes to BendHub and tags the released commit `<name>-v<version>`.
 
 ## Rules
 
+0. **No new trainer here.** No tensor, no autodiff, no optimizer, no second
+   `linear`/`ridge`/`logistic` implementation. Those are BendTorch's or
+   bend-ml's; this repository adapts them. Gradient-free baselines are the
+   exception, because a baseline needs no trainer.
 1. Bend is pinned to **2.0.37** (and Lean 4.34.0 for `--verdict`). A version
    bump is its own change, with an entry in `NOTES.md`.
 2. Run the checker on every change; it takes a fraction of a second.

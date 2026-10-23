@@ -16,6 +16,11 @@ what the shape rules are, before it reads a line of Bend.
 | **the shape** | the `r` and `c` of a `Mat<r, c>`: a type parameter, erased at run time, checked by the checker |
 | **law** | a statement the kernel proves; the proof is the `def` right below it |
 | **debt** | a claim that is not proved yet; it lives in an issue, not in a package |
+| **task** | a dataset, a split, a program and the numbers it must produce, with tolerances |
+| **adapter** | the code that builds and runs a task's program and parses its output; the trainer enters here |
+| **reference** | the same numbers computed with NumPy or scikit-learn |
+| **report card** | the metric table: the Bend number, the reference number, the delta, pass or fail |
+| **manifest** | the run's provenance: git commit and dirtiness, Bend version, hub hashes, machine, seed, tolerances |
 
 ## The packages
 
@@ -28,21 +33,22 @@ what the shape rules are, before it reads a line of Bend.
 | `mlbend-datasets` (`datasets/`) | the datasets of scikit-learn, fetched from HuggingFace at run time | `Table` |
 | `mlbend-cluster` (`cluster/`) | k-means, functional: the centres after a fixed number of rounds | `List<&2, F32>` rows |
 | `mlbend-huggingface` (`hf/`) | the HuggingFace client the datasets package reads through | bytes and JSON |
-| `mlbend-linear` (planned) | ordinary least squares, ridge, logistic regression | `Model<c, k>` |
-| `mlbend-pipeline` (planned) | a typed chain of the above | the chain's types |
+| `mlbend-pipeline` (planned) | a chain that fits every transformer on the training rows only, with a no-leakage law | the chain's types |
 
 All of them are one repository: each package is a directory beside this file,
 and `bend.toml` at the root is the workspace that lists them. There is no
 `mlbend-linalg`: the tensors and the lemmas are `bend-ml`'s and the kit's.
+There is no `mlbend-linear` trainer: linear, ridge and logistic regression enter
+as adapters over BendTorch or bend-ml, not as a second implementation.
 
 The order and the stop criteria are in `docs/PLAN.md`.
 
 ## The design rules, and why each one is there
 
-1. **An estimator is a value, not an object.** `m = Linear.fit(x, y)` and then
-   `m.predict(x2)`. Bend's affine rule makes the mutating shape impossible, and
-   the value shape is better anyway: a fitted model can be passed, stored and
-   threaded, and the *type* of the model says what it was fitted to.
+1. **A fitted thing is a value, not an object.** `s.transform(y)`, `m.predict(x2)`.
+   Bend's affine rule makes the mutating shape impossible, and the value shape
+   is better anyway: a fitted transformer or model can be passed, stored and
+   threaded, and its *type* says what it was fitted to.
 2. **The shape is in the type.** `Mat<r, c>`: the dimensions are erased type
    parameters, so they cost nothing at run time, but the checker verifies them
    in every operation. A model applied to the wrong number of features does not
@@ -58,6 +64,11 @@ The order and the stop criteria are in `docs/PLAN.md`.
 6. **A seeded generator is a function, not an effect.** The split is a law
    ("the split is a partition"), so the generator has to be pure: `splitmix64`
    over `U32`, seeded by a `Nat`.
+7. **No trainer here.** No tensor, no autodiff, no optimizer, no second
+   `linear`/`ridge`/`logistic`. A model enters through an adapter; the only
+   models in this repository are gradient-free baselines.
+8. **A number carries its manifest.** A score without the dataset, seed, split,
+   versions and machine is not a result.
 
 ## The types the packages share
 

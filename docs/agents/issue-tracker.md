@@ -33,9 +33,9 @@ next.
 
 ## The relation to the branches
 
-- Work happens on `devel`, one pull request per issue.
-- `main` only receives releases: a `devel` → `main` pull request after its CI
-  passes, then the tag and the GitHub release.
+- Work happens on `main`, one commit (or pull request) per issue.
+- `main` is the work branch; CI checks every push. The old `devel` branch was
+  merged into it on 2026-10-23.
 - A pull request closes the issue it names (`Closes #12`).
 
 ## Where the numbers live

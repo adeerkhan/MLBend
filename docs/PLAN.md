@@ -1,119 +1,162 @@
-# Plan: the classic-ML surface, natively in Bend 2
+# Plan: the experiment layer for Bend ML
 
 ## Why
 
-scikit-learn's surface is the one everybody knows: an estimator is fitted and then
-applied, a transformer fits and transforms, a pipeline chains them, model
-selection cross-validates, and the metrics score the result. Bend can offer the
-same surface with two things scikit-learn cannot: the shapes are in the types,
-and the structural claims are laws the kernel checks.
+The Bend ML ecosystem now has its primitives and its trainer:
 
-MLBend is the classic half of the ecosystem. bend-ml has the tensors, the
-autodiff and the models; MLBend has the estimators, the transformers, the
-pipelines and the metrics, and builds on bend-ml's packages rather than
-repeating them.
+- **[bend-ml](https://github.com/nuxyel/bend-ml)** — tensors, shapes, the
+  type-level laws, the BPE tokenizer. Its `tensor` and `autograd` are frozen;
+  `tensor-array` and `bpe` are alive.
+- **[BendTorch](https://github.com/aaaxn/bendtorch)** — the tape, the layers,
+  the losses, the optimizer, the MNIST run.
 
-## The packages, in order
+Neither owns the question a person actually asks: *“what does this model score
+on this data, and can I reproduce that number?”* That is the experiment layer,
+and it is what MLBend is for. The rule that keeps it distinct:
 
-Each package is one file, published to BendHub under `mlbend-*`, and imports
-only Base and the packages below it.
+> **MLBend writes no tensor, no autodiff and no optimizer. A model enters
+> through an adapter, not through a new engine.**
 
-| v | Package | What it is | The law it earns |
+The layer is: datasets, splits, transformations, model selection, metrics,
+reports and manifests — the part of scikit-learn that is `datasets`,
+`model_selection`, `preprocessing` and `metrics`, deliberately without the
+estimators' internals.
+
+## The layers
+
+| Layer | Repository | Owns | Does not own |
 |---|---|---|---|
-| 0.1 | `mlbend-metrics` | MSE, MAE, RMSE, accuracy, precision, recall, F1, and the counts they rest on | the count of the samples is the length of the label list |
-| 0.2 | `mlbend-datasets` | the `load_*` surface of scikit-learn: iris, breast cancer, diabetes, on top of `bend-kit-csv` | the loader reads the rows the file has (over the bytes) |
-| 0.3 | `mlbend-preprocess` | standardize, min-max, one-hot, L1 and L2 normalization | one-hot is a unit vector; the standardizer's output has mean 0 and variance 1 (over exact arithmetic) |
-| 0.4 | `mlbend-split` | a seeded, deterministic train/test split, stratified by label | every row of the dataset is placed in a fold, so the folds partition the rows |
-| 0.5 | `mlbend-select` | k-fold cross-validation on top of the split | the folds partition the data, like the split |
-| 0.6 | `mlbend-linear` | ordinary least squares, ridge, logistic regression | the residual of the fit is orthogonal to the design |
-| 0.7 | `mlbend-cluster` | k-means, functional (a fixed number of iterations) | every point is in exactly one cluster, and the assignment is a function of the point |
-| 0.8 | `mlbend-pipeline` | a typed chain of transformers and estimators | the chain's type is the chain of the steps' types |
+| primitives | bend-ml | tensors, shapes, laws, tokenizer | training, evaluation |
+| training | BendTorch | tape, layers, losses, optimizer | data, splits, reports |
+| experiment | **MLBend** | data, splits, transformations, selection, metrics, manifests, benchmarks | tensors, autodiff, optimizers |
 
+## What the layer must do
 
-**v0.1 is written** (2026-10-20): the metrics, the counts, one law proved by the
-Lean kernel, the numbers against NumPy and scikit-learn. The rest of the table
-is the plan; the open issues carry the debt of each step.
+1. **A task** is a dataset, a split, a program and the numbers that program must
+   produce, with a tolerance for each.
+2. **An adapter** builds and runs the program and parses its output. A new
+   trainer should become a task without touching the runner.
+3. **A reference** computes the same numbers with NumPy or scikit-learn.
+4. **A report card** compares the two and says pass or fail.
+5. **A manifest** records the git commit (and whether the tree was dirty), the
+   Bend version, every package at its hub hash, the machine, the seed and the
+   tolerances.
+6. **A report sink** writes the JSON and, with `--wandb`, logs the same manifest
+   to Weights & Biases.
 
-**v0.4 and v0.5 are written** (2026-10-22): `mlbend-split` (the seeded,
-stratified split) and `mlbend-select` (the folds of the cross-validation on
-top of it), each with a proved law and its numbers against scikit-learn's
-`StratifiedKFold`. The law both earn is the cover — every row is placed in
-a fold — and the plan's stronger wording (the sizes add up, no index in
-both) is the open part: the count that depends on an element's *value*
-cannot be lifted to the shape the checker wants, which is the same wall
-issue #1 records for the metrics' accounting law.
+## Status (2026-10-23)
 
-**v0.7 is written and published** (2026-10-23), before v0.6: `mlbend-cluster`, the k-means
-from `examples/kmeans` promoted to a package, with the law that every row
-gets exactly one cluster, and the example rewritten on top of it. The order
-of the table is the order of the work, not a dependency: k-means needed only
-plain arithmetic. `mlbend-linear` is next.
+The substrate is written and published: `mlbend-metrics`, `mlbend-preprocess`,
+`mlbend-split`, `mlbend-select`, `mlbend-cluster`, `mlbend-datasets`,
+`mlbend-huggingface`. `mlbend-cluster` proved `cluster_covers`, and CI certified
+it with the kernel (63/63 checks).
 
-**No `mlbend-linalg`.** The base layer already exists and is published:
-`bend-kit-csv` (an RFC 4180 reader), `bend-kit-bytes`, `bend-kit-f64` (a soft
-float, the numbers scikit-learn defaults to), `bend-kit-int` (U64, I64),
-`bend-kit-lemmas` (proved arithmetic) and `bend-kit-parse`; bend-ml has the
-tensors (`bend-ml-tensor`, `bend-ml-tensor-array`) and the reverse-mode
-autodiff (`bend-ml-autograd`). MLBend writes the *machine-learning* surface and
-imports the rest: a second `Mat` and a second set of lemmas would be the third
-copy of the same thing in the ecosystem.
+The experiment layer exists as [`reference/experiment.py`](../reference/experiment.py):
 
-**The one gap in the base layer**: Base cannot read a number from a string
-(bendlang/bend#1789), and the kit's f64 says so outright (*"Decimal text is not
-here"*). The data layer needs it, so v0.2 carries a small decimal parser until
-Base has one, and drops it when it does.
+| task | program | reference |
+|---|---|---|
+| `iris-crossval` | logistic regression, five stratified folds | scikit-learn `LogisticRegression` + `StratifiedKFold` |
+| `iris-mlp` | two rectified layers, 400 SGD steps | scikit-learn `MLPClassifier(8)` |
+| `wine-regression` | linear regression, 1000 steps on BendTorch's tape | scikit-learn `LinearRegression` |
+| `wine-kmeans` | k-means, three clusters, ten rounds | the same algorithm in NumPy |
+| `cancer-naive-bayes` | Gaussian naive Bayes, four fifths train | scikit-learn `GaussianNB` |
+| `cancer-knn` | three nearest neighbours, four fifths train | scikit-learn `KNeighborsClassifier` |
 
-## The order, and why
+Every run writes `reports/<task>-<stamp>.json`; `--wandb` logs it. The report
+carries the dataset, the seed, the git state, the Bend version, the hub hashes,
+the machine and the metric table.
 
-- **Metrics first.** Every later package scores itself with them, and they are
-  pure, so they can be proved and tested before anything else exists.
-- **The containers before the estimators.** `mlbend-linalg` gives the shapes; the
-  estimators are written against `Mat<r, c>` and their mistakes become type
-  errors.
-- **The split before the models.** A deterministic split (a pure PRNG in the
-  package) is what makes every later number reproducible; the partition law is
-  the first law that says something about the *data* rather than about arithmetic.
-- **The models last.** Each one is a few dozen lines once the containers and the
-  split exist, and each earns a law (orthogonality for OLS, one cluster per
-  point for k-means).
-- **The pipeline and the datasets at the end.** They are the scikit-learn
-  surface proper, and they need the estimators to exist.
+## The roadmap
 
-## How the work carries
+### 1. The pipeline, without leakage
 
-The plan is here; the *process* is in [`AGENTS.md`](../AGENTS.md) and
-[`docs/agents/`](../agents): one issue per work item, work on `devel`, `make
-check` before every push, `NOTES.md` for what was measured and what failed, and
-`docs/agents/handoff.md` for where we are.
+`examples/crossval` standardises the whole matrix before the folds are made:
+the scaling has seen the test rows. The first real job of the layer is the
+pipeline that fits every transformer on the **training rows of the fold only**
+and applies it to both sides, with a law that says so:
+
+- `fit(transform, train_rows)` consumes train rows only;
+- `transform(fitted, test_rows)` is pure;
+- the cross-validated score must match scikit-learn's `Pipeline` on the same
+  folds, or the difference must be explained by the folds.
+
+Decide the shape while building it: a package (`mlbend-pipeline`) if the types
+carry the row counts cleanly, an example plus helpers if they do not. The law is
+the stop criterion either way.
+
+### 2. The adapter protocol
+
+Write down what a task may be: a program with a fixed output grammar, or a
+Python entry point that drives a trainer and prints the same metrics. Add
+adapters for BendTorch and for bend-ml's autograd, so the same task can be run
+by either and the report says which. No task code should change when a trainer
+does.
+
+### 3. Model selection
+
+`mlbend-select` walks the folds. The next step is the search: a grid or random
+search over a parameter value, nested cross-validation, and per-fold tables.
+The acceptance is scikit-learn's `GridSearchCV` on the same folds within the
+same tolerance the single model already meets.
+
+### 4. Reports
+
+The metrics exist; the *report* does not. Classification: confusion matrix,
+per-class precision/recall/F1 with support, macro and weighted averages;
+regression: R², MAE, RMSE, residual quantiles. The numbers must match
+scikit-learn's `classification_report` and `confusion_matrix`. Whether this is
+a Bend package (`mlbend-report`) or a runner-side renderer depends on how much
+of the format is pure — the metric arithmetic is pure and belongs in Bend.
+
+### 5. The corpus and the scoreboard
+
+Grow the tasks beyond the six: more datasets from `mlbend-datasets`, the same
+model under different seeds, the two trainers on one task. Then publish the
+results as a checked-in table with the manifest beside each row. The point is
+not a leaderboard for its own sake: it is the evidence that the ecosystem's
+numbers are real and repeatable.
+
+### 6. Weights & Biases
+
+`--wandb` logs one run today. Next: a project per task family, the manifest as
+the run config, the report JSON as an artifact, and sweeps over the parameters
+the selection step defines. Offline mode stays the default without an API key so
+CI never depends on the network.
+
+## What we deliberately do not build
+
+- No tensors, autodiff, layers or optimizers: those are bend-ml's and
+  BendTorch's.
+- No `mlbend-linear` as a trainer. Ordinary least squares, ridge and logistic
+  regression arrive as adapters over BendTorch or bend-ml, not as a second
+  implementation.
+- No `mlbend-linalg`: the tensors and the lemmas are already published.
+- Gradient-free baselines only (`mlbend-cluster`, naive Bayes, kNN): they need
+  no trainer, and the harness needs something to beat.
 
 ## Stop criteria
 
-- A package is done when its law is proved (the kernel says so), its numbers
-  match NumPy and scikit-learn, and its README says in plain language what it
-  proves and what it only tests.
-- A claim that cannot be proved yet is **not** in the package: it goes into
-  `NOTES.md` as debt, with the experiment that failed, and comes back when the
-  machinery to prove it exists.
-- v0.9 is done when the iris dataset goes through standardize → logistic
-  regression → cross-validation, with the accuracy matching scikit-learn, and
-  the README shows the numbers.
+- A task is done when its Bend number and its reference are within the declared
+  tolerance, the report is reproducible from the manifest, and `make
+  experiments` is green.
+- A package is done when its law is proved (`--verdict`), its numbers match
+  NumPy/scikit-learn, its README explains the claim in plain language, and
+  `make check` is green.
+- A claim that cannot be proved yet is an issue and a `NOTES.md` entry, not a
+  package.
 
 ## Open questions
 
-- **The containers.** bend-ml's `Mat` over a flat `Array<F32>` (fast, its
-  capacity is a claim) or its list-based `Mat` (simple, its length is a claim)?
-  For the tabular sizes scikit-learn deals with the list version is enough; for
-  anything that grows, the flat one. Measured when v0.3 needs it.
-- **The numbers.** `F32` (Base) or `F64` (`bend-kit-f64`, a soft float, and
-  slow)? scikit-learn is f64; the kit's f64 has no square root and no
-  transcendentals, so the estimators that need them (the softmax, the logistic)
-  would be F32 anyway. One precision is a rule; two is a headache.
-- **The proved core.** Over `Nat` (as bend-ml's nat-lemmas does) or over a
-  rational type? Rational arithmetic would make the standardization laws
-  provable as stated, at the price of a new numeric tower.
-- **The PRNG.** `splitmix64` over `U32`, seeded by a `Nat`. It has to be pure
-  (a seeded generator is a function, not an effect) for the split to be a law.
-  **Answered (2026-10-22): `bend-kit-random@0.1.0.1` on the hub** — xoshiro128**,
-  pure (a draw returns the value beside the next state), with unbiased ranges
-  and Fisher-Yates shuffles. It is someone else's package, so the split uses it
-  rather than a generator of our own.
+- **The Bend/Python boundary.** The runner is Python because it must call the
+  compiler, the reference libraries and W&B. Which parts of the experiment —
+  the metric arithmetic, the fold bookkeeping, the report format — belong in
+  law-checked Bend packages instead? The rule so far: pure and structural in
+  Bend, IO and orchestration in Python.
+- **The manifest schema.** `mlbend.experiment/1` is a first draft. What must
+  version 2 carry — the dataset file hash, the compiler's build, the exact
+  command line?
+- **Network datasets.** HuggingFace revisions can move. A manifest names the
+  repository and the split; should it pin the file's SHA-256 as well?
+- **The folds.** Two libraries shuffle with different generators, so equality
+  is procedural, not row-by-row. Is a shared seeded split (`mlbend-split`)
+  enough to make the comparison exact across trainers?

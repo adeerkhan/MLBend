@@ -32,6 +32,24 @@ Questions to ask of each law:
 | `mlbend-select` | `select_covers` | every row of the dataset is in exactly one fold |
 | `mlbend-cluster` | `cluster_covers` | every row gets exactly one cluster, so no row is left out and none is in two |
 
+### The experiment layer
+
+The seven packages are the substrate; the experiment layer is
+`reference/experiment.py`. It does not prove anything new: it makes the tested
+numbers auditable. For every task it runs the Bend program, computes the same
+number with NumPy or scikit-learn, and writes a report card with the delta and
+the tolerance. The manifest beside it records the git commit (and whether the
+tree was dirty), the Bend version, every `mlbend-*`, `bend-ml-*` and
+`bendtorch-*` package with its hub hash, the machine, the seed and the
+tolerances. `--wandb` sends the same manifest to Weights & Biases (offline when
+there is no API key).
+
+What the layer claims: *this program produced this number, and this reference
+agrees within this tolerance, from a state that can be re-run.* What it does
+not claim: that the folds are the same rows as the reference's (the generators
+differ, so the comparison is procedural), or that a single run characterises a
+model. Those limits are in `docs/PLAN.md`.
+
 Besides laws, the **types** carry guarantees that no law restates: a metric's
 two sequences are `List<&2, F32>` (the values may be read twice) and
 `List<&2, Nat>` for the labels, and a metric that mixes them does not compile.
