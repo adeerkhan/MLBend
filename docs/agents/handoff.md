@@ -7,7 +7,69 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-23 — the experiment layer, on main, with results kept
+
+**Where we are.** `devel` was merged into `main` (fast-forward, 55 commits) and
+`main` is the work branch now. MLBend is no longer "the classic-ML half"; it is
+the **experiment layer**: bend-ml owns the tensors and the laws, BendTorch owns
+the training, and this repository owns the data, splits, transformations,
+selection, metrics, reports and manifests. The boundary rule is in `AGENTS.md`,
+`README.md` and `docs/PLAN.md`: a model enters through an adapter; no tensor, no
+autodiff, no optimizer, no second trainer.
+
+**What was built.**
+- `reference/experiment.py`: seven tasks, each with a parser, a NumPy or
+  scikit-learn reference, a tolerance table and a manifest (git commit and
+  dirtiness, Bend version, every `mlbend-*`/`bend-ml-*`/`bendtorch-*` hub hash,
+  machine, seed, build time, run time, reference time).
+- **Results are committed**: `results/RESULTS.md` (the table),
+  `results/BENCH.md` (the kernel benchmark), `results/latest/<task>.json`,
+  `results/raw/`. `make experiments`, `make bench`, `make results`.
+- **Weights & Biases**: `--wandb` logs the manifest, offline without
+  `WANDB_API_KEY`; verified with `--offline` (wandb 0.31.0, offline-run file
+  written). `make experiment TASK=…` runs one task.
+- Two new examples and tasks: `examples/naive_bayes` (0.98540145, exactly
+  scikit-learn's `GaussianNB`) and `examples/pca` (first component 0.275443,
+  scikit-learn 0.2754426).
+- `bench/matmul` + `reference/bench_matmul.py`: a compute-only kernel
+  benchmark, 50 sequential 128x128 products, Bend 20.9 ms / 10.0 GFLOP/s
+  against NumPy 1.0 ms / 201.1 GFLOP/s (NumPy 19x; one Bend thread against
+  BLAS).
+
+**What was run.**
+- `make check` → **58/58** locally (the two new reference tests included).
+- `make experiments` → every task PASS; the committed table has the numbers.
+  `iris-crossval` reports per-fold scores but gates only the mean: the two
+  libraries shuffle with different generators, so a single fold is not
+  comparable.
+- `make bench` → 20.9 ms Bend, 1.0 ms NumPy.
+- The task timings include the HuggingFace fetch on both sides; the kernel
+  benchmark is the fetch-free comparison. This is stated in `RESULTS.md`.
+
+**What was not run.** The kernel `--verdict` here (no Lean 4.34.0); CI runs it.
+W&B online (no API key); offline was verified. `make experiments` was not added
+to CI: the task timings would be noisy and the fetch needs the network.
+
+**Laws: the rule we settled.** A law is for a pure structural claim — a count,
+a partition, a cover, a composition — and the kernel proves it. `F32` values,
+wall times, dataset fetches and W&B runs are tested or measured, not proved. So
+the runner and the two new examples add no laws (they are examples, not
+packages); the substrate keeps the seven it has; and the **next package owes
+one**: the no-leakage pipeline, whose law is that fitting sees only the
+training rows of the fold.
+
+**What is next.**
+1. `mlbend-pipeline`: fit every transformer on the training rows of the fold
+   only, and prove it. `examples/crossval` currently standardises before the
+   split; that is the leakage the package removes.
+2. The adapter protocol, written down: BendTorch and bend-ml's autograd behind
+   one task interface, so a trainer changes without a task changing.
+3. Model selection: grid/random search, nested CV, per-fold tables.
+4. Reports: confusion matrix, per-class precision/recall/F1, R², intervals.
+5. The corpus: more datasets and seeds, and a committed table per release.
+
 ## 2026-10-23 — the cluster package, and two more examples
+
 
 **Where we are.** The seven packages now include `mlbend-cluster` (k-means),
 and two examples sit beside the existing ones: a two-layer network on

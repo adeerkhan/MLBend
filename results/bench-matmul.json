@@ -1,0 +1,43 @@
+{
+  "schema": "mlbend.benchmark/1",
+  "created_at": "2026-10-23T14:47:08.225605+00:00",
+  "name": "matmul",
+  "program": "bench/matmul/main.bend",
+  "size": [
+    128,
+    128
+  ],
+  "products": 50,
+  "dtype": "F32",
+  "repeats": 5,
+  "checksum": 256.0,
+  "bend": {
+    "seconds_min": 0.020891,
+    "seconds_all": [
+      0.020891,
+      0.023525,
+      0.02107,
+      0.022958,
+      0.023519
+    ],
+    "gflops": 10.038
+  },
+  "numpy": {
+    "seconds_min": 0.001043,
+    "seconds_all": [
+      0.003386,
+      0.001335,
+      0.001157,
+      0.001152,
+      0.001043
+    ],
+    "gflops": 201.105
+  },
+  "speed_ratio": 0.05,
+  "machine": {
+    "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "cpu_count": 28,
+    "python": "3.14.8",
+    "numpy": "2.5.4"
+  }
+}

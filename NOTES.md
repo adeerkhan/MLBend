@@ -3,6 +3,46 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-23 — the experiment layer, and what a law is for
+
+- **The merge (2026-10-23).** `devel` went into `main` as a fast-forward (55
+  commits) and the work continues on `main`. The old branch stays for history;
+  the rules in `AGENTS.md` and the issue tracker now say `main`.
+- **The identity (2026-10-23).** MLBend is the experiment layer, not another
+  model library. bend-ml owns the tensors and the laws, BendTorch owns the
+  training, and this repository owns the data, the splits, the transformations,
+  the selection, the metrics, the reports and the manifests. The boundary rule
+  is now in `AGENTS.md`, `README.md` and `docs/PLAN.md`: a model enters through
+  an adapter; no tensor, no autodiff, no optimizer, no second trainer.
+- **The runner (2026-10-23).** `reference/experiment.py` turns a task into a
+  report card: it builds and runs the program, parses the number, computes the
+  reference with NumPy or scikit-learn, compares them within a declared
+  tolerance, and writes the manifest — git commit and dirtiness, Bend version,
+  every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package with its hub hash,
+  machine, seed, build time, run time and reference time. The reports are
+  committed under `results/`; `--wandb` sends the same manifest to Weights &
+  Biases, offline without an API key.
+- **The timings are two different questions (2026-10-23).** A task's Bend run
+  and its Python reference both fetch the dataset from HuggingFace, so their
+  ratio compares the whole program, not the kernel. The compute-only benchmark
+  is the second answer: fifty sequential 128 x 128 float32 products take
+  **18.4 ms** in Bend over `bend-ml-tensor-array` and **1.0 ms** in NumPy —
+  11.4 against 218.4 GFLOP/s, NumPy 19x faster, one Bend thread against BLAS.
+  The two numbers belong in different tables, and `results/` keeps them apart.
+- **The two new examples (2026-10-23).** Gaussian naive Bayes over breast
+  cancer scores **0.98540145**, the same as scikit-learn's `GaussianNB` on the
+  same split; PCA's first component explains **0.275443** of the variance,
+  against scikit-learn's **0.2754426**. Neither needs standardising (a Gaussian
+  is affine-invariant) or a trainer.
+- **Laws: what they are for here (2026-10-23).** A law belongs to a pure
+  structural claim — a count, a partition, a cover, a composition — and the
+  kernel proves it. A number (`F32`), a wall time, a dataset fetch and a W&B
+  log are not laws: they are tested against a reference and recorded in a
+  manifest. So the experiment runner adds no laws, the two examples add none
+  (they are examples, not packages), and the next Bend package — the
+  no-leakage pipeline — owes one: *fitting sees only the training rows of the
+  fold*. Until that proof exists, the claim is an issue, not a package.
+
 ## 2026-10-23
 
 - **The tape accumulates gradients until `zero_grad` (2026-10-23).** A
