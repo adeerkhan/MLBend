@@ -30,7 +30,7 @@ what the shape rules are, before it reads a line of Bend.
 | `mlbend-preprocess` (`preprocess/`) | standardize, min-max, one-hot, L1 and L2 normalization | `Mat<r, c>` |
 | `mlbend-split` (`split/`) | a seeded, deterministic split of the rows, stratified by label | indices over `Mat<r, c>` |
 | `mlbend-select` (`select/`) | k-fold cross-validation on top of the split | indices over `Mat<r, c>` |
-| `mlbend-datasets` (`datasets/`) | the datasets of scikit-learn, fetched from HuggingFace at run time | `Table` |
+| `mlbend-datasets` (`datasets/`) | the datasets of scikit-learn, fetched from HuggingFace or read from the `MLBEND_DATA` cache | `Table` |
 | `mlbend-cluster` (`cluster/`) | k-means, functional: the centres after a fixed number of rounds | `List<&2, F32>` rows |
 | `mlbend-pipeline` (`pipeline/`) | fit on the training rows only, transform both sides of a fold | `List<&2, List<&2, F32>>` rows |
 | `mlbend-huggingface` (`hf/`) | the HuggingFace client the datasets package reads through | bytes and JSON |

@@ -40,6 +40,60 @@ depends on **`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`), not the old
 3. The results methodology: split fetch from compute and hash the datasets.
 4. Then the layer roadmap: adapter protocol, reports/selection, corpus.
 
+## 2026-10-24 — the cache, a warm corpus, and a clean check
+
+**Where we are.** The foundation is settled: **Bend 2.0.38**, the maintained
+**`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`), `mlbend-datasets@0.1.5.0`, nine
+tasks, and a full check that passes.
+
+- **The dataset cache is real.** `mlbend-datasets` reads `MLBEND_DATA` when it
+  is set, laid out as `<repo>/<path>` (`mstz/iris/iris.data`); a missing file
+  falls back to the hub. The runner fills `reference/.cache/datasets` with the
+  exact bytes it hashes and sets the variable before the Bend run. The cache is
+  gitignored; the SHA-256 stays in every manifest.
+- **The corpus is warm.** The last corpus run has `fetch` 0–1 ms on every task,
+  so `compute` is the run itself: iris-crossval **0.098 s**, cancer-knn
+  **0.225 s**, transformer-periodic **0.032 s**, wine-pca **5.108 s**. The
+  first run on a cold cache pays the fetch; `make experiments` twice (or one
+  warm-up) is the honest sequence. `results/RESULTS.md` says this in its intro.
+- **`make check` → 66/66** on 2.0.38, including the new
+  `reference/test_datasets_cache.py` (a five-row iris cache must produce five
+  rows, not the 150 the hub would give).
+- **The NumPy adapter covers all nine tasks** under `results/latest-numpy/`;
+  the same task and manifest, NumPy as the trainer.
+- **The transformer stays the trained model**: loss **2.3591 → 0.0021**,
+  accuracy **1.0**; the NumPy twin starts at 2.3591 (6.8e-7 apart) and ends at
+  0.1351 (0.9375). `reference/test_transformer.py` rewrites
+  `results/transformer/run.json` and the curve on every check.
+- **The structural graph** at `.ua/knowledge-graph.json` was built at `05eacbd`:
+  102 files, 958 nodes, 905 edges, 6 layers, 7 tour steps, no validation
+  issues. It is structural, not per-file LLM enrichment; use it to orient, not
+  as evidence.
+
+**What was run.**
+- `make experiments` on the warm cache, then `make results`; everything passed.
+- `reference/experiment.py --all --trainer numpy`; reports under
+  `results/latest-numpy/`.
+- `make check` with `BEND_BIN` pointing at the pinned 2.0.38; **66/66**.
+
+**What is next.**
+1. Publish `mlbend-datasets@0.1.5.0` (`make release PKG=datasets`) and watch
+   CI on `main`.
+2. Move the kNN classification report into a Bend package with a law; the
+   Python report is the oracle.
+3. A second transformer task with a classification head or a copy task, with
+   accuracy beside the loss.
+4. Run the W&B sweep (`reference/wandb_sweep.yaml`), which is configured but
+   has not been started (it needs a login and a sweep id).
+
+**What is unverified.**
+- The timings are one machine and a warm cache; the fetch column is the
+  cache-fill/hash time, not a network measurement.
+- The cache reads a file at its size and then `File.read` once; a very large
+  file with a short read would still be a silent truncation. The datasets here
+  are small, and the cached bytes are the hashed bytes.
+- `/understand`'s graph is structural; no per-file LLM enrichment.
+
 ## 2026-10-23 — the first transformer block
 
 
