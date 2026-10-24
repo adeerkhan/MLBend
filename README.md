@@ -110,6 +110,7 @@ API key, so a run never blocks on the network.
 
 ```console
 $ make experiment TASK=cancer-knn        # one report card, saved under results/
+$ make experiment TASK=cancer-knn TRAINER=numpy   # the same task, NumPy as the trainer
 $ make experiments                       # every task
 $ make results                           # rebuild results/RESULTS.md
 make bench                             # the compute-only kernel benchmark

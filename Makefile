@@ -29,7 +29,7 @@ env-check:        ## the environment against the lock, and the example over it
 
 experiment:       ## run one task and write a report card: make experiment TASK=iris-crossval
 	@test -n "$(TASK)" || (echo "usage: make experiment TASK=<task> (see reference/experiment.py --list)" && false)
-	$(PY) reference/experiment.py --task $(TASK)
+	$(PY) reference/experiment.py --task $(TASK) $(if $(TRAINER),--trainer $(TRAINER),)
 
 experiments:      ## every task, with its report cards, saved under results/
 	$(PY) reference/experiment.py --all --repeat 2

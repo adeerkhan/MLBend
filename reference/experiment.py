@@ -429,19 +429,24 @@ def machine():
     }
 
 
-def manifest_for(task, cfg, out, build_seconds, times, repeat):
-    run_seconds = min(times)
+def manifest_for(task, cfg, out, build_seconds, times, repeat, trainer="bend"):
+    run_seconds = min(times) if times else 0.0
     probe = dataset_probe(cfg)
-    bend_values = cfg["parse"](out)
     start = time.perf_counter()
     reference_values = cfg["reference"]()
     reference_seconds = time.perf_counter() - start
-    table = compare(cfg, bend_values, reference_values)
+    if trainer == "numpy":
+        bend_values = reference_values
+        table = compare(cfg, reference_values, reference_values)
+    else:
+        bend_values = cfg["parse"](out)
+        table = compare(cfg, bend_values, reference_values)
     manifest = {
         "schema": SCHEMA,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "task": {"name": task, "description": cfg["description"], "program": cfg["program"],
                  "dataset": dict(cfg["dataset"], **probe), "seed": cfg.get("seed")},
+        "trainer": trainer,
         "git": git_state(),
         "bend": {"version": bend_version()},
         "packages": packages(),
@@ -470,7 +475,7 @@ def report_text(manifest):
     lines = [f"task: {manifest['task']['name']}  ({manifest['task']['description']})",
              f"git: {manifest['git']['branch']} {manifest['git']['commit']}"
              + (" (dirty)" if manifest["git"]["dirty"] else ""),
-             f"bend: {manifest['bend']['version']}   build: {manifest['run']['build_seconds']} s"
+             f"trainer: {manifest['trainer']}   bend: {manifest['bend']['version']}   build: {manifest['run']['build_seconds']} s"
              f"   run: {manifest['run']['seconds_min']} s"
              f"   reference: {manifest['run']['reference_seconds']} s"
              f"   fetch: {manifest['run']['fetch_seconds']} s"
@@ -516,7 +521,8 @@ def log_wandb(manifest, project, name, offline):
 def write_report(manifest, out_dir):
     """Write the timestamped report and the task's latest report."""
     os.makedirs(out_dir, exist_ok=True)
-    latest_dir = os.path.join(os.path.dirname(out_dir), "latest")
+    latest_name = "latest" if manifest.get("trainer", "bend") == "bend" else "latest-numpy"
+    latest_dir = os.path.join(os.path.dirname(out_dir), latest_name)
     os.makedirs(latest_dir, exist_ok=True)
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     path = os.path.join(out_dir, f"{manifest['task']['name']}-{stamp}.json")
@@ -583,6 +589,8 @@ def main():
     parser.add_argument("--project", default=os.environ.get("WANDB_PROJECT", "mlbend"))
     parser.add_argument("--out", default=os.path.join(ROOT, "results/raw"), help="where the reports go")
     parser.add_argument("--repeat", type=int, default=1, help="run each program this many times and keep the minimum")
+    parser.add_argument("--trainer", choices=["bend", "numpy"], default="bend",
+                        help="which trainer runs the task: the Bend program or the NumPy reference")
     parser.add_argument("--summary", action="store_true", help="write results/RESULTS.md from the latest reports")
     args = parser.parse_args()
 
@@ -602,8 +610,12 @@ def main():
     failed = False
     for name in names:
         cfg = TASKS[name]
-        out, build_seconds, times, _ = run_bend(name, cfg, args.repeat)
-        manifest = manifest_for(name, cfg, out, build_seconds, times, args.repeat)
+        if args.trainer == "numpy":
+            print(f"{name}: the NumPy trainer (no Bend build)")
+            out, build_seconds, times = "", 0.0, []
+        else:
+            out, build_seconds, times, _ = run_bend(name, cfg, args.repeat)
+        manifest = manifest_for(name, cfg, out, build_seconds, times, args.repeat, args.trainer)
         path = write_report(manifest, args.out)
         print(report_text(manifest))
         print(f"report: {path}")

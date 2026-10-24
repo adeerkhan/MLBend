@@ -24,14 +24,15 @@ or a different convergence speed).
 
 ## An adapter
 
-The only adapter today is the Bend program: build it with `bend -o`, run it,
-and hand its stdout to the task's `parse`. The reference is the second
-adapter: it computes the same names in Python.
+There are two adapters today. `--trainer bend` builds the program with
+`bend -o`, runs it, and hands its stdout to the task's `parse`. `--trainer
+numpy` runs the reference function as the trainer and records it under
+`results/latest-numpy/`, so the same task can be compared A/B without changing
+the task. The reference remains the second number in the report card.
 
 A new trainer (BendTorch, bend-ml, a future library) enters by adding a
-`parse` for its output and a `program`; if it needs a different invocation,
-add a small function next to `run_bend` and call it from the task's `trainer`
-field. The task's `dataset`, `metrics` and tolerances do not change.
+`parse` for its output and a `program`, or by adding a branch next to
+`--trainer`. The task's `dataset`, `metrics` and tolerances do not change.
 
 ## The manifest
 

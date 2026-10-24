@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T12:29:17.431247+00:00",
+  "created_at": "2026-10-24T13:25:50.078119+00:00",
   "task": {
     "name": "cancer-knn",
     "description": "three-nearest-neighbours over breast cancer, four fifths train",
@@ -15,12 +15,13 @@
       ],
       "bytes": 14339,
       "sha256": "4c35090cb5bf3e3ec8c528a4a837a33bacefc0b06c3b62fbb1331baf7ca865e8",
-      "fetch_seconds": 0.932
+      "fetch_seconds": 0.716
     },
     "seed": 0
   },
+  "trainer": "bend",
   "git": {
-    "commit": "50eec2c",
+    "commit": "05eacbd",
     "branch": "main",
     "dirty": true
   },
@@ -113,17 +114,16 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 44.466,
-    "seconds_min": 1.015,
+    "build_seconds": 75.595,
+    "seconds_min": 0.819,
     "seconds_all": [
-      1.14,
-      1.015
+      0.819
     ],
-    "repeat": 2,
-    "fetch_seconds": 0.932,
-    "compute_seconds": 0.083,
-    "reference_seconds": 1.263,
-    "speed_ratio": 1.244
+    "repeat": 1,
+    "fetch_seconds": 0.716,
+    "compute_seconds": 0.103,
+    "reference_seconds": 1.681,
+    "speed_ratio": 2.052
   },
   "metrics": {
     "accuracy": {
