@@ -14,8 +14,10 @@ def main() -> IO(Unit):
 A dataset comes back as a `Table`: the rows of the features and the
 labels beside them.
 
-Version 0.1.6.0 is the cache that is authoritative and the loaders pinned to
-a HuggingFace revision.
+Version 0.1.6.0 is published at
+`0xf3d145d639153c61b826e4f60d3c0dcd` (tag
+`mlbend-datasets-v0.1.6.0`): the cache that is authoritative and the loaders
+pinned to a HuggingFace revision.
 
 ```python
 type Table is Data:
