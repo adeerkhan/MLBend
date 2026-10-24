@@ -24,9 +24,8 @@ relevant entry before changing performance-sensitive code or a law.
   The plain-Bend `attention` example remains the library-free forward parity
   check (1.5e-8).
 - **Bend 2.0.38 (2026-10-24).** `scripts/setup.sh`, the check pin, the Makefile
-  and the docs moved from 2.0.37; the SHA256s are the release tarballs'. The old
-  examples are the next port: `tape`, `regression` and `stacks` still import
-  `bendtorch-core`, and they are the only things keeping the old line alive.
+  and the docs moved from 2.0.37; the SHA256s are the release tarballs'. The three old examples (`tape`, `regression`, `stacks`) were retired on
+  2026-10-24, and `bendtorch-core` left `bend.toml` with them.
 
 ## 2026-10-23 — the experiment layer, and what a law is for
 

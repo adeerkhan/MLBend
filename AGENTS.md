@@ -22,8 +22,8 @@ engine. The only models that live here are gradient-free baselines.
 - `reference/test_transformer.py`: the trained transformer against its NumPy
   twin; it writes `results/transformer/loss.tsv`, `loss.svg` and `run.json`.
 - The maintained training library is **`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`,
-  `upstream/devel`). `bendtorch-core@0.1.0.0` is the old `aaaxn` line; the old
-  examples still use it, and no new work should.
+  `upstream/devel`). `bendtorch-core@0.1.0.0` was the old `aaaxn` line; the
+  three examples on it were retired on 2026-10-24.
 - `docs/PLAN.md`: the layer, the roadmap and the stop criteria.
 - `docs/AUDIT.md`: what is proved, what is tested, what is trusted.
 - `NOTES.md`: every finding and every discarded hypothesis, by date.

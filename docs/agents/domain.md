@@ -39,9 +39,8 @@ All of them are one repository: each package is a directory beside this file,
 and `bend.toml` at the root is the workspace that lists them.
 
 The training library is **`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`), which has
-`Attention`, `RMSNorm`, `Embedding`, `CrossEntropy`, `AdamW` and `Train`. The
-old `bendtorch-core@0.1.0.0` line is reachable only through the old examples
-(`tape`, `regression`, `stacks`); no new model uses it. There is no
+`Attention`, `RMSNorm`, `Embedding`, `CrossEntropy`, `AdamW` and `Train`. The old `bendtorch-core@0.1.0.0` line and its three examples (`tape`,
+`regression`, `stacks`) were retired on 2026-10-24; nothing imports it. There is no
 `mlbend-linalg`: the tensors and the lemmas are `bend-ml`'s and the kit's.
 There is no `mlbend-linear` trainer: linear, ridge and logistic regression enter
 as adapters over BendTorch or bend-ml, not as a second implementation.

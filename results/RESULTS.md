@@ -21,7 +21,6 @@ Machine: Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 · 28 CPUs · Bend 2.
 | `wine-kmeans` | wine (6497x11) | inertia | 50645.6 | 50645.6 | -0.00456047 | 4144 | 1097 | 0.27x | ok |
 | `wine-kmeans` | wine (6497x11) | cluster_sizes | [2384, 990, 3123] | [2384, 990, 3123] | 0 | 4144 | 1097 | 0.27x | ok |
 | `wine-pca` | wine (6497x11) | explained_variance_ratio | 0.275443 | 0.275443 | 3.95586e-07 | 6112 | 1147 | 0.19x | ok |
-| `wine-regression` | wine (6497x11) | mse_after | 0.707852 | 0.707863 | -1.1515e-05 | 28298 | 1430 | 0.05x | ok |
 
 The dataset, seed, hub hashes and the git state of every run are in
 `results/latest/<task>.json`; the timestamped reports are in `results/raw/`.

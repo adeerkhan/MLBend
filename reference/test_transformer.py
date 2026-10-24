@@ -153,8 +153,11 @@ def numpy_curve():
             mhat = moment[k] / (1 - B1 ** step)
             vhat = velocity[k] / (1 - B2 ** step)
             params[k] -= LR * (mhat / (np.sqrt(vhat) + EPS) + WD * params[k])
-    final, _ = cross_entropy(forward(params, ids)[0], targets)
-    return curve, float(final)
+    logits, _ = forward(params, ids)
+    final, _ = cross_entropy(logits, targets)
+    predicted = logits.argmax(axis=-1)
+    accuracy = float((predicted == targets).mean())
+    return curve, float(final), accuracy
 
 
 def bend_curve():
@@ -169,7 +172,8 @@ def bend_curve():
     if out.returncode != 0:
         raise SystemExit("the Bend program did not run:\n" + out.stdout + out.stderr)
     losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out.stdout, re.M)]
-    return [v for v in losses if v > 0.0], seconds
+    accuracy = float(re.search(r"^accuracy: ([0-9.eE+-]+)$", out.stdout, re.M).group(1))
+    return [v for v in losses if v > 0.0], accuracy, seconds
 
 
 def svg(curves, path):
@@ -207,12 +211,12 @@ def svg(curves, path):
 
 
 def main():
-    bend, seconds = bend_curve()
-    curve, final = numpy_curve()
+    bend, bend_accuracy, seconds = bend_curve()
+    curve, final, numpy_accuracy = numpy_curve()
     ok = True
 
-    print(f"bend loss:  {bend[0]:.4f} -> {bend[-1]:.4f} in {seconds:.2f} s")
-    print(f"numpy loss: {curve[0]:.4f} -> {final:.4f}")
+    print(f"bend loss:  {bend[0]:.4f} -> {bend[-1]:.4f} in {seconds:.2f} s, accuracy {bend_accuracy}")
+    print(f"numpy loss: {curve[0]:.4f} -> {final:.4f}, accuracy {numpy_accuracy}")
     if len(bend) != STEPS:
         print(f"ERROR the Bend run printed {len(bend)} losses, not {STEPS}")
         ok = False
@@ -224,6 +228,12 @@ def main():
         ok = False
     if final > 0.2:
         print(f"ERROR the final NumPy loss is above 0.2: {final}")
+        ok = False
+    if bend_accuracy < 0.99:
+        print(f"ERROR the Bend accuracy is below 0.99: {bend_accuracy}")
+        ok = False
+    if numpy_accuracy < 0.9:
+        print(f"ERROR the NumPy accuracy is below 0.9: {numpy_accuracy}")
         ok = False
     if abs(bend[0] - curve[0]) > 0.25:
         print(f"ERROR the initial losses differ too much: {bend[0]} vs {curve[0]}")
@@ -244,8 +254,8 @@ def main():
         "dataset": {"name": "periodic-0-7", "rows": ROWS, "sequences": SEQUENCES,
                     "positions": POSITIONS, "vocab": VOCAB},
         "optimizer": {"name": "AdamW", "lr": LR, "steps": STEPS},
-        "bend": {"first_loss": bend[0], "final_loss": bend[-1], "seconds": seconds},
-        "numpy": {"first_loss": curve[0], "final_loss": final},
+        "bend": {"first_loss": bend[0], "final_loss": bend[-1], "accuracy": bend_accuracy, "seconds": seconds},
+        "numpy": {"first_loss": curve[0], "final_loss": final, "accuracy": numpy_accuracy},
         "machine": {"platform": platform.platform(), "cpu_count": os.cpu_count(),
                     "numpy": np.__version__},
         "passed": ok,

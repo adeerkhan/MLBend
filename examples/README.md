@@ -8,8 +8,6 @@ re-implements them.
 |---|---|
 | [`logistic/main.bend`](logistic/main.bend) | a logistic regression over the iris dataset, fetched from HuggingFace at run time, with bend-ml's tensors and bend-ml's autodiff |
 | [`mlp/main.bend`](mlp/main.bend) | a two-layer network with a rectifier, over the same data and the same library: the chain of gradients through both layers |
-| [`tape/tape.bend`](tape/tape.bend) | the logistic model over bendtorch's tape: the forward records the nodes, the backward walks them, the step reads the gradients off the leaves |
-| [`regression/main.bend`](regression/main.bend) | ridge regression over the wine dataset, over bendtorch's tape with `mse_loss` and a weight decay in the step |
 | [`kmeans/main.bend`](kmeans/main.bend) | k-means over the wine dataset, through `mlbend-cluster`, after standardising the columns |
 | [`pca/main.bend`](pca/main.bend) | the first principal component of wine, by power iteration: a transformer, not a trainer |
 | [`attention/main.bend`](attention/main.bend) | a single-head self-attention block over four tokens: the core of a transformer, checked against PyTorch |
@@ -17,7 +15,6 @@ re-implements them.
 | [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
 | [`naive_bayes/main.bend`](naive_bayes/main.bend) | Gaussian naive Bayes over the same data: the gradient-free baseline the experiment layer keeps beside the learned models |
 | [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → scaler fitted on each training fold → logistic regression → stratified folds → accuracy, with no leakage |
-| [`stacks/main.bend`](stacks/main.bend) | the two stacks side by side, over one environment |
 
 ## The logistic example
 
@@ -61,22 +58,6 @@ would leave the hidden units with no gradient at all.
 scikit-learn's `MLPClassifier` with eight hidden units reaches the same
 0.9733 on the same data (`reference/test_mlp.py`); it trains with Adam
 and another initialisation, so what agrees is the result, not the path.
-
-## The tape example
-
-The same logistic model, over bendtorch's tape. It compiles and runs: the
-data, the weights and the bias are built, the leaves go on the tape, and
-the loss reads back from it. The weights are `[out, in]` (PyTorch's
-layout) and the bias is `[out]`, so the tape's `linear` accepts them; the
-losses of the step agree with `examples/logistic`'s to F32 precision.
-
-## The regression example
-
-Ridge regression over the wine dataset, on bendtorch's tape. The features
-and the target are standardised, the forward is `linear`, the loss is
-`mse_loss`, and the step is `sgd` over the weights and the bias, with a
-weight decay applied to the gradient. The MSE is compared with
-scikit-learn's `Ridge` (`reference/test_regression.py`).
 
 ## The k-means example
 
@@ -134,8 +115,3 @@ autodiff, the folds come from `mlbend-select` over `mlbend-split`, and the
 score is `mlbend-metrics`. The program adds the loop over the folds and
 nothing else.
 
-## The stacks example
-
-bend-ml's tensors and bendtorch's tensors in one program, resolved by one
-lockfile and materialized into one environment. A broken environment shows
-up as a missing import rather than as a silent difference.

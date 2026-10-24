@@ -266,9 +266,51 @@ def loop(n: Nat, +i: Nat, +cfg: T.OptCfg, tr: T.Train<P>) -> IO(T.Train<P>):
 def cfg() -> T.OptCfg:
   T.CAdamW{0.01, 0.9, 0.999, 0.00000001, 0.0, 0.1, 0.001}
 
+# ---- the accuracy of the trained model: the argmax of every row ----
+
+def argmax_go(+xs: List<&2, F32>, +i: Nat, +best: Nat, +best_v: F32) -> Nat:
+  match xs:
+    case Nil{}:
+      best
+    case Con{+h, t}:
+      Bool.pick(Nat, F32.is_gt(h, best_v),
+        argmax_go(t, Nat.add(i, 1n), i, h),
+        argmax_go(t, Nat.add(i, 1n), best, best_v))
+
+def argmax_row(xs: List<&2, F32>) -> Nat:
+  argmax_go(xs, 0n, 0n, (0.0 - 1.0e30 : F32))
+
+def accuracy_go(labels: List<&2, Nat>, +data: List<&2, F32>, +right: Nat) -> Nat:
+  match labels:
+    case Nil{}:
+      right
+    case Con{y, ls}:
+      +row = List.take(&2, F32, data, vocab())
+      +rest = List.drop(&2, F32, data, vocab())
+      accuracy_go(ls, rest,
+        Bool.pick(Nat, Nat.is_eq(argmax_row(row), y), Nat.add(right, 1n), right))
+
+def accuracy_list(m: TA.ML<32n, 8n>) -> F32:
+  match m:
+    case TA.ML{mat, l}:
+      (F32.div(F32.from_nat(accuracy_go(ys(), l, 0n)), F32.from_nat(rows())) : F32)
+
+def accuracy_mat(y: Y) -> F32:
+  accuracy_list(TA.Mat.to_list(rows(), vocab(), y))
+
+def accuracy_fwd(r: T.Fwd<P, Y, S>) -> F32:
+  match r:
+    case T.Fwd{p, y, s}:
+      accuracy_mat(y)
+
+def accuracy(tr: T.Train<P>) -> F32:
+  match tr:
+    case T.Train{p, g, st, p1, p2, l}:
+      accuracy_fwd(T.Layer.fwd(P, X, Y, S, Model(), p, xs()))
+
 def main() -> IO(Unit):
   do IO<Unit>:
     T.OptCfg.check(cfg())
     tr : T.Train<P> <- loop(200n, 0n, cfg(),
       T.Train.new(~P, ~X, ~Y, ~S, ~Model, cfg(), params()))
-    IO.print("done")
+    IO.print(String.append("accuracy: ", F32.show(accuracy(tr))))

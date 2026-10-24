@@ -74,16 +74,6 @@ def reference_iris_mlp():
     return {"accuracy": sklearn_result()}
 
 
-def parse_wine_regression(out):
-    return {
-        "mse_before": float(re.search(r"mse before: ([0-9.eE+-]+)", out).group(1)),
-        "mse_after": float(re.search(r"mse after:  ([0-9.eE+-]+)", out).group(1)),
-    }
-
-
-def reference_wine_regression():
-    sys.path.insert(0, os.path.join(ROOT, "reference"))
-    from test_regression import sklearn_mse
 
     return {"mse_after": sklearn_mse()}
 
@@ -112,7 +102,8 @@ def parse_attention(out):
 
 def parse_transformer(out):
     losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out, re.M) if float(v) > 0.0]
-    return {"first_loss": losses[0], "final_loss": losses[-1]}
+    accuracy = float(re.search(r"^accuracy: ([0-9.eE+-]+)$", out, re.M).group(1))
+    return {"first_loss": losses[0], "final_loss": losses[-1], "accuracy": accuracy}
 
 
 def parse_cancer_nb(out):
@@ -141,8 +132,8 @@ def reference_transformer():
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_transformer import numpy_curve
 
-    _, final = numpy_curve()
-    return {"first_loss": float(numpy_curve()[0][0]), "final_loss": final}
+    curve, final, accuracy = numpy_curve()
+    return {"first_loss": float(curve[0]), "final_loss": final, "accuracy": accuracy}
 
 
 def reference_cancer_nb():
@@ -188,18 +179,6 @@ TASKS = {
             "accuracy": {"tolerance": 0.06, "mode": "absolute"},
         },
     },
-    "wine-regression": {
-        "description": "linear regression over wine quality, 1000 SGD steps",
-        "program": "examples/regression/main.bend",
-        "dataset": {"name": "wine", "rows": 6497, "features": 11,
-                    "source": "https://huggingface.co/datasets/mstz/wine"},
-        "seed": 0,
-        "parse": parse_wine_regression,
-        "reference": reference_wine_regression,
-        "metrics": {
-            "mse_after": {"tolerance": 0.01, "mode": "relative"},
-        },
-    },
     "wine-pca": {
         "description": "first principal component of wine, by power iteration",
         "program": "examples/pca/main.bend",
@@ -236,6 +215,7 @@ TASKS = {
         "metrics": {
             "first_loss": {"tolerance": 0.25, "mode": "absolute"},
             "final_loss": {"tolerance": 0, "mode": "report"},
+            "accuracy": {"tolerance": 0.1, "mode": "absolute"},
         },
     },
     "attention-parity": {

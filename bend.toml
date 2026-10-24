@@ -9,7 +9,6 @@ bend-ml-bpe-tokenizer = "*"
 bend-ml-tensor = "0.1.0.0"
 bend-ml-tensor-array = "*"
 bend-ml-tensor-fork = "*"
-bendtorch-core = "0.1.0.0"
 bendtorch = "1.0.1.0"
 
 [workspace]
@@ -29,5 +28,4 @@ bend-kit-random = "0.1.0.1"
 bend-ml-autograd = "0.1.1.0"
 bend-ml-nat-lemmas = "0.1.1.0"
 bend-ml-tensor-array = "0.1.14.0"
-bendtorch-core = "0.1.0.0"
 bendtorch = "1.0.1.0"

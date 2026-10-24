@@ -14,8 +14,9 @@
 # The weights are a fixed small pattern, generated the same way in the
 # PyTorch reference, so the two programs compute the same function and the
 # outputs can be compared number by number (reference/test_attention.py).
-# This is the forward pass; training the block needs the softmax backward,
-# which BendTorch's tape does not expose yet (it is an issue in NOTES.md).
+# This is the forward pass. The maintained BendTorch (`bendtorch@1.0.1.0`)
+# has recorded attention and softmax; the trained transformer is
+# `examples/transformer`.
 import Base
 
 # The shape of the block.

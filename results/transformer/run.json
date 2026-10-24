@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-10-24T11:41:24.122990+00:00",
+  "created_at": "2026-10-24T12:26:24.297191+00:00",
   "example": "examples/transformer/main.bend",
   "architecture": "embedding, RMSNorm, causal single-head attention, output projection, RMSNorm, linear head",
   "dataset": {
@@ -17,11 +17,13 @@
   "bend": {
     "first_loss": 2.3591437,
     "final_loss": 0.0021143379,
-    "seconds": 0.024078968999674544
+    "accuracy": 1.0,
+    "seconds": 0.020207342997309752
   },
   "numpy": {
     "first_loss": 2.359143018722534,
-    "final_loss": 0.1350996345281601
+    "final_loss": 0.1350996345281601,
+    "accuracy": 0.9375
   },
   "machine": {
     "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",

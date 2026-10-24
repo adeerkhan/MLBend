@@ -25,7 +25,7 @@ env:              ## the environment: one lock, one env, for every package here
 
 env-check:        ## the environment against the lock, and the example over it
 	$(BENDENV) check
-	$(BENDENV) run -- $(BEND) examples/stacks/main.bend
+	$(BENDENV) run -- $(BEND) examples/attention/main.bend
 
 experiment:       ## run one task and write a report card: make experiment TASK=iris-crossval
 	@test -n "$(TASK)" || (echo "usage: make experiment TASK=<task> (see reference/experiment.py --list)" && false)

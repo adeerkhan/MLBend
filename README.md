@@ -19,7 +19,7 @@ package hashes, hardware — so a second person can reproduce it.
 | Layer | Repository | Owns |
 |---|---|---|
 | primitives | [bend-ml](https://github.com/nuxyel/bend-ml) | tensors, shapes, type-level laws, the BPE tokenizer; `autograd` is frozen |
-| training | [BendTorch](https://github.com/aaaxn/bendtorch) | the tape, the layers, the losses, the optimizer |
+| training | [BendTorch](https://github.com/nuxyel/BendTorch) | the layers, the losses, the optimizers, `Train` |
 | experiment | **this repository** | datasets, splits, transformers, model selection, metrics, reports, benchmarks |
 
 A model enters MLBend through a **task**, not through a new engine. That is the
@@ -74,7 +74,6 @@ numbers with NumPy or scikit-learn, and writes a **report card** as JSON.
 $ reference/.venv/bin/python reference/experiment.py --list
 iris-crossval      examples/crossval/main.bend      logistic regression over iris, five stratified folds
 iris-mlp           examples/mlp/main.bend           a two-layer rectified network over iris, 400 SGD steps
-wine-regression    examples/regression/main.bend    linear regression over wine quality, 1000 SGD steps
 wine-kmeans        examples/kmeans/main.bend        k-means over wine, three clusters for ten rounds
 cancer-naive-bayes examples/naive_bayes/main.bend   Gaussian naive Bayes over breast cancer, four fifths train
 cancer-knn         examples/knn/main.bend           three-nearest-neighbours over breast cancer, four fifths train
