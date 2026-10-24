@@ -32,6 +32,7 @@ Questions to ask of each law:
 | `mlbend-select` | `select_covers` | every row of the dataset is in exactly one fold |
 | `mlbend-cluster` | `cluster_covers` | every row gets exactly one cluster, so no row is left out and none is in two |
 | `mlbend-pipeline` | `pipeline_preserves_rows` | transforming the rows keeps one output row for every input row |
+| `mlbend-report` | `matrix_rows`, `row_length` | `n` rows of the confusion matrix are `n` rows, and `n` cells of a row are `n` cells |
 
 ### The experiment layer
 

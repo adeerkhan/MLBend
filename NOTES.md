@@ -3,6 +3,56 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-25
+
+- **`mlbend-report@0.1.0.0` is written** (issue #9): the confusion matrix and
+  the per-class report — precision, recall, F1, support, the macro and the
+  weighted averages — over `Nat` labels, on `mlbend-metrics`' counts. Two laws
+  are proved: `matrix_rows` (n rows of the matrix are n rows) and
+  `row_length` (n cells of a row are n cells), stated over the counted forms
+  (`matrix_from`, `row_from`) because those are the recursions the checker can
+  follow — the checker refused the law stated over the `k`-classes wrapper,
+  because the walker keeps the *total* `k` fixed (every row is still `k` long)
+  while only the rows-remaining counter shrinks. The wrapper `matrix` is the
+  law at `n := k`. The debt — the cells add up to the number of samples — is
+  the value-dependent wall of issues #1 and #8.
+- **The numbers match scikit-learn exactly.** `reference/test_report.py`
+  compares the matrix, every per-class score, the macro and weighted averages
+  and the accuracy of `report/tests/ok.bend` (seven samples, three classes
+  present, one absent — a zero-support class exercises `zero_division=0`)
+  with `confusion_matrix` and `classification_report(labels=…, zero_division=0)`:
+  every check agrees within F32 precision. `cancer-knn` now prints the report
+  beside its accuracy (`examples/knn/main.bend`), and `reference/test_knn.py`
+  checks the matrix `[[100, 2], [1, 34]]` and the per-class scores against
+  scikit-learn's kNN on the same predictions. The weighted F1 lands at
+  0.59999996 where scikit-learn says 0.6 — F32 rounding in the sum, exactly
+  why the values are tested and never proved.
+- **The checker's rules the package cost the most time to satisfy**, all
+  already recorded in these notes and all confirmed: a list consumed twice
+  needs `+`; a record has no field access (match on a parameter instead); a
+  match cannot scrutinize a local binder, so an unwrap is its own def; a def
+  must come before the defs that use it; an F32 binder read three times needs
+  `+n = F32.from_nat(k)`.
+- **Two upstream issues filed.** `bendlang/bend#1848`: the two spellings of an
+  effect — a return type written `IO<Unit>` reports "a declared datatype
+  (unknown: IO)" (the compiler reads an application as a declaration) and a
+  `do IO(Unit)` reports `expected '<', observed '('`; neither names the pair.
+  Both repros verified on 2.0.38 — and the first attempt at the repro
+  reproduced *neither* until `import Base` was added, which itself is a
+  finding: without the import, even the correct `IO(Unit)` return type reports
+  "expected: a defined name, observed: IO". `nuxyel/bend-ml#20`: the design
+  question the frozen `bend-ml-autograd` leaves — re-base autodiff on the
+  maintained `tensor-array`, or declare BendTorch the answer and standardize
+  the conversion seam; the leaning stated there is (2), with the conversion
+  surface as the cheaper, law-carrying artifact.
+- **The toolchain on this machine caught up.** `~/.bend/bin/bend` was still
+  2.0.37 (the 2.0.38 move of 2026-10-24 had landed in the repo but not here)
+  and the Python venv predated the repository's move to `github/bend/MLBend`
+  (its interpreter pointed at the old path). `scripts/setup.sh` rebuilt both;
+  Lean 4.34.0 was already installed, so the kernel `--verdict` runs locally
+  from now on — and it proves the two new laws here, not only in CI
+  (`make check` is 81/81 on this machine).
+
 ## 2026-10-24
 
 - **The evidence stage (2026-10-24).** Three things changed under the

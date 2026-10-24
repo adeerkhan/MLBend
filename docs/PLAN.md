@@ -110,12 +110,20 @@ same tolerance the single model already meets.
 
 ### 4. Reports
 
-The metrics exist; the *report* does not. Classification: confusion matrix,
-per-class precision/recall/F1 with support, macro and weighted averages;
-regression: R², MAE, RMSE, residual quantiles. The numbers must match
-scikit-learn's `classification_report` and `confusion_matrix`. Whether this is
-a Bend package (`mlbend-report`) or a runner-side renderer depends on how much
-of the format is pure — the metric arithmetic is pure and belongs in Bend.
+**The classification half is done (2026-10-25, `mlbend-report@0.1.0.0`).**
+`mlbend-report` is the Bend package the plan asked about: the confusion matrix
+(`cell`, `matrix`) and the per-class report — precision, recall, F1, support,
+with the macro and the weighted averages — over `Nat` labels, resting on
+`mlbend-metrics`' counts and its `zero_division=0` convention. Two laws are
+proved (`matrix_rows`, `row_length`: the counted forms of the matrix build the
+shape they claim); the numbers match scikit-learn's `confusion_matrix` and
+`classification_report` within a relative 1e-5 (`reference/test_report.py`),
+and `cancer-knn` prints the report beside its accuracy, checked by
+`reference/test_knn.py`. The debt — the cells add up to the number of samples
+— is the value-dependent wall of issues #1 and #8, recorded in the package's
+README and issue #9. The regression half (R², MAE, RMSE beside residual
+quantiles) is still open: the metrics exist, and the renderer stays
+runner-side until a task needs it.
 
 ### 5. The deep-learning track — training on the real BendTorch
 

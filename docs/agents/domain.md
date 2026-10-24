@@ -33,6 +33,7 @@ what the shape rules are, before it reads a line of Bend.
 | `mlbend-datasets` (`datasets/`) | the datasets of scikit-learn, fetched from HuggingFace or read from the `MLBEND_DATA` cache | `Table` |
 | `mlbend-cluster` (`cluster/`) | k-means, functional: the centres after a fixed number of rounds | `List<&2, F32>` rows |
 | `mlbend-pipeline` (`pipeline/`) | fit on the training rows only, transform both sides of a fold | `List<&2, List<&2, F32>>` rows |
+| `mlbend-report` (`report/`) | the confusion matrix and the per-class report: precision, recall, F1, support, macro and weighted averages | `List<&2, Nat>` labels |
 | `mlbend-huggingface` (`hf/`) | the HuggingFace client the datasets package reads through | bytes and JSON |
 
 All of them are one repository: each package is a directory beside this file,

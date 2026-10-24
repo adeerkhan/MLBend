@@ -65,6 +65,28 @@ def sklearn_knn():
     return float(model.score(scaled[split:], y[split:]))
 
 
+def read_report(out):
+    """The report lines of the program's output: the matrix and the per-class scores."""
+    got = {"matrix": [], "classes": {}}
+    in_matrix = False
+    for line in out.splitlines():
+        if line == "matrix:":
+            in_matrix = True
+            continue
+        if in_matrix:
+            cells = line.split()
+            if cells and all(c.isdigit() for c in cells):
+                got["matrix"].append([int(c) for c in cells])
+                continue
+            in_matrix = False
+        parts = line.split()
+        if len(parts) == 10 and parts[0] == "class":
+            got["classes"][int(parts[1])] = {
+                "precision": float(parts[3]), "recall": float(parts[5]),
+                "f1-score": float(parts[7]), "support": float(parts[9])}
+    return got
+
+
 def main():
     bend_accuracy, out = bend_knn()
     sklearn_accuracy = sklearn_knn()
@@ -76,6 +98,32 @@ def main():
         print(f"ERROR the accuracy differs: {bend_accuracy} vs {sklearn_accuracy}")
         return 1
     print(f"ok   the accuracy agrees: {bend_accuracy} vs {sklearn_accuracy}")
+
+    # the report the program prints, against scikit-learn's on the same
+    # predictions
+    from sklearn.metrics import classification_report, confusion_matrix
+    x, y = load()
+    from sklearn.preprocessing import StandardScaler
+    split = len(x) * 4 // 5
+    scaled = StandardScaler().fit_transform(x)
+    model = KNeighborsClassifier(n_neighbors=3).fit(scaled[:split], y[:split])
+    pred = model.predict(scaled[split:])
+    want_matrix = confusion_matrix(y[split:], pred, labels=[0, 1]).tolist()
+    report = classification_report(y[split:], pred, labels=[0, 1], zero_division=0,
+                                   output_dict=True)
+    got = read_report(out)
+    if got["matrix"] != want_matrix:
+        print(f"ERROR the matrix differs: {got['matrix']} vs {want_matrix}")
+        return 1
+    print(f"ok   the matrix agrees: {want_matrix}")
+    for k in (0, 1):
+        for m in ("precision", "recall", "f1-score", "support"):
+            a = got["classes"][k][m]
+            b = float(report[str(k)][m])
+            if abs(a - b) > 1e-5 * max(1.0, abs(a), abs(b)):
+                print(f"ERROR class {k} {m} differs: {a} vs {b}")
+                return 1
+    print("ok   the per-class report agrees")
     return 0
 
 

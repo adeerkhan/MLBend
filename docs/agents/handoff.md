@@ -7,6 +7,61 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-25 — mlbend-report, and two upstream issues
+
+**Where we are.** The report half of the evaluation surface is a package:
+`mlbend-report@0.1.0.0` (issue #9) carries the confusion matrix and the
+per-class report — precision, recall, F1, support, the macro and the weighted
+averages — over `Nat` labels, on `mlbend-metrics`' counts. Both laws
+(`matrix_rows`, `row_length`) are **proved by the Lean kernel on this machine**
+(Lean 4.34.0 was installed during the session, so `--verdict` no longer waits
+for CI). The laws are stated over the counted forms (`matrix_from`,
+`row_from`): the checker refused the law over the `k`-classes wrapper, because
+the walker keeps the total `k` fixed while only the rows-remaining counter
+shrinks — see NOTES.md.
+
+- **The numbers match scikit-learn.** `reference/test_report.py` compares the
+  matrix, every per-class score, the averages and the accuracy of
+  `report/tests/ok.bend` (seven samples, three classes present, one absent —
+  the zero-support class exercises `zero_division=0`) with
+  `confusion_matrix` and `classification_report`: every check within F32
+  precision. `cancer-knn` prints the report beside its accuracy, and
+  `reference/test_knn.py` now checks the matrix `[[100, 2], [1, 34]]` and the
+  per-class scores against scikit-learn's kNN on the same predictions.
+- **Two upstream issues filed.** `bendlang/bend#1848`: the two spellings of an
+  effect (`IO<Unit>` in a type position reports "a declared datatype (unknown:
+  IO)"; `do IO(Unit)` reports `expected '<', observed '('`), both repros
+  verified on 2.0.38. `nuxyel/bend-ml#20`: the design question — re-base
+  autodiff on the maintained `tensor-array`, or declare BendTorch the answer
+  and standardize the conversion seam; the leaning stated there is the latter,
+  with the conversion surface as the cheaper artifact.
+- **The toolchain caught up.** `~/.bend/bin/bend` was still 2.0.37 and the
+  Python venv predated the repository's move (its interpreter pointed at the
+  old path); `scripts/setup.sh` rebuilt both. `make check` is now **81/81**
+  locally, with the kernel verdicts running here instead of only in CI.
+
+**What was run.**
+- `make check` → **81/81**, including `report/main.bend --verdict` (the kernel
+  proved both laws) and the new `reference/test_report.py`.
+- `reference/test_knn.py` → the accuracy, the matrix and the per-class report
+  all agree with scikit-learn.
+- `bendenv lock`/`bendenv sync` → `mlbend-report@0.1.0.0` is in the lock and
+  the environment as a local member.
+
+**What is not done, and what is next.**
+1. **`mlbend-report@0.1.0.0` is not published.** `examples/knn` imports it by
+   hub path, and CI resolves packages from the hub — so CI stays red for the
+   kNN check until `make release PKG=report` runs. Publishing is public and
+   permanent and needs `bend login`; it is waiting on the maintainer's go.
+2. The second transformer task with a classification head (the handoff's item
+   2), which can print a real report from day one.
+3. The W&B sweep over the selected parameter (item 3).
+4. The answers on bend-ml#20 and bend#1848, when they come.
+
+**What is unverified.** The kNN report's agreement is one split of one
+dataset; the report's own test is the broader check. Timings unchanged (no
+hot path moved).
+
 ## 2026-10-24 — pinned bytes, shared folds, and a real oracle
 
 **Where we are.** The experiment layer now has the two things it was missing:

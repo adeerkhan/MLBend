@@ -1061,6 +1061,22 @@ sha = "c726c7a0524d23119fe11f22345f234ad74873d3c00c8eb3126dfa39da24c792"
 path = "main.bend"
 
 [[package]]
+name = "mlbend-report"
+version = "0.1.0.0"
+hash = "0x97687e0483c49ddb64fe1ee5f5244927"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "6b1b60722ca2abe5acb9dd784dba4a1d97b8fe4d1a1fba2cad6703ea1058a268"
+path = "main.bend"
+
+[[package]]
 name = "mlbend-select"
 version = "0.1.0.0"
 hash = "0xf6594aa2392363c8ab774bc81fb20b9d"

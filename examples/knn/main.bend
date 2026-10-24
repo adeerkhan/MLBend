@@ -12,6 +12,8 @@
 import Base
 import mlbend-datasets@0.1.6.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
+import mlbend-metrics@0.1.0.0/main.bend as M
+import mlbend-report@0.1.0.0/main.bend as Report
 
 # A neighbour: how far it is, and what it is.
 
@@ -251,21 +253,112 @@ def stds_of(+rows: List<&2, List<&2, F32>>, means: List<&2, F32>) -> List<&2, F3
   roots(zip_scale(deviation_sums(rows, means),
     (1.0 / F32.from_nat(List.length(&2, List<&2, F32>, rows)) : F32)))
 
+# The class of a label: the dataset's 0.0 and 1.0 are the classes 0 and 1.
+def class_of(l: F32) -> Nat:
+  Bool.pick(Nat, F32.is_eq(l, 1.0), 1n, 0n)
+
+# The class of every label, one at a time.
+def classes_go(labels: List<&2, F32>, +acc: List<&2, Nat>) -> List<&2, Nat>:
+  match labels:
+    case Nil{}:
+      acc
+    case Con{l, ls}:
+      classes_go(ls, List.append(&2, Nat, acc, Con{class_of(l), Nil{}}))
+
+# The predicted class of every test row, one at a time.
+def predicted_go(+train: List<&2, List<&2, F32>>, +train_labels: List<&2, F32>,
+  test: List<&2, List<&2, F32>>, +k: Nat, +acc: List<&2, Nat>) -> List<&2, Nat>:
+  match test:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      predicted_go(train, train_labels, t, k,
+        List.append(&2, Nat, acc, Con{class_of(classify(train, train_labels, h, k)), Nil{}}))
+
+# One row of the confusion matrix, printed.
+def row_text(row: List<&2, Nat>) -> String:
+  match row:
+    case Nil{}:
+      ""
+    case Con{h, t}:
+      String.append(U32.show(U32.from_nat(h)), String.append(" ", row_text(t)))
+
+# The confusion matrix, printed.
+def matrix_text.go(m: List<&2, List<&2, Nat>>, acc: String) -> String:
+  match m:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      matrix_text.go(t, String.append(String.append(acc, row_text(h)), "\n"))
+
+def matrix_text(m: List<&2, List<&2, Nat>>) -> String:
+  matrix_text.go(m, "")
+
+# One class of the report, printed.
+def class_text(c: Report.Cls, +i: Nat) -> String:
+  match c:
+    case Report.Cls{p, r, f, support}:
+      String.append("class ", String.append(U32.show(U32.from_nat(i)),
+        String.append(" precision ", String.append(F32.show(p),
+        String.append(" recall ", String.append(F32.show(r),
+        String.append(" f1 ", String.append(F32.show(f),
+        String.append(" support ", U32.show(U32.from_nat(support)))))))))))
+
+# Every class of the report, printed.
+def classes_text.go(classes: List<&2, Report.Cls>, +i: Nat, acc: String) -> String:
+  match classes:
+    case Nil{}:
+      acc
+    case Con{c, t}:
+      classes_text.go(t, (1n + i : Nat),
+        String.append(String.append(acc, class_text(c, i)), "\n"))
+
+# The averages of the report, printed.
+def avg_text(name: String, c: Report.Cls) -> String:
+  match c:
+    case Report.Cls{p, r, f, support}:
+      String.append(name, String.append(" precision ", String.append(F32.show(p),
+        String.append(" recall ", String.append(F32.show(r),
+        String.append(" f1 ", String.append(F32.show(f), "")))))))
+
+# The report of a report value, printed.
+def report_text_of(rep: Report.Report) -> String:
+  match rep:
+    case Report.Report{classes, macro_avg, weighted_avg, accuracy}:
+      String.append(classes_text.go(classes, 0n, ""),
+        String.append(avg_text("macro", macro_avg),
+        String.append("\n", String.append(avg_text("weighted", weighted_avg), ""))))
+
+# The report, printed, or why there is none.
+def report_text(r: Result<&1, &1, M.Bad, Report.Report>) -> String:
+  match r:
+    case Fail{M.Mismatch{expected, got}}:
+      "the report failed: the lengths do not agree"
+    case Fail{M.Empty{}}:
+      "the report failed: no sample"
+    case Done{rep}:
+      report_text_of(rep)
+
 # The classifier, over the rows and the labels.
 def show_rows(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>) -> IO(Unit):
   +means = means_of(rows)
   +prepared = standardise(rows, means, stds_of(rows, means))
   +split = (Nat.mul(List.length(&2, List<&2, F32>, prepared), 4n) / 5n : Nat)
   +train = List.take(&2, List<&2, F32>, prepared, split)
-  train_labels = List.take(&2, F32, labels, split)
+  +train_labels = List.take(&2, F32, labels, split)
   +test = List.drop(&2, List<&2, F32>, prepared, split)
-  test_labels = List.drop(&2, F32, labels, split)
+  +test_labels = List.drop(&2, F32, labels, split)
   right = correct(train, train_labels, test, test_labels, 3n)
   total = F32.from_nat(List.length(&2, List<&2, F32>, test))
+  +ys = classes_go(test_labels, Nil{})
+  +ps = predicted_go(train, train_labels, test, 3n, Nil{})
   do IO<Unit>:
     IO.print(String.append("train rows: ", U32.show(U32.from_nat(List.length(&2, List<&2, F32>, train)))))
     IO.print(String.append("test rows: ", U32.show(U32.from_nat(List.length(&2, List<&2, F32>, test)))))
     IO.print(String.append("accuracy: ", F32.show((right / total : F32))))
+    IO.print("matrix:")
+    IO.print(matrix_text(Report.matrix(ys, ps, 2n)))
+    IO.print(report_text(Report.report(ys, ps, 2n)))
 
 # The classifier, over the online dataset.
 def show(t: Datasets.Table) -> IO(Unit):

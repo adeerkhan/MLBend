@@ -1,0 +1,7 @@
+[project]
+name = "mlbend-report"
+version = "0.1.0.0"
+description = "The confusion matrix and the per-class report: precision, recall, F1 and support for every class, with the macro and the weighted averages."
+
+[dependencies]
+mlbend-metrics = "0.1.0.0"
