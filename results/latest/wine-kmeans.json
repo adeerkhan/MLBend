@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T12:32:27.372513+00:00",
+  "created_at": "2026-10-24T13:53:19.748657+00:00",
   "task": {
     "name": "wine-kmeans",
     "description": "k-means over wine, three clusters for ten rounds",
@@ -15,12 +15,14 @@
       ],
       "bytes": 399945,
       "sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c",
-      "fetch_seconds": 1.273
+      "fetch_seconds": 0.001,
+      "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
   },
+  "trainer": "bend",
   "git": {
-    "commit": "50eec2c",
+    "commit": "e22ef12",
     "branch": "main",
     "dirty": true
   },
@@ -70,8 +72,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.4.0",
-      "hash": "0x805aa9d73de5385dd9f66c3249152265"
+      "version": "0.1.5.0",
+      "hash": "0x177094bd1807192738f029aafe8a2759"
     },
     {
       "name": "mlbend-huggingface",
@@ -113,17 +115,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 40.317,
-    "seconds_min": 2.993,
+    "build_seconds": 60.396,
+    "seconds_min": 2.83,
     "seconds_all": [
-      3.388,
-      2.993
+      2.83,
+      2.901
     ],
     "repeat": 2,
-    "fetch_seconds": 1.273,
-    "compute_seconds": 1.72,
-    "reference_seconds": 1.241,
-    "speed_ratio": 0.415
+    "fetch_seconds": 0.001,
+    "compute_seconds": 2.829,
+    "reference_seconds": 1.314,
+    "speed_ratio": 0.465
   },
   "metrics": {
     "inertia": {

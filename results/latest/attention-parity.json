@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T12:28:28.592164+00:00",
+  "created_at": "2026-10-24T13:46:35.522374+00:00",
   "task": {
     "name": "attention-parity",
     "description": "single-head self-attention forward, four tokens of eight features",
@@ -13,12 +13,14 @@
       "files": [],
       "bytes": 0,
       "sha256": "439ef1cd0251877040fd9ca7c5a10820b06fcfd9568115db8363e39c0f81b9b0",
-      "fetch_seconds": 0.0
+      "fetch_seconds": 0.0,
+      "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
   },
+  "trainer": "bend",
   "git": {
-    "commit": "50eec2c",
+    "commit": "e22ef12",
     "branch": "main",
     "dirty": true
   },
@@ -68,8 +70,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.4.0",
-      "hash": "0x805aa9d73de5385dd9f66c3249152265"
+      "version": "0.1.5.0",
+      "hash": "0x177094bd1807192738f029aafe8a2759"
     },
     {
       "name": "mlbend-huggingface",
@@ -111,7 +113,7 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 0.566,
+    "build_seconds": 1.107,
     "seconds_min": 0.001,
     "seconds_all": [
       0.001,
@@ -120,8 +122,8 @@
     "repeat": 2,
     "fetch_seconds": 0.0,
     "compute_seconds": 0.001,
-    "reference_seconds": 0.006,
-    "speed_ratio": 5.184
+    "reference_seconds": 0.007,
+    "speed_ratio": 5.373
   },
   "metrics": {
     "checksum": {

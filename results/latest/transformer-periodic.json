@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T12:31:38.136933+00:00",
+  "created_at": "2026-10-24T13:52:12.271347+00:00",
   "task": {
     "name": "transformer-periodic",
     "description": "a one-block causal transformer trained on a periodic sequence, BendTorch against NumPy",
@@ -13,12 +13,14 @@
       "files": [],
       "bytes": 0,
       "sha256": "3fd593d823279d9a023f71840ce73a2dd7846dc77e01c602f61385d466cb148a",
-      "fetch_seconds": 0.0
+      "fetch_seconds": 0.0,
+      "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
   },
+  "trainer": "bend",
   "git": {
-    "commit": "50eec2c",
+    "commit": "e22ef12",
     "branch": "main",
     "dirty": true
   },
@@ -68,8 +70,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.4.0",
-      "hash": "0x805aa9d73de5385dd9f66c3249152265"
+      "version": "0.1.5.0",
+      "hash": "0x177094bd1807192738f029aafe8a2759"
     },
     {
       "name": "mlbend-huggingface",
@@ -111,17 +113,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 5.39,
-    "seconds_min": 0.023,
+    "build_seconds": 8.48,
+    "seconds_min": 0.032,
     "seconds_all": [
-      0.025,
-      0.023
+      0.033,
+      0.032
     ],
     "repeat": 2,
     "fetch_seconds": 0.0,
-    "compute_seconds": 0.023,
-    "reference_seconds": 0.047,
-    "speed_ratio": 2.054
+    "compute_seconds": 0.032,
+    "reference_seconds": 0.05,
+    "speed_ratio": 1.562
   },
   "metrics": {
     "first_loss": {

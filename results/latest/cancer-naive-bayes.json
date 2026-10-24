@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T12:30:01.232702+00:00",
+  "created_at": "2026-10-24T13:48:55.891302+00:00",
   "task": {
     "name": "cancer-naive-bayes",
     "description": "Gaussian naive Bayes over breast cancer, four fifths train",
@@ -15,12 +15,14 @@
       ],
       "bytes": 14339,
       "sha256": "4c35090cb5bf3e3ec8c528a4a837a33bacefc0b06c3b62fbb1331baf7ca865e8",
-      "fetch_seconds": 0.779
+      "fetch_seconds": 0.0,
+      "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
   },
+  "trainer": "bend",
   "git": {
-    "commit": "50eec2c",
+    "commit": "e22ef12",
     "branch": "main",
     "dirty": true
   },
@@ -70,8 +72,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.4.0",
-      "hash": "0x805aa9d73de5385dd9f66c3249152265"
+      "version": "0.1.5.0",
+      "hash": "0x177094bd1807192738f029aafe8a2759"
     },
     {
       "name": "mlbend-huggingface",
@@ -113,17 +115,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 40.261,
-    "seconds_min": 0.902,
+    "build_seconds": 62.986,
+    "seconds_min": 0.031,
     "seconds_all": [
-      0.925,
-      0.902
+      0.037,
+      0.031
     ],
     "repeat": 2,
-    "fetch_seconds": 0.779,
-    "compute_seconds": 0.123,
-    "reference_seconds": 0.91,
-    "speed_ratio": 1.009
+    "fetch_seconds": 0.0,
+    "compute_seconds": 0.031,
+    "reference_seconds": 0.999,
+    "speed_ratio": 32.441
   },
   "metrics": {
     "accuracy": {

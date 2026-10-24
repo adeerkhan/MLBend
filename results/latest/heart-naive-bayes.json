@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T12:43:24.501727+00:00",
+  "created_at": "2026-10-24T13:49:55.618828+00:00",
   "task": {
     "name": "heart-naive-bayes",
     "description": "Gaussian naive Bayes over heart failure, four fifths train",
@@ -15,12 +15,14 @@
       ],
       "bytes": 20137,
       "sha256": "e0771c8c824b89f5b5fc6a4e4af56a3da940512bb93f255a190673868d28c08c",
-      "fetch_seconds": 0.684
+      "fetch_seconds": 0.001,
+      "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
   },
+  "trainer": "bend",
   "git": {
-    "commit": "50eec2c",
+    "commit": "e22ef12",
     "branch": "main",
     "dirty": true
   },
@@ -70,8 +72,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.4.0",
-      "hash": "0x805aa9d73de5385dd9f66c3249152265"
+      "version": "0.1.5.0",
+      "hash": "0x177094bd1807192738f029aafe8a2759"
     },
     {
       "name": "mlbend-huggingface",
@@ -113,16 +115,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 56.319,
-    "seconds_min": 0.897,
+    "build_seconds": 58.903,
+    "seconds_min": 0.012,
     "seconds_all": [
-      0.897
+      0.017,
+      0.012
     ],
-    "repeat": 1,
-    "fetch_seconds": 0.684,
-    "compute_seconds": 0.213,
-    "reference_seconds": 1.652,
-    "speed_ratio": 1.842
+    "repeat": 2,
+    "fetch_seconds": 0.001,
+    "compute_seconds": 0.011,
+    "reference_seconds": 0.738,
+    "speed_ratio": 63.58
   },
   "metrics": {
     "accuracy": {

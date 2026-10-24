@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T12:33:20.265042+00:00",
+  "created_at": "2026-10-24T13:54:31.092692+00:00",
   "task": {
     "name": "wine-pca",
     "description": "first principal component of wine, by power iteration",
@@ -15,12 +15,14 @@
       ],
       "bytes": 399945,
       "sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c",
-      "fetch_seconds": 1.569
+      "fetch_seconds": 0.0,
+      "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
   },
+  "trainer": "bend",
   "git": {
-    "commit": "50eec2c",
+    "commit": "e22ef12",
     "branch": "main",
     "dirty": true
   },
@@ -70,8 +72,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.4.0",
-      "hash": "0x805aa9d73de5385dd9f66c3249152265"
+      "version": "0.1.5.0",
+      "hash": "0x177094bd1807192738f029aafe8a2759"
     },
     {
       "name": "mlbend-huggingface",
@@ -113,17 +115,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 40.177,
-    "seconds_min": 4.788,
+    "build_seconds": 59.909,
+    "seconds_min": 5.108,
     "seconds_all": [
-      4.788,
-      5.001
+      5.201,
+      5.108
     ],
     "repeat": 2,
-    "fetch_seconds": 1.569,
-    "compute_seconds": 3.219,
-    "reference_seconds": 1.331,
-    "speed_ratio": 0.278
+    "fetch_seconds": 0.0,
+    "compute_seconds": 5.108,
+    "reference_seconds": 1.095,
+    "speed_ratio": 0.214
   },
   "metrics": {
     "explained_variance_ratio": {
