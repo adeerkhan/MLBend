@@ -14,7 +14,7 @@
 # Gaussian is unchanged by an affine change of one feature, so the means
 # and the variances move with the scale and the prediction does not.
 import Base
-import mlbend-datasets@0.1.4.0/main.bend as Datasets
+import mlbend-datasets@0.1.5.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # One class's model: the mean and the variance of every feature, and the

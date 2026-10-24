@@ -30,7 +30,7 @@
 import Base
 import bend-ml-tensor@0.1.0.0/main.bend as T
 import bend-ml-autograd@0.1.1.0/main.bend as AG
-import mlbend-datasets@0.1.4.0/main.bend as Datasets
+import mlbend-datasets@0.1.5.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 import mlbend-metrics@0.1.0.0/main.bend as M
 import mlbend-pipeline@0.1.0.0/main.bend as Pipeline

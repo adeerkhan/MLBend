@@ -54,7 +54,7 @@ harness needs one.
 | [`mlbend-select`](select) | k-fold cross-validation on top of the split | v0.1: written, checked, published |
 | [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, one cluster per row | v0.1: written, checked, published |
 | [`mlbend-pipeline`](pipeline) | fit on the training rows only: the scaler of one fold, applied to both sides | v0.1: written, checked, published |
-| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, fetched at run time | v0.1.4: written, checked, published |
+| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, with an optional local cache (`MLBEND_DATA`) | v0.1.5: cache, checked, published |
 | [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the JSON rows | v0.1.1: written, checked, published |
 
 The eight packages live here, in one repository, as the workspace in
@@ -101,10 +101,12 @@ BendTorch and saves its loss curve.
 
 The manifest records the git commit and whether the tree was dirty, the Bend
 version, every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub
-hash, the machine, the seed, the tolerances, the **build time**, the **run
-time** (minimum of the repeats) and the **reference time**. The task timings
-include the dataset fetch on both sides; the build time is Bend's compiler and
-is reported separately. `--wandb` logs the same
+hash, the machine, the seed, the tolerances, the dataset's SHA-256, the
+**build time**, the **run time** (minimum of the repeats), the **fetch** and
+the **reference time**. The runner fills `reference/.cache/datasets` with the
+exact bytes it hashes and sets `MLBEND_DATA`, so a warm run measures compute;
+the fetch is recorded separately and is 0 on a warm cache. The build time is
+Bend's compiler and is reported separately. `--wandb` logs the same
 manifest to **Weights & Biases** (project `mlbend`), offline when there is no
 API key, so a run never blocks on the network.
 
@@ -134,8 +136,8 @@ The reports are committed, not thrown away:
 - `results/latest/<task>.json` and `results/raw/` — the full manifests and the
   timestamped history.
 
-The task timings include the dataset fetch on both sides; the kernel benchmark
-has no dataset and no IO. `make experiments` and `make bench` regenerate them.
+The task timings are warm-cache compute: both sides read the cached bytes. The
+kernel benchmark has no dataset and no IO. `make experiments` and `make bench` regenerate them.
 
 ## Checks
 

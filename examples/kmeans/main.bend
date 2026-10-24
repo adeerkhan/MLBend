@@ -15,7 +15,7 @@
 # k-means.
 import Base
 import mlbend-cluster@0.1.0.0/main.bend as Cluster
-import mlbend-datasets@0.1.4.0/main.bend as Datasets
+import mlbend-datasets@0.1.5.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # Two rows, cell by cell, the first minus the second.

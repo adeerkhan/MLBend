@@ -47,10 +47,11 @@ Every run writes:
 - the metric table: the Bend number, the reference number, the delta, the
   tolerance, and pass or fail.
 
-The fetch time is a Python probe of the same files; Bend fetches them inside
-its own run, so `compute_seconds = run_seconds - fetch_seconds` is an estimate,
-not a kernel measurement. The compute-only kernel benchmark is
-`results/BENCH.md`.
+The runner fills `reference/.cache/datasets/<repo>/<path>` with the exact
+bytes it hashes and sets `MLBEND_DATA`, so a warm run reads the file and does
+not fetch: `fetch` is 0 and the run time is compute. On a cold cache the first
+run pays the fetch and records it; the next run is warm. The compute-only
+kernel benchmark is `results/BENCH.md`.
 
 ## Weights & Biases
 

@@ -5,6 +5,22 @@ relevant entry before changing performance-sensitive code or a law.
 
 ## 2026-10-24
 
+- **The dataset cache (2026-10-24).** `mlbend-datasets@0.1.5.0` reads a
+  local file when `MLBEND_DATA` is set: the directory is laid out as
+  `<repo>/<path>`, the same shape as the hub (`mstz/iris/iris.data`), and a
+  missing file falls back to the network. The experiment runner fills
+  `reference/.cache/datasets` with the exact bytes it hashes and sets the
+  variable before the Bend run, so a warm task records `fetch: 0.0` and its
+  run time is compute. A cold first run still pays the fetch; run the corpus
+  twice, or warm the cache once, before reading the timing column. The
+  iris-crossval run fell from **0.85 s** to **0.098 s** of compute. The
+  loader reads the file at its real size (`File.size`, then `File.read`)
+  rather than a fixed cap, so a larger dataset is not silently truncated;
+  the cache is gitignored and the SHA-256 stays in the manifest.
+- **The structural graph (2026-10-24).** `/understand` built a fresh graph
+  at `05eacbd`: 102 files, 958 nodes, 905 edges, 6 layers, 7 tour steps and
+  no validation issues. It is structural, not LLM-enriched per file, and it
+  is at `.ua/knowledge-graph.json`; the point is orientation, not evidence.
 - **The foundation correction (2026-10-24).** The “BendTorch has no softmax”
   finding was true only of `bendtorch-core@0.1.0.0` (`aaaxn/bendtorch`, the old
   line). The maintained library is `bendtorch@1.0.1.0` (`nuxyel/BendTorch`),

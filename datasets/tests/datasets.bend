@@ -5,7 +5,7 @@
 #| cancer: 683 rows, 683
 #| heart: 299 rows, 299
 import Base
-import mlbend-datasets@0.1.4.0/main.bend as Datasets
+import mlbend-datasets@0.1.5.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 def count_of(t: Result<&1, &1, Hf.Err, Datasets.Table>) -> String:

@@ -3,7 +3,7 @@
 The datasets of scikit-learn, fetched from HuggingFace at run time.
 
 ```python
-import mlbend-datasets@0.1.4.0/main.bend as Datasets
+import mlbend-datasets@0.1.5.0/main.bend as Datasets
 
 def main() -> IO(Unit):
   do IO<Unit>:
@@ -49,3 +49,11 @@ to be left out and the quality is the label; `is_red` is not a feature.
 
 The effect is at the edge and the data that comes back is a value, so an
 estimator over it stays pure and a run is reproducible.
+
+## The local cache
+
+Set `MLBEND_DATA` to a directory laid out as `<repo>/<path>` — for example
+`mstz/iris/iris.data` — and the loader reads the file from there instead of
+the network. The experiment runner fills that directory with the exact bytes
+it hashes, so a cached task measures compute and not the fetch. Without the
+variable, or when the file is absent, the loader falls back to the hub.

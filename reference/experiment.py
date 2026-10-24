@@ -356,16 +356,34 @@ def compare(cfg, bend_values, reference_values):
     return table
 
 
+def cache_file(url):
+    """The cache path of a HuggingFace file URL, laid out as <repo>/<path>."""
+    m = re.search(r"/datasets/(.+?)/resolve/[^/]+/(.+)$", url)
+    if not m:
+        return None
+    return os.path.join(ROOT, "reference/.cache/datasets", m.group(1), m.group(2))
+
+
 def dataset_probe(cfg):
-    """Hash the dataset bytes and time the fetch, once per task."""
+    """Hash the dataset bytes, fill the local cache, and time the fetch once."""
     dataset = cfg["dataset"]
     files = dataset.get("files", [])
+    cache_root = os.path.join(ROOT, "reference/.cache/datasets")
+    ENV["MLBEND_DATA"] = cache_root
     start = time.perf_counter()
     digest = hashlib.sha256()
     total = 0
     if files:
         for url in files:
-            data = urllib.request.urlopen(url, timeout=120).read()
+            path = cache_file(url)
+            if path and os.path.isfile(path):
+                data = open(path, "rb").read()
+            else:
+                data = urllib.request.urlopen(url, timeout=120).read()
+                if path:
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    with open(path, "wb") as f:
+                        f.write(data)
             digest.update(data)
             total += len(data)
     else:
@@ -376,6 +394,7 @@ def dataset_probe(cfg):
         "bytes": total,
         "sha256": digest.hexdigest(),
         "fetch_seconds": round(seconds, 3),
+        "cache": cache_root,
     }
 
 
@@ -429,9 +448,8 @@ def machine():
     }
 
 
-def manifest_for(task, cfg, out, build_seconds, times, repeat, trainer="bend"):
+def manifest_for(task, cfg, out, build_seconds, times, repeat, probe, trainer="bend"):
     run_seconds = min(times) if times else 0.0
-    probe = dataset_probe(cfg)
     start = time.perf_counter()
     reference_values = cfg["reference"]()
     reference_seconds = time.perf_counter() - start
@@ -544,10 +562,10 @@ def summary(root_dir):
         "# Results",
         "",
         "The latest report card of every task, written by `reference/experiment.py`.",
-        "`fetch` is a Python probe of the dataset files; Bend fetches them inside its",
-        "own run, so `compute` is `Bend time - fetch` and is an estimate, not a kernel",
-        "measurement. `Python` is the reference computation. The build time is Bend's",
-        "compiler and is reported separately.",
+        "`fetch` is the time to fill and hash the local cache; the Bend program reads",
+        "the same bytes through `MLBEND_DATA`, so on a warm cache it is 0 and `compute`",
+        "is the run itself. `Python` is the reference computation. The build time is",
+        "Bend's compiler and is reported separately.",
         "",
         f"Machine: {rows[0]['machine']['platform']} · {rows[0]['machine']['cpu_count']} CPUs ·"
         f" Bend {rows[0]['bend']['version']}" if rows else "",
@@ -610,12 +628,13 @@ def main():
     failed = False
     for name in names:
         cfg = TASKS[name]
+        probe = dataset_probe(cfg)
         if args.trainer == "numpy":
             print(f"{name}: the NumPy trainer (no Bend build)")
             out, build_seconds, times = "", 0.0, []
         else:
             out, build_seconds, times, _ = run_bend(name, cfg, args.repeat)
-        manifest = manifest_for(name, cfg, out, build_seconds, times, args.repeat, args.trainer)
+        manifest = manifest_for(name, cfg, out, build_seconds, times, args.repeat, probe, args.trainer)
         path = write_report(manifest, args.out)
         print(report_text(manifest))
         print(f"report: {path}")

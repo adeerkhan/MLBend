@@ -1,6 +1,6 @@
 # mlbend-datasets: the datasets of scikit-learn, fetched from the hub.
 #
-#   import mlbend-datasets@0.1.4.0/main.bend as Datasets
+#   import mlbend-datasets@0.1.5.0/main.bend as Datasets
 #
 # The features of a dataset and its labels beside them: the rows of the
 # features, and one label per row.
@@ -207,12 +207,90 @@ def csv_of_text(t: Result<&1, &1, Hf.Err, String>, header: Bool, drop: Nat) ->
     case Done{text}:
       Done{csv_text(text, header, drop)}
 
-# A file of a dataset's repository, and the dataset it makes.
-def csv_of(repo: String, rev: String, path: String, header: Bool, drop: Nat) ->
+# ---- the local cache: MLBEND_DATA, a directory laid out like the hub ----
+#
+# The runner fills <dir>/<repo>/<path> with the exact bytes it hashed. When
+# the variable is set and the file is there, the program reads it and does
+# not touch the network; otherwise it falls back to the hub client.
+
+def cached_path(dir: String, repo: String, path: String) -> String:
+  String.append(dir, String.append("/", String.append(repo, String.append("/", path))))
+
+def read_result(result: Result<&1, &1, U32 & String, String>) -> IO(Maybe<&1, String>):
+  match result:
+    case Fail{e}:
+      IO.pure(Maybe<&1, String>, None{})
+    case Done{text}:
+      IO.pure(Maybe<&1, String>, Some{text})
+
+def read_done(pair: File & Result<&1, &1, U32 & String, String>) -> IO(Maybe<&1, String>):
+  (file, result) = pair
+  do IO<Maybe<&1, String>>:
+    File.close(file)
+    read_result(result)
+
+def sized_done(pair: File & Result<&1, &1, U32 & String, U32>) -> IO(Maybe<&1, String>):
+  (file, result) = pair
+  match result:
+    case Fail{e}:
+      do IO<Maybe<&1, String>>:
+        File.close(file)
+        return None{}
+    case Done{size}:
+      do IO<Maybe<&1, String>>:
+        pair : File & Result<&1, &1, U32 & String, String> <- File.read(file, size)
+        m : Maybe<&1, String> <- read_done(pair)
+        return m
+
+def opened(r: Result<&1, &1, U32 & String, File>) -> IO(Maybe<&1, String>):
+  match r:
+    case Fail{e}:
+      IO.pure(Maybe<&1, String>, None{})
+    case Done{file}:
+      do IO<Maybe<&1, String>>:
+        pair : File & Result<&1, &1, U32 & String, U32> <- File.size(file)
+        m : Maybe<&1, String> <- sized_done(pair)
+        return m
+
+# The text of a cached file, or None when it is not there.
+def read_cached(path: String) -> IO(Maybe<&1, String>):
+  do IO<Maybe<&1, String>>:
+    r : Result<&1, &1, U32 & String, File> <- File.open(path, "r")
+    opened(r)
+
+# A table from the cache when it is there, otherwise from the hub.
+def fetch_csv(repo: String, rev: String, path: String, header: Bool, drop: Nat) ->
   IO(Result<&1, &1, Hf.Err, Table>):
   do IO<Result<&1, &1, Hf.Err, Table>>:
     t : Result<&1, &1, Hf.Err, String> <- Hf.file_text(repo, rev, path)
     return csv_of_text(t, header, drop)
+
+def cached_or_fetch(m: Maybe<&1, String>, repo: String, rev: String, path: String,
+  header: Bool, drop: Nat) -> IO(Result<&1, &1, Hf.Err, Table>):
+  match m:
+    case Some{text}:
+      IO.pure(Result<&1, &1, Hf.Err, Table>, Done{csv_text(text, header, drop)})
+    case None{}:
+      fetch_csv(repo, rev, path, header, drop)
+
+def from_env(e: Result<&1, &1, U32 & String, String>, +repo: String, rev: String, +path: String,
+  header: Bool, drop: Nat) -> IO(Result<&1, &1, Hf.Err, Table>):
+  match e:
+    case Fail{code}:
+      fetch_csv(repo, rev, path, header, drop)
+    case Done{dir}:
+      do IO<Result<&1, &1, Hf.Err, Table>>:
+        m : Maybe<&1, String> <- read_cached(cached_path(dir, repo, path))
+        t : Result<&1, &1, Hf.Err, Table> <- cached_or_fetch(m, repo, rev, path, header, drop)
+        return t
+
+# A file of a dataset's repository, and the dataset it makes.
+def csv_of(repo: String, rev: String, path: String, header: Bool, drop: Nat) ->
+  IO(Result<&1, &1, Hf.Err, Table>):
+  do IO<Result<&1, &1, Hf.Err, Table>>:
+    e : Result<&1, &1, U32 & String, String> <- IO.get_env("MLBEND_DATA")
+    t : Result<&1, &1, Hf.Err, Table> <- from_env(e, repo, rev, path, header, drop)
+    return t
 
 # The breast cancer dataset: 683 rows, nine features, and the label.
 def cancer() -> IO(Result<&1, &1, Hf.Err, Table>):
