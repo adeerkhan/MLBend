@@ -1,6 +1,7 @@
 # mlbend-datasets
 
-The datasets of scikit-learn, fetched from HuggingFace at run time.
+The datasets of scikit-learn, fetched from HuggingFace, or read from a
+local cache when `MLBEND_DATA` is set.
 
 ```python
 import mlbend-datasets@0.1.5.0/main.bend as Datasets
@@ -12,6 +13,9 @@ def main() -> IO(Unit):
 
 A dataset comes back as a `Table`: the rows of the features and the
 labels beside them.
+
+Version 0.1.5.0 is published at
+`0x508fc33b44130576819939e645eba7da` (tag `mlbend-datasets-v0.1.5.0`).
 
 ```python
 type Table is Data:

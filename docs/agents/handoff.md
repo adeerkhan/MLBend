@@ -7,50 +7,20 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
-## 2026-10-24 — the real BendTorch, and a trained transformer
-
-**Where we are.** The foundation is corrected. MLBend pins **Bend 2.0.38** and
-depends on **`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`), not the old
-`bendtorch-core@0.1.0.0` line. The deep-learning track now has a trained model:
-
-- `examples/transformer`: embedding, RMSNorm, one causal single-head attention
-  block with an output projection, RMSNorm, linear head; AdamW, 200 steps on
-  next-token prediction over the periodic sequence 0..7.
-- Loss **2.3591 → 0.0021**. The NumPy twin with the same deterministic weights
-  starts at **2.3591** (agreeing to 6.8e-7) and ends at **0.1351**.
-- `results/transformer/loss.tsv`, `loss.svg` and `run.json` keep the curve, the
-  table and the configuration; the task is `transformer-periodic`.
-- The plain-Bend `attention` forward parity (1.5e-8) stays as the library-free
-  check.
-
-**What was run.**
-- `reference/test_transformer.py` with Bend 2.0.38 → both curves saved, final
-  losses as above.
-- `reference/experiment.py --task transformer-periodic` → PASS (first losses
-  agree to 6.8e-7; the final loss is reported, not gated, because the two
-  implementations converge at different speeds).
-- The full `make check` on 2.0.38 is running; the old `bendtorch-core`
-  examples are the risk.
-
-**What is next.**
-1. Port or retire `examples/tape`, `examples/regression` and `examples/stacks`
-   off `bendtorch-core`; then drop the old dependency.
-2. Add a second transformer task with a **classification** head or a copy task,
-   and an accuracy number beside the loss.
-3. The results methodology: split fetch from compute and hash the datasets.
-4. Then the layer roadmap: adapter protocol, reports/selection, corpus.
-
 ## 2026-10-24 — the cache, a warm corpus, and a clean check
 
 **Where we are.** The foundation is settled: **Bend 2.0.38**, the maintained
 **`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`), `mlbend-datasets@0.1.5.0`, nine
 tasks, and a full check that passes.
 
-- **The dataset cache is real.** `mlbend-datasets` reads `MLBEND_DATA` when it
-  is set, laid out as `<repo>/<path>` (`mstz/iris/iris.data`); a missing file
-  falls back to the hub. The runner fills `reference/.cache/datasets` with the
-  exact bytes it hashes and sets the variable before the Bend run. The cache is
-  gitignored; the SHA-256 stays in every manifest.
+- **The dataset cache is real.** `mlbend-datasets@0.1.5.0` reads
+  `MLBEND_DATA` when it is set, laid out as `<repo>/<path>`
+  (`mstz/iris/iris.data`); a missing file falls back to the hub. The runner
+  fills `reference/.cache/datasets` with the exact bytes it hashes and sets the
+  variable before the Bend run. The cache is gitignored; the SHA-256 stays in
+  every manifest. The release is on the hub at
+  `0x508fc33b44130576819939e645eba7da` and tagged
+  `mlbend-datasets-v0.1.5.0`.
 - **The corpus is warm.** The last corpus run has `fetch` 0–1 ms on every task,
   so `compute` is the run itself: iris-crossval **0.098 s**, cancer-knn
   **0.225 s**, transformer-periodic **0.032 s**, wine-pca **5.108 s**. The
@@ -77,8 +47,7 @@ tasks, and a full check that passes.
 - `make check` with `BEND_BIN` pointing at the pinned 2.0.38; **66/66**.
 
 **What is next.**
-1. Publish `mlbend-datasets@0.1.5.0` (`make release PKG=datasets`) and watch
-   CI on `main`.
+1. Watch CI on `main` for the release commit and the tag.
 2. Move the kNN classification report into a Bend package with a law; the
    Python report is the oracle.
 3. A second transformer task with a classification head or a copy task, with
