@@ -4,7 +4,7 @@ Chosen k: **5** (cross-validated accuracy 0.9678)
 
 | class | precision | recall | f1 | support |
 |---|---:|---:|---:|---:|
-| malignant | 0.0286 | 0.0286 | 0.0286 | 102 |
+| malignant | 0.9902 | 0.9902 | 0.9902 | 102 |
 | benign | 0.9714 | 0.9714 | 0.9714 | 35 |
 
 Accuracy: **0.9854**

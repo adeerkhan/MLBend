@@ -71,8 +71,12 @@ def report_of(true, pred):
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
+    m_precision = tn / (tn + fn) if tn + fn else 0.0
+    m_recall = tn / (tn + fp) if tn + fp else 0.0
+    m_f1 = 2 * m_precision * m_recall / (m_precision + m_recall) if m_precision + m_recall else 0.0
     return {"tp": tp, "fp": fp, "fn": fn, "tn": tn,
             "precision": precision, "recall": recall, "f1": f1,
+            "m_precision": m_precision, "m_recall": m_recall, "m_f1": m_f1,
             "accuracy": (tp + tn) / max(1, len(true))}
 
 
@@ -110,9 +114,8 @@ def main():
     lines = ["# kNN classification report", "",
              f"Chosen k: **{best_k}** (cross-validated accuracy {max(scores):.4f})", "",
              "| class | precision | recall | f1 | support |", "|---|---:|---:|---:|---:|",
-             f"| malignant | {1 - report['precision']:.4f} | {1 - report['recall']:.4f} | "
-             f"{2*(1-report['precision'])*(1-report['recall'])/max(1e-9, (1-report['precision'])+(1-report['recall'])):.4f} | "
-             f"{report['fp'] + report['tn']} |",
+             f"| malignant | {report['m_precision']:.4f} | {report['m_recall']:.4f} | "
+             f"{report['m_f1']:.4f} | {report['fp'] + report['tn']} |",
              f"| benign | {report['precision']:.4f} | {report['recall']:.4f} | {report['f1']:.4f} | "
              f"{report['tp'] + report['fn']} |",
              "", f"Accuracy: **{report['accuracy']:.4f}**", "",
