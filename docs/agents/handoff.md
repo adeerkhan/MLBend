@@ -28,7 +28,8 @@ tasks, and a full check that passes.
   warm-up) is the honest sequence. `results/RESULTS.md` says this in its intro.
 - **`make check` → 66/66** on 2.0.38, including the new
   `reference/test_datasets_cache.py` (a five-row iris cache must produce five
-  rows, not the 150 the hub would give).
+  rows, not the 150 the hub would give). **CI on `0ef436f` passed 74/74 in
+  22m27s.**
 - **The NumPy adapter covers all nine tasks** under `results/latest-numpy/`;
   the same task and manifest, NumPy as the trainer.
 - **The transformer stays the trained model**: loss **2.3591 → 0.0021**,
@@ -47,12 +48,11 @@ tasks, and a full check that passes.
 - `make check` with `BEND_BIN` pointing at the pinned 2.0.38; **66/66**.
 
 **What is next.**
-1. Watch CI on `main` for the release commit and the tag.
-2. Move the kNN classification report into a Bend package with a law; the
+1. Move the kNN classification report into a Bend package with a law; the
    Python report is the oracle.
-3. A second transformer task with a classification head or a copy task, with
+2. A second transformer task with a classification head or a copy task, with
    accuracy beside the loss.
-4. Run the W&B sweep (`reference/wandb_sweep.yaml`), which is configured but
+3. Run the W&B sweep (`reference/wandb_sweep.yaml`), which is configured but
    has not been started (it needs a login and a sweep id).
 
 **What is unverified.**
