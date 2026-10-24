@@ -54,7 +54,7 @@ harness needs one.
 | [`mlbend-select`](select) | k-fold cross-validation on top of the split | v0.1: written, checked, published |
 | [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, one cluster per row | v0.1: written, checked, published |
 | [`mlbend-pipeline`](pipeline) | fit on the training rows only: the scaler of one fold, applied to both sides | v0.1: written, checked, published |
-| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, pinned revisions and an authoritative local cache (`MLBEND_DATA`) | v0.1.6: pinned and strict, checked |
+| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, pinned revisions and an authoritative local cache (`MLBEND_DATA`) | v0.1.6: pinned and strict, published |
 | [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the JSON rows | v0.1.1: written, checked, published |
 
 The eight packages live here, in one repository, as the workspace in

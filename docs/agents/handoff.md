@@ -44,15 +44,14 @@ reference.
 - `reference/test_crossval.py` compares the shared folds and the same model.
 - `reference/test_datasets_cache.py` checks both the cache hit and the strict
   miss.
-- `make check` is running; the release of `mlbend-datasets@0.1.6.0` follows it.
+- `make check` → **66/66**; CI on `ef247ae` → **74/74** in 22m18s.
 
 **What is next.**
-1. Publish `mlbend-datasets@0.1.6.0`, push the evidence commits, watch CI.
-2. `mlbend-report`: confusion matrix and per-class precision/recall/F1 with a
+1. `mlbend-report`: confusion matrix and per-class precision/recall/F1 with a
    law, then wire `cancer-knn` to print it.
-3. A second transformer task with a classification head, accuracy beside loss.
-4. The W&B sweep over the selected parameter, now that the folds are shared.
-5. If the maintainers want it, an `autograd-array` design issue for bend-ml;
+2. A second transformer task with a classification head, accuracy beside loss.
+3. The W&B sweep over the selected parameter, now that the folds are shared.
+4. If the maintainers want it, an `autograd-array` design issue for bend-ml;
    otherwise use BendTorch for training and keep tensor-array for inference.
 
 **What is unverified.**
