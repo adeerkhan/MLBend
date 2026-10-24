@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-23T14:41:00.430744+00:00",
+  "created_at": "2026-10-24T12:31:32.626696+00:00",
   "task": {
     "name": "iris-mlp",
     "description": "a two-layer rectified network over iris, 400 SGD steps",
@@ -9,17 +9,23 @@
       "name": "iris",
       "rows": 150,
       "features": 4,
-      "source": "https://huggingface.co/datasets/mstz/iris"
+      "source": "https://huggingface.co/datasets/mstz/iris",
+      "files": [
+        "https://huggingface.co/datasets/mstz/iris/resolve/main/iris.data"
+      ],
+      "bytes": 4551,
+      "sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0",
+      "fetch_seconds": 0.887
     },
     "seed": 0
   },
   "git": {
-    "commit": "546dda4",
+    "commit": "50eec2c",
     "branch": "main",
     "dirty": true
   },
   "bend": {
-    "version": "2.0.37"
+    "version": "2.0.38"
   },
   "packages": [
     {
@@ -58,11 +64,6 @@
       "hash": "0x5734508f2a6198d9a87a28d4c58bfbae"
     },
     {
-      "name": "bendtorch-core",
-      "version": "0.1.0.0",
-      "hash": "0x1689e5deb278c16abd3bd45eac101ef3"
-    },
-    {
       "name": "mlbend-cluster",
       "version": "0.1.0.0",
       "hash": "0x0c4fbc7d44d2e3e47247a6c1f12c05e0"
@@ -81,6 +82,11 @@
       "name": "mlbend-metrics",
       "version": "0.1.0.0",
       "hash": "0x9afaa60ee4d17706cb14d6ec20d1d4ae"
+    },
+    {
+      "name": "mlbend-pipeline",
+      "version": "0.1.0.0",
+      "hash": "0xea73a86e2118529cadd597fb3727979b"
     },
     {
       "name": "mlbend-preprocess",
@@ -107,15 +113,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 92.339,
-    "seconds_min": 1.098,
+    "build_seconds": 41.399,
+    "seconds_min": 1.08,
     "seconds_all": [
-      1.18,
-      1.098
+      1.08,
+      1.547
     ],
     "repeat": 2,
-    "reference_seconds": 0.252,
-    "speed_ratio": 0.229
+    "fetch_seconds": 0.887,
+    "compute_seconds": 0.193,
+    "reference_seconds": 0.17,
+    "speed_ratio": 0.157
   },
   "metrics": {
     "accuracy": {

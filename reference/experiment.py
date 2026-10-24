@@ -24,6 +24,9 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
+import hashlib
+import io
 from datetime import datetime, timezone
 
 import numpy as np
@@ -110,6 +113,10 @@ def parse_cancer_nb(out):
     return {"accuracy": float(re.search(r"accuracy: ([0-9.eE+-]+)", out).group(1))}
 
 
+def parse_heart_nb(out):
+    return {"accuracy": float(re.search(r"accuracy: ([0-9.eE+-]+)", out).group(1))}
+
+
 def parse_wine_pca(out):
     return {"explained_variance_ratio": float(re.search(r"explained variance ratio: ([0-9.eE+-]+)", out).group(1))}
 
@@ -143,6 +150,16 @@ def reference_cancer_nb():
     return {"accuracy": sklearn_result()}
 
 
+def reference_heart_nb():
+    sys.path.insert(0, os.path.join(ROOT, "reference"))
+    from sklearn.naive_bayes import GaussianNB
+    from test_naive_bayes_heart import load
+
+    x, y = load()
+    split = len(x) * 4 // 5
+    return {"accuracy": float(GaussianNB().fit(x[:split], y[:split]).score(x[split:], y[split:]))}
+
+
 def reference_wine_pca():
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_pca import sklearn_ratio
@@ -155,7 +172,8 @@ TASKS = {
         "description": "logistic regression over iris, five stratified folds, scaler fitted on the training rows only",
         "program": "examples/crossval/main.bend",
         "dataset": {"name": "iris", "rows": 150, "features": 4,
-                    "source": "https://huggingface.co/datasets/mstz/iris"},
+                    "source": "https://huggingface.co/datasets/mstz/iris",
+                    "files": ["https://huggingface.co/datasets/mstz/iris/resolve/main/iris.data"]},
         "seed": 42,
         "parse": parse_iris_crossval,
         "reference": reference_iris_crossval,
@@ -171,7 +189,8 @@ TASKS = {
         "description": "a two-layer rectified network over iris, 400 SGD steps",
         "program": "examples/mlp/main.bend",
         "dataset": {"name": "iris", "rows": 150, "features": 4,
-                    "source": "https://huggingface.co/datasets/mstz/iris"},
+                    "source": "https://huggingface.co/datasets/mstz/iris",
+                    "files": ["https://huggingface.co/datasets/mstz/iris/resolve/main/iris.data"]},
         "seed": 0,
         "parse": parse_iris_mlp,
         "reference": reference_iris_mlp,
@@ -183,7 +202,8 @@ TASKS = {
         "description": "first principal component of wine, by power iteration",
         "program": "examples/pca/main.bend",
         "dataset": {"name": "wine", "rows": 6497, "features": 11,
-                    "source": "https://huggingface.co/datasets/mstz/wine"},
+                    "source": "https://huggingface.co/datasets/mstz/wine",
+                    "files": ["https://huggingface.co/datasets/mstz/wine/resolve/main/wine/train.csv"]},
         "seed": 0,
         "parse": parse_wine_pca,
         "reference": reference_wine_pca,
@@ -195,7 +215,8 @@ TASKS = {
         "description": "k-means over wine, three clusters for ten rounds",
         "program": "examples/kmeans/main.bend",
         "dataset": {"name": "wine", "rows": 6497, "features": 11,
-                    "source": "https://huggingface.co/datasets/mstz/wine"},
+                    "source": "https://huggingface.co/datasets/mstz/wine",
+                    "files": ["https://huggingface.co/datasets/mstz/wine/resolve/main/wine/train.csv"]},
         "seed": 0,
         "parse": parse_wine_kmeans,
         "reference": reference_wine_kmeans,
@@ -234,7 +255,8 @@ TASKS = {
         "description": "Gaussian naive Bayes over breast cancer, four fifths train",
         "program": "examples/naive_bayes/main.bend",
         "dataset": {"name": "breast_cancer", "rows": 683, "features": 9,
-                    "source": "https://huggingface.co/datasets/mstz/breast"},
+                    "source": "https://huggingface.co/datasets/mstz/breast",
+                    "files": ["https://huggingface.co/datasets/mstz/breast/resolve/main/cancer/train.csv"]},
         "seed": 0,
         "parse": parse_cancer_nb,
         "reference": reference_cancer_nb,
@@ -242,11 +264,25 @@ TASKS = {
             "accuracy": {"tolerance": 0.01, "mode": "absolute"},
         },
     },
+    "heart-naive-bayes": {
+        "description": "Gaussian naive Bayes over heart failure, four fifths train",
+        "program": "examples/naive_bayes_heart/main.bend",
+        "dataset": {"name": "heart_failure", "rows": 299, "features": 12,
+                    "source": "https://huggingface.co/datasets/mstz/heart_failure",
+                    "files": ["https://huggingface.co/datasets/mstz/heart_failure/resolve/main/death/train.csv"]},
+        "seed": 0,
+        "parse": parse_heart_nb,
+        "reference": reference_heart_nb,
+        "metrics": {
+            "accuracy": {"tolerance": 0.02, "mode": "absolute"},
+        },
+    },
     "cancer-knn": {
         "description": "three-nearest-neighbours over breast cancer, four fifths train",
         "program": "examples/knn/main.bend",
         "dataset": {"name": "breast_cancer", "rows": 683, "features": 9,
-                    "source": "https://huggingface.co/datasets/mstz/breast"},
+                    "source": "https://huggingface.co/datasets/mstz/breast",
+                    "files": ["https://huggingface.co/datasets/mstz/breast/resolve/main/cancer/train.csv"]},
         "seed": 0,
         "parse": parse_cancer_knn,
         "reference": reference_cancer_knn,
@@ -320,6 +356,29 @@ def compare(cfg, bend_values, reference_values):
     return table
 
 
+def dataset_probe(cfg):
+    """Hash the dataset bytes and time the fetch, once per task."""
+    dataset = cfg["dataset"]
+    files = dataset.get("files", [])
+    start = time.perf_counter()
+    digest = hashlib.sha256()
+    total = 0
+    if files:
+        for url in files:
+            data = urllib.request.urlopen(url, timeout=120).read()
+            digest.update(data)
+            total += len(data)
+    else:
+        digest.update((dataset.get("name", "") + "\n" + dataset.get("source", "")).encode())
+    seconds = time.perf_counter() - start
+    return {
+        "files": files,
+        "bytes": total,
+        "sha256": digest.hexdigest(),
+        "fetch_seconds": round(seconds, 3),
+    }
+
+
 def git_state():
     def run(*args):
         r = subprocess.run(["git", "-C", ROOT, *args], capture_output=True, text=True)
@@ -372,6 +431,7 @@ def machine():
 
 def manifest_for(task, cfg, out, build_seconds, times, repeat):
     run_seconds = min(times)
+    probe = dataset_probe(cfg)
     bend_values = cfg["parse"](out)
     start = time.perf_counter()
     reference_values = cfg["reference"]()
@@ -381,7 +441,7 @@ def manifest_for(task, cfg, out, build_seconds, times, repeat):
         "schema": SCHEMA,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "task": {"name": task, "description": cfg["description"], "program": cfg["program"],
-                 "dataset": cfg["dataset"], "seed": cfg.get("seed")},
+                 "dataset": dict(cfg["dataset"], **probe), "seed": cfg.get("seed")},
         "git": git_state(),
         "bend": {"version": bend_version()},
         "packages": packages(),
@@ -391,6 +451,8 @@ def manifest_for(task, cfg, out, build_seconds, times, repeat):
             "seconds_min": round(run_seconds, 3),
             "seconds_all": [round(t, 3) for t in times],
             "repeat": repeat,
+            "fetch_seconds": probe["fetch_seconds"],
+            "compute_seconds": round(max(0.0, run_seconds - probe["fetch_seconds"]), 3),
             "reference_seconds": round(reference_seconds, 3),
             "speed_ratio": round(reference_seconds / run_seconds, 3) if run_seconds else None,
         },
@@ -410,7 +472,9 @@ def report_text(manifest):
              + (" (dirty)" if manifest["git"]["dirty"] else ""),
              f"bend: {manifest['bend']['version']}   build: {manifest['run']['build_seconds']} s"
              f"   run: {manifest['run']['seconds_min']} s"
-             f"   reference: {manifest['run']['reference_seconds']} s",
+             f"   reference: {manifest['run']['reference_seconds']} s"
+             f"   fetch: {manifest['run']['fetch_seconds']} s"
+             f"   sha256: {manifest['task']['dataset']['sha256'][:12]}",
              "",
              f"{'metric':<18}{'bend':>14}{'reference':>14}{'delta':>12}  ok"]
     for name, row in manifest["metrics"].items():
@@ -474,15 +538,16 @@ def summary(root_dir):
         "# Results",
         "",
         "The latest report card of every task, written by `reference/experiment.py`.",
-        "The Bend time is the compiled program's run (minimum of the repeats); the",
-        "Python time is the reference computation. Both include the dataset fetch.",
-        "The build time is Bend's compiler and is reported separately.",
+        "`fetch` is a Python probe of the dataset files; Bend fetches them inside its",
+        "own run, so `compute` is `Bend time - fetch` and is an estimate, not a kernel",
+        "measurement. `Python` is the reference computation. The build time is Bend's",
+        "compiler and is reported separately.",
         "",
         f"Machine: {rows[0]['machine']['platform']} · {rows[0]['machine']['cpu_count']} CPUs ·"
         f" Bend {rows[0]['bend']['version']}" if rows else "",
         "",
-        "| task | dataset | metric | Bend | reference | delta | Bend ms | Python ms | speed (Python/Bend) | ok |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|:--:|",
+        "| task | dataset | hash | metric | Bend | reference | delta | fetch ms | Bend ms | compute ms | Python ms | ok |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|:--:|",
     ]
     for m in rows:
         for name, row in m["metrics"].items():
@@ -494,10 +559,13 @@ def summary(root_dir):
             lines.append(
                 f"| `{m['task']['name']}` | {m['task']['dataset']['name']} "
                 f"({m['task']['dataset']['rows']}x{m['task']['dataset']['features']}) "
+                f"| `{m['task']['dataset']['sha256'][:8]}` "
                 f"| {name} | {fmt(b)} | {fmt(r)} | {fmt(delta)} "
+                f"| {m['run']['fetch_seconds'] * 1000:.0f} "
                 f"| {m['run']['seconds_min'] * 1000:.0f} "
+                f"| {m['run']['compute_seconds'] * 1000:.0f} "
                 f"| {m['run']['reference_seconds'] * 1000:.0f} "
-                f"| {ratio:.2f}x | {'ok' if row['pass'] else 'FAIL'} |")
+                f"| {'ok' if row['pass'] else 'FAIL'} |")
     lines += ["", "The dataset, seed, hub hashes and the git state of every run are in",
               "`results/latest/<task>.json`; the timestamped reports are in `results/raw/`.", ""]
     path = os.path.join(root_dir, "RESULTS.md")

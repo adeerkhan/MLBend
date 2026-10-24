@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-23T14:37:46.240598+00:00",
+  "created_at": "2026-10-24T12:30:01.232702+00:00",
   "task": {
     "name": "cancer-naive-bayes",
     "description": "Gaussian naive Bayes over breast cancer, four fifths train",
@@ -9,17 +9,23 @@
       "name": "breast_cancer",
       "rows": 683,
       "features": 9,
-      "source": "https://huggingface.co/datasets/mstz/breast"
+      "source": "https://huggingface.co/datasets/mstz/breast",
+      "files": [
+        "https://huggingface.co/datasets/mstz/breast/resolve/main/cancer/train.csv"
+      ],
+      "bytes": 14339,
+      "sha256": "4c35090cb5bf3e3ec8c528a4a837a33bacefc0b06c3b62fbb1331baf7ca865e8",
+      "fetch_seconds": 0.779
     },
     "seed": 0
   },
   "git": {
-    "commit": "546dda4",
+    "commit": "50eec2c",
     "branch": "main",
     "dirty": true
   },
   "bend": {
-    "version": "2.0.37"
+    "version": "2.0.38"
   },
   "packages": [
     {
@@ -58,11 +64,6 @@
       "hash": "0x5734508f2a6198d9a87a28d4c58bfbae"
     },
     {
-      "name": "bendtorch-core",
-      "version": "0.1.0.0",
-      "hash": "0x1689e5deb278c16abd3bd45eac101ef3"
-    },
-    {
       "name": "mlbend-cluster",
       "version": "0.1.0.0",
       "hash": "0x0c4fbc7d44d2e3e47247a6c1f12c05e0"
@@ -81,6 +82,11 @@
       "name": "mlbend-metrics",
       "version": "0.1.0.0",
       "hash": "0x9afaa60ee4d17706cb14d6ec20d1d4ae"
+    },
+    {
+      "name": "mlbend-pipeline",
+      "version": "0.1.0.0",
+      "hash": "0xea73a86e2118529cadd597fb3727979b"
     },
     {
       "name": "mlbend-preprocess",
@@ -107,15 +113,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 90.982,
-    "seconds_min": 0.701,
+    "build_seconds": 40.261,
+    "seconds_min": 0.902,
     "seconds_all": [
-      0.97,
-      0.701
+      0.925,
+      0.902
     ],
     "repeat": 2,
-    "reference_seconds": 0.68,
-    "speed_ratio": 0.969
+    "fetch_seconds": 0.779,
+    "compute_seconds": 0.123,
+    "reference_seconds": 0.91,
+    "speed_ratio": 1.009
   },
   "metrics": {
     "accuracy": {

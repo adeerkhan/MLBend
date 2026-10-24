@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-23T14:42:38.886057+00:00",
+  "created_at": "2026-10-24T12:32:27.372513+00:00",
   "task": {
     "name": "wine-kmeans",
     "description": "k-means over wine, three clusters for ten rounds",
@@ -9,17 +9,23 @@
       "name": "wine",
       "rows": 6497,
       "features": 11,
-      "source": "https://huggingface.co/datasets/mstz/wine"
+      "source": "https://huggingface.co/datasets/mstz/wine",
+      "files": [
+        "https://huggingface.co/datasets/mstz/wine/resolve/main/wine/train.csv"
+      ],
+      "bytes": 399945,
+      "sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c",
+      "fetch_seconds": 1.273
     },
     "seed": 0
   },
   "git": {
-    "commit": "546dda4",
+    "commit": "50eec2c",
     "branch": "main",
     "dirty": true
   },
   "bend": {
-    "version": "2.0.37"
+    "version": "2.0.38"
   },
   "packages": [
     {
@@ -58,11 +64,6 @@
       "hash": "0x5734508f2a6198d9a87a28d4c58bfbae"
     },
     {
-      "name": "bendtorch-core",
-      "version": "0.1.0.0",
-      "hash": "0x1689e5deb278c16abd3bd45eac101ef3"
-    },
-    {
       "name": "mlbend-cluster",
       "version": "0.1.0.0",
       "hash": "0x0c4fbc7d44d2e3e47247a6c1f12c05e0"
@@ -81,6 +82,11 @@
       "name": "mlbend-metrics",
       "version": "0.1.0.0",
       "hash": "0x9afaa60ee4d17706cb14d6ec20d1d4ae"
+    },
+    {
+      "name": "mlbend-pipeline",
+      "version": "0.1.0.0",
+      "hash": "0xea73a86e2118529cadd597fb3727979b"
     },
     {
       "name": "mlbend-preprocess",
@@ -107,15 +113,17 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 88.976,
-    "seconds_min": 4.144,
+    "build_seconds": 40.317,
+    "seconds_min": 2.993,
     "seconds_all": [
-      4.144,
-      4.2
+      3.388,
+      2.993
     ],
     "repeat": 2,
-    "reference_seconds": 1.097,
-    "speed_ratio": 0.265
+    "fetch_seconds": 1.273,
+    "compute_seconds": 1.72,
+    "reference_seconds": 1.241,
+    "speed_ratio": 0.415
   },
   "metrics": {
     "inertia": {
