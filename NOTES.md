@@ -3,6 +3,31 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-24
+
+- **The foundation correction (2026-10-24).** The “BendTorch has no softmax”
+  finding was true only of `bendtorch-core@0.1.0.0` (`aaaxn/bendtorch`, the old
+  line). The maintained library is `bendtorch@1.0.1.0` (`nuxyel/BendTorch`),
+  which has `Attention`, `RMSNorm`, `Embedding`, `CrossEntropy`, `AdamW` and
+  `Train`, and targets Bend 2.0.38. MLBend now pins **Bend 2.0.38** and depends
+  on the real `bendtorch`. The two artifacts opened against the wrong tree were
+  closed; no upstream issue is open for a gap that does not exist.
+- **The first trained transformer (2026-10-24).** `examples/transformer` is a
+  one-block causal transformer on the real library: embedding, RMSNorm,
+  single-head causal attention, output projection, RMSNorm, linear head,
+  AdamW, 200 steps on next-token prediction over the periodic sequence 0..7.
+  The loss falls from **2.3591** to **0.0021**; a NumPy twin with the same
+  deterministic weights starts at **2.3591** (the two agree to 6.8e-7) and ends
+  at **0.1351**. The Bend update moves faster after the first step; the curves
+  and the table are in `results/transformer/` (`loss.svg`, `loss.tsv`,
+  `run.json`), and the task is `transformer-periodic` in the experiment layer.
+  The plain-Bend `attention` example remains the library-free forward parity
+  check (1.5e-8).
+- **Bend 2.0.38 (2026-10-24).** `scripts/setup.sh`, the check pin, the Makefile
+  and the docs moved from 2.0.37; the SHA256s are the release tarballs'. The old
+  examples are the next port: `tape`, `regression` and `stacks` still import
+  `bendtorch-core`, and they are the only things keeping the old line alive.
+
 ## 2026-10-23 — the experiment layer, and what a law is for
 
 - **The merge (2026-10-23).** `devel` went into `main` as a fast-forward (55

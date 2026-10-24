@@ -7,7 +7,41 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-24 — the real BendTorch, and a trained transformer
+
+**Where we are.** The foundation is corrected. MLBend pins **Bend 2.0.38** and
+depends on **`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`), not the old
+`bendtorch-core@0.1.0.0` line. The deep-learning track now has a trained model:
+
+- `examples/transformer`: embedding, RMSNorm, one causal single-head attention
+  block with an output projection, RMSNorm, linear head; AdamW, 200 steps on
+  next-token prediction over the periodic sequence 0..7.
+- Loss **2.3591 → 0.0021**. The NumPy twin with the same deterministic weights
+  starts at **2.3591** (agreeing to 6.8e-7) and ends at **0.1351**.
+- `results/transformer/loss.tsv`, `loss.svg` and `run.json` keep the curve, the
+  table and the configuration; the task is `transformer-periodic`.
+- The plain-Bend `attention` forward parity (1.5e-8) stays as the library-free
+  check.
+
+**What was run.**
+- `reference/test_transformer.py` with Bend 2.0.38 → both curves saved, final
+  losses as above.
+- `reference/experiment.py --task transformer-periodic` → PASS (first losses
+  agree to 6.8e-7; the final loss is reported, not gated, because the two
+  implementations converge at different speeds).
+- The full `make check` on 2.0.38 is running; the old `bendtorch-core`
+  examples are the risk.
+
+**What is next.**
+1. Port or retire `examples/tape`, `examples/regression` and `examples/stacks`
+   off `bendtorch-core`; then drop the old dependency.
+2. Add a second transformer task with a **classification** head or a copy task,
+   and an accuracy number beside the loss.
+3. The results methodology: split fetch from compute and hash the datasets.
+4. Then the layer roadmap: adapter protocol, reports/selection, corpus.
+
 ## 2026-10-23 — the first transformer block
+
 
 **Where we are.** The deep-learning track has started. `examples/attention` is
 a single-head self-attention block — Q, K, V, the scaled dot-product scores, a

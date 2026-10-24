@@ -1,0 +1,32 @@
+{
+  "created_at": "2026-10-24T11:41:24.122990+00:00",
+  "example": "examples/transformer/main.bend",
+  "architecture": "embedding, RMSNorm, causal single-head attention, output projection, RMSNorm, linear head",
+  "dataset": {
+    "name": "periodic-0-7",
+    "rows": 32,
+    "sequences": 2,
+    "positions": 16,
+    "vocab": 8
+  },
+  "optimizer": {
+    "name": "AdamW",
+    "lr": 0.01,
+    "steps": 200
+  },
+  "bend": {
+    "first_loss": 2.3591437,
+    "final_loss": 0.0021143379,
+    "seconds": 0.024078968999674544
+  },
+  "numpy": {
+    "first_loss": 2.359143018722534,
+    "final_loss": 0.1350996345281601
+  },
+  "machine": {
+    "platform": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
+    "cpu_count": 28,
+    "numpy": "2.5.4"
+  },
+  "passed": true
+}

@@ -114,21 +114,28 @@ scikit-learn's `classification_report` and `confusion_matrix`. Whether this is
 a Bend package (`mlbend-report`) or a runner-side renderer depends on how much
 of the format is pure — the metric arithmetic is pure and belongs in Bend.
 
-### 5. The deep-learning track
+### 5. The deep-learning track — training on the real BendTorch
 
-The layer is trainer-agnostic, so a deep model is another task. The first one is
-`attention-parity`: a single-head self-attention block (Q, K, V, scaled dot
-product, row softmax, the weighted sum of V) over four tokens, written in plain
-Bend and compared number by number with PyTorch (1.5e-8). It is the forward
-pass; the weights are fixed.
+The layer is trainer-agnostic, so a deep model is another task. There are two
+now:
 
-Training the block needs operations BendTorch's tape does not have: an
-elementwise exponential, a broadcast division, and their vector-Jacobian
-products (softmax is the composition). The next step is an issue on
-`nuxyel/BendTorch` for a `softmax` (or `exp`/`div` plus `sum_dims`) recorded
-operation, and then a trained attention task here. Until then, a deep model can
-enter as a PyTorch-trained forward whose weights are fixed in the program, which
-is what `attention-parity` demonstrates.
+- `attention-parity`: a single-head self-attention block (Q, K, V, scaled dot
+  product, row softmax, the weighted sum of V) over four tokens, written in
+  plain Bend and compared number by number with PyTorch (1.5e-8). It is the
+  forward pass; the weights are fixed.
+- `transformer-periodic`: a one-block causal transformer trained on
+  `bendtorch@1.0.1.0` — embedding, RMSNorm, single-head causal attention,
+  output projection, RMSNorm, linear head — with AdamW for 200 steps on
+  next-token prediction over the periodic sequence 0..7. The loss falls from
+  2.3591 to 0.0021; a NumPy twin starts at 2.3591 and ends at 0.1351. The loss
+  curve, the table and the manifest are in `results/transformer/`.
+
+**The foundation correction (2026-10-24).** The earlier "missing softmax" was
+true only of the old `bendtorch-core@0.1.0.0` line; the maintained
+`bendtorch@1.0.1.0` has `Attention`, `RMSNorm`, `Embedding`, `CrossEntropy`,
+`AdamW` and `Train`. MLBend now depends on the real package and pins Bend
+2.0.38. The old examples will be ported or retired; no new model is built on
+the dead line.
 
 ### 6. The corpus and the scoreboard
 

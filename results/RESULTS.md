@@ -16,6 +16,8 @@ Machine: Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 · 28 CPUs · Bend 2.
 | `iris-crossval` | iris (150x4) | fold_min | 0.833333 | 0.9 | - | 701 | 1345 | 1.92x | ok |
 | `iris-crossval` | iris (150x4) | fold_max | 0.966667 | 1 | - | 701 | 1345 | 1.92x | ok |
 | `iris-mlp` | iris (150x4) | accuracy | 0.973333 | 0.973333 | 2.66667e-08 | 1098 | 252 | 0.23x | ok |
+| `transformer-periodic` | periodic-0-7 (32x8) | first_loss | 2.35914 | 2.35914 | 6.81277e-07 | 21 | 59 | 2.81x | ok |
+| `transformer-periodic` | periodic-0-7 (32x8) | final_loss | 0.00211434 | 0.1351 | - | 21 | 59 | 2.81x | ok |
 | `wine-kmeans` | wine (6497x11) | inertia | 50645.6 | 50645.6 | -0.00456047 | 4144 | 1097 | 0.27x | ok |
 | `wine-kmeans` | wine (6497x11) | cluster_sizes | [2384, 990, 3123] | [2384, 990, 3123] | 0 | 4144 | 1097 | 0.27x | ok |
 | `wine-pca` | wine (6497x11) | explained_variance_ratio | 0.275443 | 0.275443 | 3.95586e-07 | 6112 | 1147 | 0.19x | ok |

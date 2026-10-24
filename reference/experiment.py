@@ -110,6 +110,11 @@ def parse_attention(out):
     return {"checksum": float(re.search(r"checksum: ([0-9.eE+-]+)", out).group(1))}
 
 
+def parse_transformer(out):
+    losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out, re.M) if float(v) > 0.0]
+    return {"first_loss": losses[0], "final_loss": losses[-1]}
+
+
 def parse_cancer_nb(out):
     return {"accuracy": float(re.search(r"accuracy: ([0-9.eE+-]+)", out).group(1))}
 
@@ -130,6 +135,14 @@ def reference_attention():
     from test_attention import expected
 
     return {"checksum": float(expected().sum(dtype="float32"))}
+
+
+def reference_transformer():
+    sys.path.insert(0, os.path.join(ROOT, "reference"))
+    from test_transformer import numpy_curve
+
+    _, final = numpy_curve()
+    return {"first_loss": float(numpy_curve()[0][0]), "final_loss": final}
 
 
 def reference_cancer_nb():
@@ -210,6 +223,19 @@ TASKS = {
         "metrics": {
             "inertia": {"tolerance": 0.001, "mode": "relative"},
             "cluster_sizes": {"tolerance": 0, "mode": "exact"},
+        },
+    },
+    "transformer-periodic": {
+        "description": "a one-block causal transformer trained on a periodic sequence, BendTorch against NumPy",
+        "program": "examples/transformer/main.bend",
+        "dataset": {"name": "periodic-0-7", "rows": 32, "features": 8,
+                    "source": "generated: two sequences of sixteen positions, vocab 8"},
+        "seed": 0,
+        "parse": parse_transformer,
+        "reference": reference_transformer,
+        "metrics": {
+            "first_loss": {"tolerance": 0.25, "mode": "absolute"},
+            "final_loss": {"tolerance": 0, "mode": "report"},
         },
     },
     "attention-parity": {

@@ -5,7 +5,7 @@ PY := reference/.venv/bin/python
 BENDENV := $(HOME)/.bend/bin/bendenv
 BEND := $(or $(BEND_BIN),$(HOME)/.bend/bin/bend)
 
-BEND_VERSION := 2.0.37
+BEND_VERSION := 2.0.38
 BEND_REF := ../bend-ref
 
 .PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench

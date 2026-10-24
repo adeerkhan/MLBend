@@ -11,7 +11,7 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY = os.path.join(ROOT, "reference/.venv/bin/python")
 BEND = os.environ.get("BEND_BIN") or os.path.expanduser("~/.bend/bin/bend")
-BEND_PIN = os.environ.get("BEND_PIN") or "2.0.37"
+BEND_PIN = os.environ.get("BEND_PIN") or "2.0.38"
 ENV = dict(os.environ, BEND_NO_TELEMETRY="1",
            PATH=os.path.expanduser("~/.elan/bin") + ":" + os.environ["PATH"])
 ENV_DIR = os.path.join(ROOT, ".bend", "env")

@@ -82,7 +82,7 @@ cancer-knn         examples/knn/main.bend           three-nearest-neighbours ove
 $ reference/.venv/bin/python reference/experiment.py --task cancer-knn
 task: cancer-knn  (three-nearest-neighbours over breast cancer, four fifths train)
 git: main ...
-bend: 2.0.37   run: 1.4 s
+bend: 2.0.38   run: 1.4 s
 
 metric                      bend     reference       delta  ok
 accuracy                0.978102      0.978102   1.022e-08  ok
@@ -92,7 +92,9 @@ report: results/raw/cancer-knn-....json
 ```
 
 The corpus is not only classical: `attention-parity` runs a single-head
-self-attention block and checks every output number against PyTorch.
+self-attention block and checks every output number against PyTorch, and
+`transformer-periodic` trains a one-block causal transformer with the real
+BendTorch and saves its loss curve.
 
 The manifest records the git commit and whether the tree was dirty, the Bend
 version, every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub
@@ -118,6 +120,9 @@ The reports are committed, not thrown away:
 - [`results/RESULTS.md`](results/RESULTS.md) — the latest report card of every
   task: dataset, Bend number, Python number, delta, milliseconds and speed
   ratio.
+- [`results/transformer/`](results/transformer/) — the trained transformer's
+  loss curve (`loss.svg`), its step-by-step table (`loss.tsv`) and the run
+  manifest (`run.json`).
 - [`results/BENCH.md`](results/BENCH.md) — the compute-only kernel benchmark
   (one matrix-product workload, Bend against NumPy), with GFLOP/s.
 - `results/latest/<task>.json` and `results/raw/` — the full manifests and the
@@ -129,7 +134,7 @@ has no dataset and no IO. `make experiments` and `make bench` regenerate them.
 ## Checks
 
 ```bash
-make setup        # the pinned Bend 2.0.37, Lean 4.34.0 and the Python venv
+make setup        # the pinned Bend 2.0.38, Lean 4.34.0 and the Python venv
 make check        # the proofs, the kernel (--verdict), the rejected programs, the NumPy comparison
 make laws         # every law statement of every package
 make experiment TASK=cancer-knn   # one task, one report card

@@ -13,6 +13,7 @@ re-implements them.
 | [`kmeans/main.bend`](kmeans/main.bend) | k-means over the wine dataset, through `mlbend-cluster`, after standardising the columns |
 | [`pca/main.bend`](pca/main.bend) | the first principal component of wine, by power iteration: a transformer, not a trainer |
 | [`attention/main.bend`](attention/main.bend) | a single-head self-attention block over four tokens: the core of a transformer, checked against PyTorch |
+| [`transformer/main.bend`](transformer/main.bend) | a one-block causal transformer trained on a periodic sequence with the real BendTorch, against a NumPy twin, with the loss curve saved |
 | [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
 | [`naive_bayes/main.bend`](naive_bayes/main.bend) | Gaussian naive Bayes over the same data: the gradient-free baseline the experiment layer keeps beside the learned models |
 | [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → scaler fitted on each training fold → logistic regression → stratified folds → accuracy, with no leakage |
@@ -91,6 +92,21 @@ breast cancer dataset: a gradient-free baseline that needs no library and
 no standardising. It scores 0.9854, the same as scikit-learn's
 `GaussianNB` on the same split. It is also a task in the experiment layer
 (`cancer-naive-bayes`).
+
+## The transformer example
+
+A one-block causal transformer on `bendtorch@1.0.1.0`: embedding, RMSNorm,
+single-head causal attention, output projection, RMSNorm, linear head, trained
+with AdamW for 200 steps on next-token prediction over the periodic sequence
+0..7. The loss falls from **2.3591** to **0.0021**; a NumPy twin with the same
+deterministic weights starts at the same 2.3591 and ends at 0.1351. The two
+curves, the step-by-step losses and the run's manifest are written to
+`results/transformer/` (`loss.tsv`, `loss.svg`, `run.json`).
+
+It is a task in the experiment layer (`transformer-periodic`). The
+architecture uses the maintained `bendtorch` package, not the old
+`bendtorch-core` tape; the plain-Bend `attention` example above remains the
+library-free parity check.
 
 ## The attention example
 

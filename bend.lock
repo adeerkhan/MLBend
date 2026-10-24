@@ -824,6 +824,147 @@ sha = "e8442eeb6de648fe2d4c7dcbb9ee7638b9a76a66336fcb0251a7807409bee8f2"
 path = "main.bend"
 
 [[package]]
+name = "bendtorch"
+version = "1.0.1.0"
+hash = "0xfc8448b10655d3efdb72c022131382f2"
+source = "hub"
+dependencies = [
+    "bend-ml-nat-lemmas@0.1.1.0",
+    "bend-ml-tensor-array@0.1.14.0",
+]
+constructors = [
+    "A2",
+    "AF",
+    "AF2",
+    "AS",
+    "ASM",
+    "Adam",
+    "AttnDims",
+    "AttnS",
+    "Ax",
+    "BG",
+    "BL",
+    "BS",
+    "Bwd",
+    "CAdam",
+    "CAdamW",
+    "CGR",
+    "CMomentum",
+    "CS",
+    "CSGD",
+    "CSM",
+    "CatG",
+    "D2",
+    "D3",
+    "D3S",
+    "DB",
+    "DR",
+    "DW",
+    "Dm",
+    "Dot",
+    "Drop",
+    "DropP",
+    "FL",
+    "FS",
+    "Fwd",
+    "G2",
+    "GAR",
+    "GN",
+    "GR",
+    "GW",
+    "Geo",
+    "HC",
+    "HMat",
+    "HW",
+    "Halves",
+    "L1R",
+    "LN",
+    "Layer",
+    "Lin",
+    "LossOut",
+    "MAR",
+    "MR",
+    "MatStep",
+    "Momentum",
+    "NS",
+    "NoMom",
+    "OneMom",
+    "P2",
+    "P3",
+    "P4",
+    "PA",
+    "PC",
+    "PL",
+    "PO",
+    "PR",
+    "PW",
+    "Q3",
+    "Q4",
+    "Q8",
+    "Q8Mul",
+    "QD",
+    "QK",
+    "QL",
+    "QR",
+    "QS",
+    "R3",
+    "R3S",
+    "R3SS",
+    "R4",
+    "R4B",
+    "R5",
+    "RS3",
+    "SAdd",
+    "SCell",
+    "SGD",
+    "Step",
+    "Strided",
+    "T3",
+    "TP",
+    "Tensor",
+    "Three",
+    "Train",
+    "TrainPL",
+    "Two",
+    "TwoMom",
+    "UF",
+    "UL",
+    "Unit",
+]
+
+[[package.files]]
+sha = "0204b24e2ead8a865fbe3db2fca3477d155b522b5de7d08772606a794a516b34"
+path = "LAWS.bend"
+
+[[package.files]]
+sha = "7b28854c86d77ef5953513f14c020ff5932fdbb1059eab7ba75bbe7fa24ef048"
+path = "LICENSE"
+
+[[package.files]]
+sha = "905896a46e73f1bf105cec0f1ef7d9cac6d6096971df889e010bc064801f6a88"
+path = "PROOF.bend"
+
+[[package.files]]
+sha = "e2f8fbcfca139d251a6007ba29a3d7ccb98af05aa83fa42968dfaae5f1b2c5a8"
+path = "dtype.bend"
+
+[[package.files]]
+sha = "f93c8dbe2a98825baf9f5b33d9c335f997b4ecf384bf81ee5ef270be4ca9010d"
+path = "main.bend"
+
+[[package.files]]
+sha = "f5cd3e2634294ddcc85c63c84c16a1a6bd6c82edfbb495d187fc28fd6b986f44"
+path = "package.bend"
+
+[[package.files]]
+sha = "90ae4b439eee28368a03da64fdba37a90f2f2864342f0979f95ed19987d42375"
+path = "spec.bend"
+
+[[package.files]]
+sha = "cb76742ed1dbfcdfdcb1893f077384c6973807c07add8efc59f90ea9680b072d"
+path = "tensor.bend"
+
+[[package]]
 name = "bendtorch-core"
 version = "0.1.0.0"
 hash = "0x1689e5deb278c16abd3bd45eac101ef3"

@@ -19,6 +19,11 @@ engine. The only models that live here are gradient-free baselines.
   only piece that lives in a repository of its own: `adeerkhan/bend-env`.
 - `reference/experiment.py`: the experiment runner — tasks, adapters,
   references, report cards, manifests and the W&B sink.
+- `reference/test_transformer.py`: the trained transformer against its NumPy
+  twin; it writes `results/transformer/loss.tsv`, `loss.svg` and `run.json`.
+- The maintained training library is **`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`,
+  `upstream/devel`). `bendtorch-core@0.1.0.0` is the old `aaaxn` line; the old
+  examples still use it, and no new work should.
 - `docs/PLAN.md`: the layer, the roadmap and the stop criteria.
 - `docs/AUDIT.md`: what is proved, what is tested, what is trusted.
 - `NOTES.md`: every finding and every discarded hypothesis, by date.
@@ -58,7 +63,7 @@ here would be wrong tomorrow.
 
 - **The guide**: `bend guide` (the installed one), or
   `~/.bend/guide/GUIDE.md`.
-- **The Base source**: `~/.bend/bend2/base.bend` (the pinned 2.0.37 install) or
+- **The Base source**: `~/.bend/bend2/base.bend` (the pinned 2.0.38 install) or
   `bend base <name>`.
 - **The language source**: `github.com/bendlang/bend`. The work on the language
   itself (the compiler, the runtime, the checker) happens there, in its own
@@ -80,7 +85,7 @@ publishes to BendHub and tags the released commit `<name>-v<version>`.
    `linear`/`ridge`/`logistic` implementation. Those are BendTorch's or
    bend-ml's; this repository adapts them. Gradient-free baselines are the
    exception, because a baseline needs no trainer.
-1. Bend is pinned to **2.0.37** (and Lean 4.34.0 for `--verdict`). A version
+1. Bend is pinned to **2.0.38** (and Lean 4.34.0 for `--verdict`). A version
    bump is its own change, with an entry in `NOTES.md`.
 2. Run the checker on every change; it takes a fraction of a second.
 3. **Every proof is real.** No `@unsafe`, no `?TODO`, no axioms. A law that
@@ -100,7 +105,7 @@ publishes to BendHub and tags the released commit `<name>-v<version>`.
 9. Public text (READMEs, `NOTES.md`, `docs/`) is written in the first person
    singular: "I measured", "my PR", never "we".
 
-## Bend 2.0.37 pitfalls we paid for
+## Bend 2.0.38 pitfalls we paid for
 
 The traps below are the ones this repository's code hit; they are the same
 traps bend-ml paid for, and the fix is in each case.
