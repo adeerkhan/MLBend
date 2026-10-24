@@ -8,7 +8,7 @@ BEND := $(or $(BEND_BIN),$(HOME)/.bend/bin/bend)
 BEND_VERSION := 2.0.38
 BEND_REF := ../bend-ref
 
-.PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench
+.PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench select plots sweep sweep-agent
 
 setup:            ## Bend, Lean and the Python venv
 	scripts/setup.sh
@@ -39,6 +39,19 @@ results:          ## regenerate results/RESULTS.md from the latest reports
 
 bench:            ## a compute-only kernel benchmark, saved under results/
 	$(PY) reference/bench_matmul.py
+
+select:           ## model selection and a classification report (kNN)
+	$(PY) reference/select_models.py
+
+plots:            ## write examples/<name>/README.md and plot.svg for every example
+	$(PY) reference/make_example_readmes.py
+
+sweep:            ## start the W&B sweep defined in reference/wandb_sweep.yaml
+	$(PY) -m wandb sweep reference/wandb_sweep.yaml
+
+sweep-agent:      ## run an agent for a started sweep: make sweep-agent SWEEP=<id>
+	@test -n "$(SWEEP)" || (echo "usage: make sweep-agent SWEEP=<id>" && false)
+	$(PY) -m wandb agent $(SWEEP)
 
 release:          ## release one package to the hub and tag it here: make release PKG=hf
 	@test -n "$(PKG)" || (echo "usage: make release PKG=<package directory>" && false)

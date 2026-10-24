@@ -1,0 +1,25 @@
+# The sweep over the experiment corpus. Start it with `make sweep`; run an
+# agent with `make sweep-agent`. The program is the runner; the parameters are
+# its own flags.
+program: reference/experiment.py
+method: grid
+metric:
+  name: final_loss
+  goal: minimize
+parameters:
+  task:
+    values:
+      - transformer-periodic
+      - cancer-knn
+      - wine-pca
+  repeat:
+    values: [1, 2]
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --task
+  - ${args.task}
+  - --repeat
+  - ${args.repeat}
+  - --wandb
