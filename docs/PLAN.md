@@ -7,8 +7,8 @@ The Bend ML ecosystem now has its primitives and its trainer:
 - **[bend-ml](https://github.com/nuxyel/bend-ml)** — tensors, shapes, the
   type-level laws, the BPE tokenizer. Its `tensor` and `autograd` are frozen;
   `tensor-array` and `bpe` are alive.
-- **[BendTorch](https://github.com/aaaxn/bendtorch)** — the tape, the layers,
-  the losses, the optimizer, the MNIST run.
+- **[BendTorch](https://github.com/nuxyel/BendTorch)** — the layers, the
+  losses, the optimizers, `Train`, the MNIST and tiny-Llama runs.
 
 Neither owns the question a person actually asks: *“what does this model score
 on this data, and can I reproduce that number?”* That is the experiment layer,
@@ -27,7 +27,7 @@ estimators' internals.
 | Layer | Repository | Owns | Does not own |
 |---|---|---|---|
 | primitives | bend-ml | tensors, shapes, laws, tokenizer | training, evaluation |
-| training | BendTorch | tape, layers, losses, optimizer | data, splits, reports |
+| training | BendTorch | layers, losses, optimizers, `Train` | data, splits, reports |
 | experiment | **MLBend** | data, splits, transformations, selection, metrics, manifests, benchmarks | tensors, autodiff, optimizers |
 
 ## What the layer must do
@@ -57,10 +57,13 @@ The experiment layer exists as [`reference/experiment.py`](../reference/experime
 |---|---|---|
 | `iris-crossval` | logistic regression, five stratified folds | scikit-learn `LogisticRegression` + `StratifiedKFold` |
 | `iris-mlp` | two rectified layers, 400 SGD steps | scikit-learn `MLPClassifier(8)` |
-| `wine-regression` | linear regression, 1000 steps on BendTorch's tape | scikit-learn `LinearRegression` |
 | `wine-kmeans` | k-means, three clusters, ten rounds | the same algorithm in NumPy |
+| `wine-pca` | the first principal component, power iteration | scikit-learn `PCA` |
 | `cancer-naive-bayes` | Gaussian naive Bayes, four fifths train | scikit-learn `GaussianNB` |
+| `heart-naive-bayes` | the same on heart failure | scikit-learn `GaussianNB` |
 | `cancer-knn` | three nearest neighbours, four fifths train | scikit-learn `KNeighborsClassifier` |
+| `attention-parity` | single-head attention forward | NumPy |
+| `transformer-periodic` | a one-block causal transformer, 200 AdamW steps | a NumPy twin |
 
 Every run writes `reports/<task>-<stamp>.json`; `--wandb` logs it. The report
 carries the dataset, the seed, the git state, the Bend version, the hub hashes,
@@ -134,8 +137,8 @@ now:
 true only of the old `bendtorch-core@0.1.0.0` line; the maintained
 `bendtorch@1.0.1.0` has `Attention`, `RMSNorm`, `Embedding`, `CrossEntropy`,
 `AdamW` and `Train`. MLBend now depends on the real package and pins Bend
-2.0.38. The old examples will be ported or retired; no new model is built on
-the dead line.
+2.0.38. The three old examples were retired on 2026-10-24; no new model is built
+on the dead line.
 
 ### 6. The corpus and the scoreboard
 

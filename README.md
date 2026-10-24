@@ -4,7 +4,7 @@
 a dataset in, a reproducible report out, over any Bend trainer.
 
 [bend-ml](https://github.com/nuxyel/bend-ml) owns the tensors and the laws,
-[BendTorch](https://github.com/aaaxn/bendtorch) owns the training. MLBend owns
+[BendTorch](https://github.com/nuxyel/BendTorch) owns the training. MLBend owns
 the *experiment* around them: the data, the split, the transformations, the
 model selection, the metrics, and the evidence that a number is the number it
 claims to be. It writes no tensor, no autodiff and no optimizer of its own.
@@ -72,11 +72,15 @@ numbers with NumPy or scikit-learn, and writes a **report card** as JSON.
 
 ```console
 $ reference/.venv/bin/python reference/experiment.py --list
-iris-crossval      examples/crossval/main.bend      logistic regression over iris, five stratified folds
-iris-mlp           examples/mlp/main.bend           a two-layer rectified network over iris, 400 SGD steps
-wine-kmeans        examples/kmeans/main.bend        k-means over wine, three clusters for ten rounds
-cancer-naive-bayes examples/naive_bayes/main.bend   Gaussian naive Bayes over breast cancer, four fifths train
-cancer-knn         examples/knn/main.bend           three-nearest-neighbours over breast cancer, four fifths train
+attention-parity    examples/attention/main.bend           single-head attention forward, against PyTorch
+transformer-periodic examples/transformer/main.bend        a one-block causal transformer, trained on BendTorch
+cancer-knn          examples/knn/main.bend                 three-nearest-neighbours over breast cancer
+cancer-naive-bayes  examples/naive_bayes/main.bend         Gaussian naive Bayes over breast cancer
+heart-naive-bayes   examples/naive_bayes_heart/main.bend   the same baseline on heart failure
+iris-crossval       examples/crossval/main.bend            logistic regression over five stratified folds
+iris-mlp            examples/mlp/main.bend                 a two-layer rectified network over iris
+wine-kmeans         examples/kmeans/main.bend              k-means over wine, three clusters
+wine-pca            examples/pca/main.bend                 the first principal component of wine
 
 $ reference/.venv/bin/python reference/experiment.py --task cancer-knn
 task: cancer-knn  (three-nearest-neighbours over breast cancer, four fifths train)
