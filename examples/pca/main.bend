@@ -12,7 +12,7 @@
 # same rows give the same component. `reference/test_pca.py` compares the
 # ratio with scikit-learn's PCA on the same standardised data.
 import Base
-import mlbend-datasets@0.1.5.0/main.bend as Datasets
+import mlbend-datasets@0.1.6.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # The features and the rounds of the power iteration.

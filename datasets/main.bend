@@ -1,6 +1,6 @@
 # mlbend-datasets: the datasets of scikit-learn, fetched from the hub.
 #
-#   import mlbend-datasets@0.1.5.0/main.bend as Datasets
+#   import mlbend-datasets@0.1.6.0/main.bend as Datasets
 #
 # The features of a dataset and its labels beside them: the rows of the
 # features, and one label per row.
@@ -258,20 +258,25 @@ def read_cached(path: String) -> IO(Maybe<&1, String>):
     r : Result<&1, &1, U32 & String, File> <- File.open(path, "r")
     opened(r)
 
-# A table from the cache when it is there, otherwise from the hub.
+# A table from the cache when it is there. With MLBEND_DATA set the cache is
+# the source of the run: a miss is an error, not a quiet fetch, or the
+# manifest would hash one file and the program would read another.
+def cached_or_fail(m: Maybe<&1, String>, +repo: String, +path: String, header: Bool,
+  drop: Nat) -> IO(Result<&1, &1, Hf.Err, Table>):
+  match m:
+    case Some{text}:
+      IO.pure(Result<&1, &1, Hf.Err, Table>, Done{csv_text(text, header, drop)})
+    case None{}:
+      IO.pure(Result<&1, &1, Hf.Err, Table>,
+        Fail{Hf.ErrNet{0, String.append("MLBEND_DATA: no readable file at ",
+          String.append(repo, String.append("/", path)))}})
+
+# A table from the hub, when there is no cache to read.
 def fetch_csv(repo: String, rev: String, path: String, header: Bool, drop: Nat) ->
   IO(Result<&1, &1, Hf.Err, Table>):
   do IO<Result<&1, &1, Hf.Err, Table>>:
     t : Result<&1, &1, Hf.Err, String> <- Hf.file_text(repo, rev, path)
     return csv_of_text(t, header, drop)
-
-def cached_or_fetch(m: Maybe<&1, String>, repo: String, rev: String, path: String,
-  header: Bool, drop: Nat) -> IO(Result<&1, &1, Hf.Err, Table>):
-  match m:
-    case Some{text}:
-      IO.pure(Result<&1, &1, Hf.Err, Table>, Done{csv_text(text, header, drop)})
-    case None{}:
-      fetch_csv(repo, rev, path, header, drop)
 
 def from_env(e: Result<&1, &1, U32 & String, String>, +repo: String, rev: String, +path: String,
   header: Bool, drop: Nat) -> IO(Result<&1, &1, Hf.Err, Table>):
@@ -281,7 +286,7 @@ def from_env(e: Result<&1, &1, U32 & String, String>, +repo: String, rev: String
     case Done{dir}:
       do IO<Result<&1, &1, Hf.Err, Table>>:
         m : Maybe<&1, String> <- read_cached(cached_path(dir, repo, path))
-        t : Result<&1, &1, Hf.Err, Table> <- cached_or_fetch(m, repo, rev, path, header, drop)
+        t : Result<&1, &1, Hf.Err, Table> <- cached_or_fail(m, repo, path, header, drop)
         return t
 
 # A file of a dataset's repository, and the dataset it makes.
@@ -294,16 +299,16 @@ def csv_of(repo: String, rev: String, path: String, header: Bool, drop: Nat) ->
 
 # The breast cancer dataset: 683 rows, nine features, and the label.
 def cancer() -> IO(Result<&1, &1, Hf.Err, Table>):
-  csv_of("mstz/breast", "main", "cancer/train.csv", True{}, 0n)
+  csv_of("mstz/breast", "3cc7c6eef1160389f64f8760d71cba2b789603ec", "cancer/train.csv", True{}, 0n)
 
 # The heart failure dataset: 299 rows, twelve features, and the label.
 def heart() -> IO(Result<&1, &1, Hf.Err, Table>):
-  csv_of("mstz/heart_failure", "main", "death/train.csv", True{}, 0n)
+  csv_of("mstz/heart_failure", "57c2e1a4b3bb2f28e766c6d3b10bc0ced972c857", "death/train.csv", True{}, 0n)
 
 # The iris dataset, fetched from the hub.
 def iris() -> IO(Result<&1, &1, Hf.Err, Table>):
-  csv_of("mstz/iris", "main", "iris.data", False{}, 0n)
+  csv_of("mstz/iris", "e99306d5df05d2ea66a188ea936037f6588a20e9", "iris.data", False{}, 0n)
 
 # The wine dataset: 6497 rows, eleven features, and the quality.
 def wine() -> IO(Result<&1, &1, Hf.Err, Table>):
-  csv_of("mstz/wine", "main", "wine/train.csv", True{}, 1n)
+  csv_of("mstz/wine", "2042c73ed074afafc54264ba6ef0ad0450fa1e04", "wine/train.csv", True{}, 1n)

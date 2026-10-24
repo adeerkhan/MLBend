@@ -7,11 +7,10 @@ from HuggingFace, standardises it with `mlbend-preprocess`, trains a
 logistic regression with bend-ml's autodiff on four of every five
 stratified folds, and scores the fifth with `mlbend-metrics`.
 
-The folds here are not the same folds: scikit-learn shuffles each class
-with numpy's generator, the Bend program shuffles with bend-kit-random's
-xoshiro128**. What must agree is the accuracy of the whole procedure,
-so the mean of the five folds is compared, with a tolerance that covers
-the difference between two random partitions of a small dataset.
+The Bend program prints the fold of every row. The reference reads that
+assignment, standardises inside each fold and runs the same 60 SGD steps,
+so the two compare the same partition and the same model; the mean agrees
+to F32 precision.
 """
 import os
 import re
@@ -32,7 +31,7 @@ ENV_DIR = os.path.join(ROOT, ".bend", "env")
 if os.path.isdir(ENV_DIR):
     ENV["BEND_LIB"] = ENV_DIR
 
-URL = "https://huggingface.co/datasets/mstz/iris/resolve/main/iris.data"
+URL = "https://huggingface.co/datasets/mstz/iris/resolve/e99306d5df05d2ea66a188ea936037f6588a20e9/iris.data"
 CLASSES = {"Iris-setosa": 0, "Iris-versicolor": 1, "Iris-virginica": 2}
 
 
@@ -58,21 +57,17 @@ def bend_folds():
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)
-    out = subprocess.run([binary], capture_output=True, text=True, env=ENV, cwd=ROOT)
+    out = subprocess.run([binary, "42"], capture_output=True, text=True, env=ENV, cwd=ROOT)
     if out.returncode != 0:
         raise SystemExit("the Bend program did not run:\n" + out.stdout + out.stderr)
     folds = [float(m) for m in re.findall(r"^fold \d+: ([0-9.eE+-]+)$", out.stdout, re.M)]
     mean = float(re.search(r"mean accuracy: ([0-9.eE+-]+)", out.stdout).group(1))
-    return folds, mean
+    assignment = [int(v) for v in re.search(r"^folds: (.*)$", out.stdout, re.M).group(1).split()]
+    return folds, mean, assignment
 
 
 def sklearn_folds(x, y):
-    """The accuracy of every fold, from scikit-learn.
-
-    The scaler is fitted inside the fold (`Pipeline`), on the training rows
-    only, as `examples/crossval` now does: standardising the whole matrix
-    first would let the test rows into the means and the deviations.
-    """
+    """The adapter's reference: scikit-learn on its own stratified folds."""
     scores = []
     for train, test in StratifiedKFold(n_splits=5, shuffle=True, random_state=42).split(x, y):
         model = make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000))
@@ -83,21 +78,24 @@ def sklearn_folds(x, y):
 
 def main():
     x, y = load()
-    bend, bend_mean = bend_folds()
-    sklearn = sklearn_folds(x, y)
-    sklearn_mean = float(np.mean(sklearn))
-    print(f"bend:    {[round(s, 4) for s in bend]} mean {bend_mean:.4f}")
-    print(f"sklearn: {[round(s, 4) for s in sklearn]} mean {sklearn_mean:.4f}")
+    bend, bend_mean, assignment = bend_folds()
+    sys.path.insert(0, os.path.join(ROOT, "reference"))
+    from experiment import reference_iris_crossval
+    reference = reference_iris_crossval({"folds": assignment})
+    print(f"bend:      {[round(s, 4) for s in bend]} mean {bend_mean:.4f}")
+    print(f"reference: mean {reference['mean_accuracy']:.4f}")
     ok = True
     if len(bend) != 5:
         print(f"ERROR the Bend program scored {len(bend)} folds, not 5")
         ok = False
-    # two random partitions of 150 rows differ by a few rows of accuracy
-    if abs(bend_mean - sklearn_mean) > 0.03:
-        print(f"ERROR the mean accuracy differs: {bend_mean} against {sklearn_mean}")
+    if abs(bend_mean - reference["mean_accuracy"]) > 0.00001:
+        print(f"ERROR the means differ: {bend_mean} against {reference['mean_accuracy']}")
         ok = False
-    else:
-        print(f"ok   the mean accuracy agrees: {bend_mean:.4f} against {sklearn_mean:.4f}")
+    if abs(min(bend) - reference["fold_min"]) > 0.00001 or abs(max(bend) - reference["fold_max"]) > 0.00001:
+        print("ERROR a fold's score differs")
+        ok = False
+    if ok:
+        print("ok   the same folds and the same model agree")
     return 0 if ok else 1
 
 

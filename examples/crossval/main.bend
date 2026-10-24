@@ -25,12 +25,14 @@
 # therefore fixed, and bend-ml's matrices carry them in their types: a
 # fold that did not come out this way would not fit the matrix at all.
 #
-# The accuracy is checked against scikit-learn's LogisticRegression over
-# stratified folds (reference/test_crossval.py).
+# The program prints the fold of every row and the seed, so the reference
+# can use the same partition. `reference/test_crossval.py` and the runner
+# standardise the same folds and run the same 60 steps in NumPy; the two
+# agree to F32 precision.
 import Base
 import bend-ml-tensor@0.1.0.0/main.bend as T
 import bend-ml-autograd@0.1.1.0/main.bend as AG
-import mlbend-datasets@0.1.5.0/main.bend as Datasets
+import mlbend-datasets@0.1.6.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 import mlbend-metrics@0.1.0.0/main.bend as M
 import mlbend-pipeline@0.1.0.0/main.bend as Pipeline
@@ -285,9 +287,45 @@ def folds() -> Nat:
 def crossval(+rows: List<&2, Row>) -> List<&2, F32>:
   crossval_go(List.range(folds()), rows, Nil{})
 
-# The seed of the shuffle.
-def seed() -> U32:
-  42
+# A seed from the text, or 42.
+def seed_of_maybe(m: Maybe<&2, U32>) -> U32:
+  match m:
+    case Some{x}:
+      x
+    case None{}:
+      42
+
+# The seed of the shuffle: the first argument, or 42.
+def seed_of(args: List<String>) -> U32:
+  match args:
+    case Nil{}:
+      42
+    case Con{program, rest}:
+      match rest:
+        case Nil{}:
+          42
+        case Con{arg, more}:
+          seed_of_maybe(U32.read(arg))
+
+# The folds of the rows, as text: " 0 1 2 ...".
+def fold_ids_go(+fs: List<&2, Nat>, +i: Nat, +acc: String) -> String:
+  match fs:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      fold_ids_go(t, Nat.add(i, 1n),
+        String.append(acc, String.append(" ", U32.show(U32.from_nat(h)))))
+
+# The folds of the rows, as text.
+def fold_ids(+fs: List<&2, Nat>) -> String:
+  fold_ids_go(fs, 0n, "")
+
+# The seed, and the fold of every row: the reference needs both to use the
+# same partition and compare the same numbers.
+def show_folds(fs: List<&2, Nat>, seed: U32) -> IO(Unit):
+  do IO<Unit>:
+    IO.print(String.append("seed: ", U32.show(seed)))
+    IO.print(String.append("folds:", fold_ids(fs)))
 
 # The rows of the dataset, each with the fold it is in: the folds come
 # from `mlbend-select`, which makes them the way scikit-learn's
@@ -355,24 +393,27 @@ def show_all(+fs: List<&2, Row>) -> IO(Unit):
     show_scores(crossval(fs))
 
 # The rows of the dataset, with the fold of each row.
-def show_rows(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>) -> IO(Unit):
+def show_rows(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>, +seed: U32) -> IO(Unit):
   +rs = rows_of(rows, labels)
-  +fs = Select.folds(labels_of(rs), seed(), folds())
-  show_all(folded_rows(rs, fs, Nil{}))
+  +fs = Select.folds(labels_of(rs), seed, folds())
+  do IO<Unit>:
+    show_all(folded_rows(rs, fs, Nil{}))
+    show_folds(fs, seed)
 
-def show_table(t: Datasets.Table) -> IO(Unit):
+def show_table(t: Datasets.Table, seed: U32) -> IO(Unit):
   match t:
     case Datasets.Table{+rows, +labels}:
-      show_rows(rows, labels)
+      show_rows(rows, labels, seed)
 
-def show(d: Result<&1, &1, Hf.Err, Datasets.Table>) -> IO(Unit):
+def show(d: Result<&1, &1, Hf.Err, Datasets.Table>, seed: U32) -> IO(Unit):
   match d:
     case Fail{e}:
       IO.print("the dataset failed")
     case Done{table}:
-      show_table(table)
+      show_table(table, seed)
 
 def main() -> IO(Unit):
   do IO<Unit>:
+    args : List<String> <- IO.args()
     d : Result<&1, &1, Hf.Err, Datasets.Table> <- Datasets.iris()
-    show(d)
+    show(d, seed_of(args))

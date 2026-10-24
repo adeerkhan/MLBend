@@ -12,9 +12,10 @@
 # The rows are split: the first four fifths train, the last fifth test, as
 # `examples/knn` does. There is no standardising, and none is needed: a
 # Gaussian is unchanged by an affine change of one feature, so the means
-# and the variances move with the scale and the prediction does not.
+# and the variances move with the scale and the prediction does not. The
+# variance carries scikit-learn's 1e-9 smoothing, so the two agree.
 import Base
-import mlbend-datasets@0.1.5.0/main.bend as Datasets
+import mlbend-datasets@0.1.6.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # One class's model: the mean and the variance of every feature, and the
@@ -118,6 +119,26 @@ def vars_of(+rows: List<&2, List<&2, F32>>, +means: List<&2, F32>) -> List<&2, F
   zip_scale(deviation_sums(rows, means),
     (1.0 / F32.from_nat(List.length(&2, List<&2, F32>, rows)) : F32))
 
+# The largest number of a list.
+def max_of_go(+xs: List<&2, F32>, +acc: F32) -> F32:
+  match xs:
+    case Nil{}:
+      acc
+    case Con{+h, t}:
+      max_of_go(t, F32.max(h, acc))
+
+# The largest number of a list.
+def max_of(+xs: List<&2, F32>) -> F32:
+  max_of_go(xs, 0.0)
+
+# One row and a number added to every cell.
+def zip_shift(a: List<&2, F32>, +k: F32) -> List<&2, F32>:
+  match a:
+    case Nil{}:
+      Nil{}
+    case Con{ha, ta}:
+      Con{F32.add(ha, k), zip_shift(ta, k)}
+
 # The rows of one class, one at a time.
 def rows_of_class_go(rows: List<&2, List<&2, F32>>, labels: List<&2, F32>, +c: Nat,
   +acc: List<&2, List<&2, F32>>) -> List<&2, List<&2, F32>>:
@@ -190,6 +211,10 @@ def params_of(+rows: List<&2, List<&2, F32>>, +labels: List<&2, F32>, +c: Nat,
   +selected = rows_of_class(rows, labels, c)
   +mean = means_of(selected)
   +var = vars_of(selected, mean)
+  # scikit-learn's var_smoothing: 1e-9 of the largest variance. It keeps a
+  # constant column from dividing by zero, and it is what the reference uses.
+  +eps = F32.mul(max_of(var), 0.000000001)
+  +var = zip_shift(var, eps)
   +share = F32.div(F32.from_nat(count_of(labels, c)), F32.from_nat(total))
   +lp = F32.log(F32.max(share, 0.000000000001))
   Params{mean, var, lp}

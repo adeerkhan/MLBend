@@ -64,7 +64,7 @@ def main():
     else:
         print(f"ok   the accuracy is at least 0.90: {bend_accuracy}")
 
-    if abs(bend_accuracy - sklearn_accuracy) > 0.01:
+    if abs(bend_accuracy - sklearn_accuracy) > 0.000001:
         print(f"ERROR the accuracy differs: {bend_accuracy} vs {sklearn_accuracy}")
         ok = False
     else:

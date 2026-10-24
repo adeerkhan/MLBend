@@ -4,7 +4,7 @@ The datasets of scikit-learn, fetched from HuggingFace, or read from a
 local cache when `MLBEND_DATA` is set.
 
 ```python
-import mlbend-datasets@0.1.5.0/main.bend as Datasets
+import mlbend-datasets@0.1.6.0/main.bend as Datasets
 
 def main() -> IO(Unit):
   do IO<Unit>:
@@ -14,8 +14,8 @@ def main() -> IO(Unit):
 A dataset comes back as a `Table`: the rows of the features and the
 labels beside them.
 
-Version 0.1.5.0 is published at
-`0x508fc33b44130576819939e645eba7da` (tag `mlbend-datasets-v0.1.5.0`).
+Version 0.1.6.0 is the cache that is authoritative and the loaders pinned to
+a HuggingFace revision.
 
 ```python
 type Table is Data:
@@ -27,7 +27,8 @@ class, a regression label is the value, and the model decides which it
 is.
 
 Four datasets come from the `mstz` mirrors on HuggingFace, which hold
-the UCI files as they are:
+the UCI files as they are. Each loader names a revision, not `main`, so
+the bytes cannot move under a run:
 
 | function | rows | features | label |
 | --- | --- | --- | --- |
@@ -59,5 +60,7 @@ estimator over it stays pure and a run is reproducible.
 Set `MLBEND_DATA` to a directory laid out as `<repo>/<path>` — for example
 `mstz/iris/iris.data` — and the loader reads the file from there instead of
 the network. The experiment runner fills that directory with the exact bytes
-it hashes, so a cached task measures compute and not the fetch. Without the
-variable, or when the file is absent, the loader falls back to the hub.
+it hashes, so a cached task measures compute and not the fetch. When
+`MLBEND_DATA` is set the cache is authoritative: a missing or unreadable
+file is an error, not a quiet fetch, because the manifest hashes the file
+the program actually reads. Without the variable the loader uses the hub.

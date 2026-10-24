@@ -982,8 +982,8 @@ path = "main.bend"
 
 [[package]]
 name = "mlbend-datasets"
-version = "0.1.5.0"
-hash = "0x508fc33b44130576819939e645eba7da"
+version = "0.1.6.0"
+hash = "0xf3d145d639153c61b826e4f60d3c0dcd"
 source = "local"
 dependencies = []
 constructors = []
@@ -993,7 +993,7 @@ sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
 path = "LICENSE"
 
 [[package.files]]
-sha = "a5fd841bcc55b08b30aa42e837174285321332ee98e8fb92c00604ea9b2964d5"
+sha = "531df9a9bf5e7851d632569b7dc4a50ae412679845ebc33c823ab46fb3843e13"
 path = "main.bend"
 
 [[package]]

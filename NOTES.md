@@ -5,6 +5,31 @@ relevant entry before changing performance-sensitive code or a law.
 
 ## 2026-10-24
 
+- **The evidence stage (2026-10-24).** Three things changed under the
+  corpus. The datasets are pinned to a HuggingFace revision (`resolve/<sha>`)
+  and each task carries the expected SHA-256; the runner verifies the bytes it
+  reads. `MLBEND_DATA` is now authoritative: a miss is an error, not a quiet
+  fetch, so a manifest can never hash one file while the program reads
+  another. `mlbend-datasets@0.1.6.0` carries both changes.
+- **The same folds, and five seeds (2026-10-24).** `examples/crossval` prints
+  the fold of every row and takes the seed as its first argument; the runner
+  builds once, runs seeds 42–46, and the NumPy reference reads that assignment
+  and runs the same 60 SGD steps. The means agree to **5.9e-8** and the folds to
+  **2e-8**, instead of the old 0.03 tolerance for two different partitions.
+  `RESULTS.md` now reports mean ± sample deviation; every seed must pass.
+- **The naive Bayes variance (2026-10-24).** The exact comparison found the
+  heart baseline at **0.9333** against scikit-learn's **0.95**. The cause was
+  not the split or the data: scikit-learn adds `var_smoothing = 1e-9 ×
+  max(variance)` to every variance, and the Bend examples did not. With the
+  same smoothing both baselines agree exactly: heart **0.95**, breast
+  **0.98540145**. The heart test now gates at 1e-6.
+- **Upstream (2026-10-24).** `bendlang/bend#1845` makes `File.read` fill its
+  buffer instead of answering one `read(2)`; the repro is a pipe that writes
+  three bytes, sleeps, then three more, and a six-byte read that used to
+  answer three. The PR has a FIFO regression on both lanes. The bend-ml
+  finding — `bend-ml-tensor` is the only `Mat` autograd trains, while
+  `bend-ml-tensor-array` is the faster one — is architectural and already
+  documented as frozen/superseded; it is not a PR-shaped change.
 - **The dataset cache (2026-10-24).** `mlbend-datasets@0.1.5.0` reads a
   local file when `MLBEND_DATA` is set: the directory is laid out as
   `<repo>/<path>`, the same shape as the hub (`mstz/iris/iris.data`), and a

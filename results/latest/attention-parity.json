@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T13:46:35.522374+00:00",
+  "created_at": "2026-10-24T17:44:51.216560+00:00",
   "task": {
     "name": "attention-parity",
     "description": "single-head self-attention forward, four tokens of eight features",
@@ -13,15 +13,19 @@
       "files": [],
       "bytes": 0,
       "sha256": "439ef1cd0251877040fd9ca7c5a10820b06fcfd9568115db8363e39c0f81b9b0",
+      "expected_sha256": null,
       "fetch_seconds": 0.0,
       "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
   },
+  "seeds": [
+    0
+  ],
   "trainer": "bend",
   "git": {
-    "commit": "e22ef12",
-    "branch": "main",
+    "commit": "1ffe18a",
+    "branch": "evidence/pinned-data-seeds",
     "dirty": true
   },
   "bend": {
@@ -70,8 +74,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.5.0",
-      "hash": "0x177094bd1807192738f029aafe8a2759"
+      "version": "0.1.6.0",
+      "hash": "0xf3d145d639153c61b826e4f60d3c0dcd"
     },
     {
       "name": "mlbend-huggingface",
@@ -113,7 +117,7 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 1.107,
+    "build_seconds": 0.733,
     "seconds_min": 0.001,
     "seconds_all": [
       0.001,
@@ -122,9 +126,26 @@
     "repeat": 2,
     "fetch_seconds": 0.0,
     "compute_seconds": 0.001,
-    "reference_seconds": 0.007,
-    "speed_ratio": 5.373
+    "reference_seconds": 0.003,
+    "speed_ratio": 2.901
   },
+  "seed_runs": [
+    {
+      "seed": 0,
+      "metrics": {
+        "checksum": {
+          "bend": 1.762954,
+          "reference": 1.7629539966583252,
+          "delta": 3.341674714718579e-09,
+          "tolerance": 0.0001,
+          "mode": "absolute",
+          "pass": true
+        }
+      },
+      "run_seconds": 0.001,
+      "reference_seconds": 0.003
+    }
+  ],
   "metrics": {
     "checksum": {
       "bend": 1.762954,
@@ -132,7 +153,11 @@
       "delta": 3.341674714718579e-09,
       "tolerance": 0.0001,
       "mode": "absolute",
-      "pass": true
+      "pass": true,
+      "bend_sd": null,
+      "reference_sd": null,
+      "delta_sd": null,
+      "n_seeds": 1
     }
   },
   "passed": true

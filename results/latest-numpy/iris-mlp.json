@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T14:26:01.695539+00:00",
+  "created_at": "2026-10-24T17:51:08.645172+00:00",
   "task": {
     "name": "iris-mlp",
     "description": "a two-layer rectified network over iris, 400 SGD steps",
@@ -11,8 +11,9 @@
       "features": 4,
       "source": "https://huggingface.co/datasets/mstz/iris",
       "files": [
-        "https://huggingface.co/datasets/mstz/iris/resolve/main/iris.data"
+        "https://huggingface.co/datasets/mstz/iris/resolve/e99306d5df05d2ea66a188ea936037f6588a20e9/iris.data"
       ],
+      "expected_sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0",
       "bytes": 4551,
       "sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0",
       "fetch_seconds": 0.0,
@@ -20,10 +21,13 @@
     },
     "seed": 0
   },
+  "seeds": [
+    0
+  ],
   "trainer": "numpy",
   "git": {
-    "commit": "2903f50",
-    "branch": "main",
+    "commit": "1ffe18a",
+    "branch": "evidence/pinned-data-seeds",
     "dirty": true
   },
   "bend": {
@@ -72,8 +76,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.5.0",
-      "hash": "0x508fc33b44130576819939e645eba7da"
+      "version": "0.1.6.0",
+      "hash": "0xf3d145d639153c61b826e4f60d3c0dcd"
     },
     {
       "name": "mlbend-huggingface",
@@ -121,9 +125,26 @@
     "repeat": 1,
     "fetch_seconds": 0.0,
     "compute_seconds": 0.0,
-    "reference_seconds": 0.273,
+    "reference_seconds": 0.197,
     "speed_ratio": null
   },
+  "seed_runs": [
+    {
+      "seed": 0,
+      "metrics": {
+        "accuracy": {
+          "bend": 0.9733333333333334,
+          "reference": 0.9733333333333334,
+          "delta": 0.0,
+          "tolerance": 0.06,
+          "mode": "absolute",
+          "pass": true
+        }
+      },
+      "run_seconds": 0.0,
+      "reference_seconds": 0.197
+    }
+  ],
   "metrics": {
     "accuracy": {
       "bend": 0.9733333333333334,
@@ -131,7 +152,11 @@
       "delta": 0.0,
       "tolerance": 0.06,
       "mode": "absolute",
-      "pass": true
+      "pass": true,
+      "bend_sd": null,
+      "reference_sd": null,
+      "delta_sd": null,
+      "n_seeds": 1
     }
   },
   "passed": true

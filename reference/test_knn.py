@@ -28,7 +28,7 @@ if os.path.isdir(ENV_DIR):
 
 def load():
     """The breast cancer dataset, as a matrix and a label column."""
-    url = "https://huggingface.co/datasets/mstz/breast/resolve/main/cancer/train.csv"
+    url = "https://huggingface.co/datasets/mstz/breast/resolve/3cc7c6eef1160389f64f8760d71cba2b789603ec/cancer/train.csv"
     import urllib.request
 
     text = urllib.request.urlopen(url, timeout=120).read().decode()

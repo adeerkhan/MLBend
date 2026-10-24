@@ -7,61 +7,59 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
-## 2026-10-24 — the cache, a warm corpus, and a clean check
+## 2026-10-24 — pinned bytes, shared folds, and a real oracle
 
-**Where we are.** The foundation is settled: **Bend 2.0.38**, the maintained
-**`bendtorch@1.0.1.0`** (`nuxyel/BendTorch`), `mlbend-datasets@0.1.5.0`, nine
-tasks, and a full check that passes.
+**Where we are.** The experiment layer now has the two things it was missing:
+the bytes cannot move, and the numbers have an uncertainty and an exact
+reference.
 
-- **The dataset cache is real.** `mlbend-datasets@0.1.5.0` reads
-  `MLBEND_DATA` when it is set, laid out as `<repo>/<path>`
-  (`mstz/iris/iris.data`); a missing file falls back to the hub. The runner
-  fills `reference/.cache/datasets` with the exact bytes it hashes and sets the
-  variable before the Bend run. The cache is gitignored; the SHA-256 stays in
-  every manifest. The release is on the hub at
-  `0x508fc33b44130576819939e645eba7da` and tagged
-  `mlbend-datasets-v0.1.5.0`.
-- **The corpus is warm.** The last corpus run has `fetch` 0–1 ms on every task,
-  so `compute` is the run itself: iris-crossval **0.098 s**, cancer-knn
-  **0.225 s**, transformer-periodic **0.032 s**, wine-pca **5.108 s**. The
-  first run on a cold cache pays the fetch; `make experiments` twice (or one
-  warm-up) is the honest sequence. `results/RESULTS.md` says this in its intro.
-- **`make check` → 66/66** on 2.0.38, including the new
-  `reference/test_datasets_cache.py` (a five-row iris cache must produce five
-  rows, not the 150 the hub would give). **CI on `0ef436f` passed 74/74 in
-  22m27s.**
-- **The NumPy adapter covers all nine tasks** under `results/latest-numpy/`;
-  the same task and manifest, NumPy as the trainer.
-- **The transformer stays the trained model**: loss **2.3591 → 0.0021**,
-  accuracy **1.0**; the NumPy twin starts at 2.3591 (6.8e-7 apart) and ends at
-  0.1351 (0.9375). `reference/test_transformer.py` rewrites
-  `results/transformer/run.json` and the curve on every check.
-- **The structural graph** at `.ua/knowledge-graph.json` was built at `05eacbd`:
-  102 files, 958 nodes, 905 edges, 6 layers, 7 tour steps, no validation
-  issues. It is structural, not per-file LLM enrichment; use it to orient, not
-  as evidence.
+- **Pinned data.** Every dataset URL names a HuggingFace revision, not `main`,
+  and each task carries the expected SHA-256. The runner verifies the bytes it
+  reads and fails on a mismatch. `MLBEND_DATA` is authoritative:
+  `mlbend-datasets@0.1.6.0` treats a cache miss as an error, so the hash in the
+  manifest is always the file the program read.
+- **Shared folds, five seeds.** `examples/crossval` prints the fold of every
+  row and takes its seed as the first argument. The runner builds once, runs
+  seeds **42–46**, and the NumPy reference reads the printed assignment and
+  runs the same 60 SGD steps. The mean agrees to **5.9e-8**, each fold to
+  **2e-8**; the old 0.03 tolerance for two different partitions is gone.
+- **A real naive-Bayes bug.** The exact comparison showed heart at **0.9333**
+  against scikit-learn's **0.95**. scikit-learn adds `var_smoothing = 1e-9 ×
+  max(variance)`; the Bend examples did not. Both baselines now match exactly:
+  heart **0.95**, breast **0.98540145**, gated at 1e-6.
+- **Upstream PR #1845** (`bendlang/bend`): `File.read` now fills its buffer
+  instead of answering one `read(2)`. The repro is a pipe that writes three
+  bytes, sleeps, then three more; a six-byte read used to answer three. The
+  PR carries a FIFO regression on the C and JS lanes.
+- **The bend-ml gap is not a PR.** `bend-ml-tensor` is the only `Mat` autograd
+  trains; `bend-ml-tensor-array` is the faster one with no autodiff. Their
+  README freezes autograd and moves training to BendTorch, and their
+  CONTRIBUTING asks for an issue before an architectural change. A PR without
+  a design would be noise; the useful next artifact is an `autograd-array`
+  proposal, not a patch.
 
 **What was run.**
-- `make experiments` on the warm cache, then `make results`; everything passed.
-- `reference/experiment.py --all --trainer numpy`; reports under
-  `results/latest-numpy/`.
-- `make check` with `BEND_BIN` pointing at the pinned 2.0.38; **66/66**.
+- `make experiments` with the pinned bytes and five seeds; every task passes.
+- `reference/experiment.py --all --trainer numpy`; all nine adapter reports.
+- `reference/test_crossval.py` compares the shared folds and the same model.
+- `reference/test_datasets_cache.py` checks both the cache hit and the strict
+  miss.
+- `make check` is running; the release of `mlbend-datasets@0.1.6.0` follows it.
 
 **What is next.**
-1. Move the kNN classification report into a Bend package with a law; the
-   Python report is the oracle.
-2. A second transformer task with a classification head or a copy task, with
-   accuracy beside the loss.
-3. Run the W&B sweep (`reference/wandb_sweep.yaml`), which is configured but
-   has not been started (it needs a login and a sweep id).
+1. Publish `mlbend-datasets@0.1.6.0`, push the evidence commits, watch CI.
+2. `mlbend-report`: confusion matrix and per-class precision/recall/F1 with a
+   law, then wire `cancer-knn` to print it.
+3. A second transformer task with a classification head, accuracy beside loss.
+4. The W&B sweep over the selected parameter, now that the folds are shared.
+5. If the maintainers want it, an `autograd-array` design issue for bend-ml;
+   otherwise use BendTorch for training and keep tensor-array for inference.
 
 **What is unverified.**
-- The timings are one machine and a warm cache; the fetch column is the
-  cache-fill/hash time, not a network measurement.
-- The cache reads a file at its size and then `File.read` once; a very large
-  file with a short read would still be a silent truncation. The datasets here
-  are small, and the cached bytes are the hashed bytes.
-- `/understand`'s graph is structural; no per-file LLM enrichment.
+- Timings are one machine and a warm cache.
+- The pinned revision is the current `main` at the time of pinning; moving the
+  pin is a deliberate commit, and the expected hash catches a bad move.
+- `/understand`'s graph is structural.
 
 ## 2026-10-23 — the first transformer block
 

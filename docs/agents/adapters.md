@@ -41,8 +41,9 @@ Every run writes:
 - the git commit and whether the tree was dirty;
 - the Bend version;
 - every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub hash;
-- the dataset's `files`, byte count and SHA-256, and the fetch time;
-- the machine, the seed, the build time, the run time (minimum of the
+- the dataset's `files`, the pinned `expected_sha256`, the bytes and SHA-256
+  read, and the fetch time;
+- the machine, the seed list, the build time, the run time (minimum of the
   repeats), the compute estimate, and the reference time;
 - the metric table: the Bend number, the reference number, the delta, the
   tolerance, and pass or fail.
@@ -50,8 +51,22 @@ Every run writes:
 The runner fills `reference/.cache/datasets/<repo>/<path>` with the exact
 bytes it hashes and sets `MLBEND_DATA`, so a warm run reads the file and does
 not fetch: `fetch` is 0 and the run time is compute. On a cold cache the first
-run pays the fetch and records it; the next run is warm. The compute-only
-kernel benchmark is `results/BENCH.md`.
+run pays the fetch and records it; the next run is warm. When the variable is
+set, a miss is an error: the manifest hashes the cached file, so the program
+must not quietly read another one. The compute-only kernel benchmark is
+`results/BENCH.md`.
+
+## Seeds and shared folds
+
+A task may carry `seeds` (the cross-validation task carries five). The runner
+builds once, runs the binary once per seed with the seed as its first argument,
+and compares every seed against the reference. `--seeds` overrides the list.
+The report says mean ± sample deviation and passes only if every seed passes.
+
+The reference must use the same partition as the program. `iris-crossval`
+prints the fold of every row (`folds: ...`) and its seed; the NumPy reference
+reads that assignment, standardises inside each fold and runs the same 60 SGD
+steps, so the two agree to F32 precision instead of sharing a 0.03 tolerance.
 
 ## Weights & Biases
 

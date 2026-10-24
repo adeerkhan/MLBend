@@ -49,16 +49,52 @@ SCHEMA = "mlbend.experiment/1"
 def parse_iris_crossval(out):
     folds = [float(m) for m in re.findall(r"^fold \d+: ([0-9.eE+-]+)$", out, re.M)]
     mean = float(re.search(r"mean accuracy: ([0-9.eE+-]+)", out).group(1))
-    return {"mean_accuracy": mean, "fold_min": min(folds), "fold_max": max(folds)}
+    seed = int(re.search(r"^seed: (\d+)$", out, re.M).group(1))
+    assignment = [int(v) for v in re.search(r"^folds: (.*)$", out, re.M).group(1).split()]
+    return {"mean_accuracy": mean, "fold_min": min(folds), "fold_max": max(folds),
+            "folds": assignment, "seed": seed}
 
 
-def reference_iris_crossval():
+def reference_iris_crossval(context=None):
+    """The same folds, and the same 60 SGD steps, in NumPy.
+
+    The Bend program prints the fold of every row, so this reference uses
+    that partition rather than making its own. The model is the same one:
+    standardise on the training rows, then 60 gradient steps at 0.5.
+    """
     sys.path.insert(0, os.path.join(ROOT, "reference"))
-    from test_crossval import load, sklearn_folds
+    from test_crossval import load
 
     x, y = load()
-    folds = sklearn_folds(x, y)
-    return {"mean_accuracy": float(np.mean(folds)), "fold_min": min(folds), "fold_max": max(folds)}
+    assignment = context.get("folds") if isinstance(context, dict) else None
+    if assignment is None:
+        from test_crossval import sklearn_folds
+        folds = sklearn_folds(x, y)
+        return {"mean_accuracy": float(np.mean(folds)), "fold_min": min(folds),
+                "fold_max": max(folds)}
+    scores = []
+    for f in range(5):
+        test = np.array([i for i, a in enumerate(assignment) if a == f])
+        train = np.array([i for i, a in enumerate(assignment) if a != f])
+        mean, sd = x[train].mean(axis=0), x[train].std(axis=0)
+        sd = np.where(sd == 0, 1.0, sd)
+        xt = (x[train] - mean) / sd
+        xs = (x[test] - mean) / sd
+        w = np.zeros((x.shape[1], 3))
+        b = np.zeros(3)
+        onehot = np.eye(3)[y[train]]
+        for _ in range(60):
+            logits = xt @ w + b
+            logits = logits - logits.max(axis=1, keepdims=True)
+            p = np.exp(logits)
+            p = p / p.sum(axis=1, keepdims=True)
+            grad = (p - onehot) / len(train)
+            w = w - 0.5 * (xt.T @ grad)
+            b = b - 0.5 * grad.sum(axis=0)
+        pred = np.argmax(xs @ w + b, axis=1)
+        scores.append(float((pred == y[test]).mean()))
+    return {"mean_accuracy": float(np.mean(scores)), "fold_min": min(scores),
+            "fold_max": max(scores)}
 
 
 def parse_iris_mlp(out):
@@ -69,16 +105,12 @@ def parse_iris_mlp(out):
     }
 
 
-def reference_iris_mlp():
+def reference_iris_mlp(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_mlp import sklearn_result
 
     # the reference trains, so its loss is not comparable; only the score is
     return {"accuracy": sklearn_result()}
-
-
-
-    return {"mse_after": sklearn_mse()}
 
 
 def parse_wine_kmeans(out):
@@ -87,7 +119,7 @@ def parse_wine_kmeans(out):
     return {"inertia": inertia, "cluster_sizes": sizes}
 
 
-def reference_wine_kmeans():
+def reference_wine_kmeans(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from kmeans_wine import kmeans, load, standardise
 
@@ -121,21 +153,21 @@ def parse_wine_pca(out):
     return {"explained_variance_ratio": float(re.search(r"explained variance ratio: ([0-9.eE+-]+)", out).group(1))}
 
 
-def reference_cancer_knn():
+def reference_cancer_knn(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_knn import sklearn_knn
 
     return {"accuracy": sklearn_knn()}
 
 
-def reference_attention():
+def reference_attention(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_attention import expected
 
     return {"checksum": float(expected().sum(dtype="float32"))}
 
 
-def reference_transformer():
+def reference_transformer(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_transformer import numpy_curve
 
@@ -143,14 +175,14 @@ def reference_transformer():
     return {"first_loss": float(curve[0]), "final_loss": final, "accuracy": accuracy}
 
 
-def reference_cancer_nb():
+def reference_cancer_nb(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_naive_bayes import sklearn_result
 
     return {"accuracy": sklearn_result()}
 
 
-def reference_heart_nb():
+def reference_heart_nb(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from sklearn.naive_bayes import GaussianNB
     from test_naive_bayes_heart import load
@@ -160,7 +192,7 @@ def reference_heart_nb():
     return {"accuracy": float(GaussianNB().fit(x[:split], y[:split]).score(x[split:], y[split:]))}
 
 
-def reference_wine_pca():
+def reference_wine_pca(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_pca import sklearn_ratio
 
@@ -173,16 +205,15 @@ TASKS = {
         "program": "examples/crossval/main.bend",
         "dataset": {"name": "iris", "rows": 150, "features": 4,
                     "source": "https://huggingface.co/datasets/mstz/iris",
-                    "files": ["https://huggingface.co/datasets/mstz/iris/resolve/main/iris.data"]},
+                    "files": ["https://huggingface.co/datasets/mstz/iris/resolve/e99306d5df05d2ea66a188ea936037f6588a20e9/iris.data"], "expected_sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0"},
         "seed": 42,
+        "seeds": [42, 43, 44, 45, 46],
         "parse": parse_iris_crossval,
         "reference": reference_iris_crossval,
         "metrics": {
-            "mean_accuracy": {"tolerance": 0.03, "mode": "absolute"},
-            # the two libraries shuffle with different generators, so a fold's
-            # own score is not comparable; the mean is
-            "fold_min": {"tolerance": 0, "mode": "report"},
-            "fold_max": {"tolerance": 0, "mode": "report"},
+            "mean_accuracy": {"tolerance": 0.000001, "mode": "absolute"},
+            "fold_min": {"tolerance": 0.000001, "mode": "absolute"},
+            "fold_max": {"tolerance": 0.000001, "mode": "absolute"},
         },
     },
     "iris-mlp": {
@@ -190,7 +221,7 @@ TASKS = {
         "program": "examples/mlp/main.bend",
         "dataset": {"name": "iris", "rows": 150, "features": 4,
                     "source": "https://huggingface.co/datasets/mstz/iris",
-                    "files": ["https://huggingface.co/datasets/mstz/iris/resolve/main/iris.data"]},
+                    "files": ["https://huggingface.co/datasets/mstz/iris/resolve/e99306d5df05d2ea66a188ea936037f6588a20e9/iris.data"], "expected_sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0"},
         "seed": 0,
         "parse": parse_iris_mlp,
         "reference": reference_iris_mlp,
@@ -203,7 +234,7 @@ TASKS = {
         "program": "examples/pca/main.bend",
         "dataset": {"name": "wine", "rows": 6497, "features": 11,
                     "source": "https://huggingface.co/datasets/mstz/wine",
-                    "files": ["https://huggingface.co/datasets/mstz/wine/resolve/main/wine/train.csv"]},
+                    "files": ["https://huggingface.co/datasets/mstz/wine/resolve/2042c73ed074afafc54264ba6ef0ad0450fa1e04/wine/train.csv"], "expected_sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c"},
         "seed": 0,
         "parse": parse_wine_pca,
         "reference": reference_wine_pca,
@@ -216,7 +247,7 @@ TASKS = {
         "program": "examples/kmeans/main.bend",
         "dataset": {"name": "wine", "rows": 6497, "features": 11,
                     "source": "https://huggingface.co/datasets/mstz/wine",
-                    "files": ["https://huggingface.co/datasets/mstz/wine/resolve/main/wine/train.csv"]},
+                    "files": ["https://huggingface.co/datasets/mstz/wine/resolve/2042c73ed074afafc54264ba6ef0ad0450fa1e04/wine/train.csv"], "expected_sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c"},
         "seed": 0,
         "parse": parse_wine_kmeans,
         "reference": reference_wine_kmeans,
@@ -256,12 +287,12 @@ TASKS = {
         "program": "examples/naive_bayes/main.bend",
         "dataset": {"name": "breast_cancer", "rows": 683, "features": 9,
                     "source": "https://huggingface.co/datasets/mstz/breast",
-                    "files": ["https://huggingface.co/datasets/mstz/breast/resolve/main/cancer/train.csv"]},
+                    "files": ["https://huggingface.co/datasets/mstz/breast/resolve/3cc7c6eef1160389f64f8760d71cba2b789603ec/cancer/train.csv"], "expected_sha256": "4c35090cb5bf3e3ec8c528a4a837a33bacefc0b06c3b62fbb1331baf7ca865e8"},
         "seed": 0,
         "parse": parse_cancer_nb,
         "reference": reference_cancer_nb,
         "metrics": {
-            "accuracy": {"tolerance": 0.01, "mode": "absolute"},
+            "accuracy": {"tolerance": 0.000001, "mode": "absolute"},
         },
     },
     "heart-naive-bayes": {
@@ -269,12 +300,12 @@ TASKS = {
         "program": "examples/naive_bayes_heart/main.bend",
         "dataset": {"name": "heart_failure", "rows": 299, "features": 12,
                     "source": "https://huggingface.co/datasets/mstz/heart_failure",
-                    "files": ["https://huggingface.co/datasets/mstz/heart_failure/resolve/main/death/train.csv"]},
+                    "files": ["https://huggingface.co/datasets/mstz/heart_failure/resolve/57c2e1a4b3bb2f28e766c6d3b10bc0ced972c857/death/train.csv"], "expected_sha256": "e0771c8c824b89f5b5fc6a4e4af56a3da940512bb93f255a190673868d28c08c"},
         "seed": 0,
         "parse": parse_heart_nb,
         "reference": reference_heart_nb,
         "metrics": {
-            "accuracy": {"tolerance": 0.02, "mode": "absolute"},
+            "accuracy": {"tolerance": 0.000001, "mode": "absolute"},
         },
     },
     "cancer-knn": {
@@ -282,12 +313,12 @@ TASKS = {
         "program": "examples/knn/main.bend",
         "dataset": {"name": "breast_cancer", "rows": 683, "features": 9,
                     "source": "https://huggingface.co/datasets/mstz/breast",
-                    "files": ["https://huggingface.co/datasets/mstz/breast/resolve/main/cancer/train.csv"]},
+                    "files": ["https://huggingface.co/datasets/mstz/breast/resolve/3cc7c6eef1160389f64f8760d71cba2b789603ec/cancer/train.csv"], "expected_sha256": "4c35090cb5bf3e3ec8c528a4a837a33bacefc0b06c3b62fbb1331baf7ca865e8"},
         "seed": 0,
         "parse": parse_cancer_knn,
         "reference": reference_cancer_knn,
         "metrics": {
-            "accuracy": {"tolerance": 0.02, "mode": "absolute"},
+            "accuracy": {"tolerance": 0.000001, "mode": "absolute"},
         },
     },
 }
@@ -301,28 +332,35 @@ def binary_for(task):
     return os.path.join(tempfile.gettempdir(), "mlbend-exp-" + task)
 
 
-def run_bend(task, cfg, repeat=1):
-    """Build and run the task's program.
-
-    Returns the first run's output, the build time, every run's wall time, and
-    the minimum of them. The build is reported separately: a Bend program is
-    compiled, and the reference is not.
-    """
+def build_bend(task, cfg):
+    """Build the task's program once; every seed runs the same binary."""
     binary = binary_for(task)
     start = time.perf_counter()
     build = subprocess.run([BEND, "-o", binary, cfg["program"]],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
-    build_seconds = time.perf_counter() - start
+    seconds = time.perf_counter() - start
     if build.returncode != 0:
         raise SystemExit(f"{task}: the program did not build:\n{build.stdout}{build.stderr}")
+    return binary, seconds
+
+
+def run_binary(task, binary, seed=0, repeat=1):
+    """Run a built program; the seed is its first argument."""
     times, output = [], None
     for _ in range(max(1, repeat)):
         start = time.perf_counter()
-        out = subprocess.run([binary], capture_output=True, text=True, env=ENV, cwd=ROOT)
+        out = subprocess.run([binary, str(seed)], capture_output=True, text=True, env=ENV, cwd=ROOT)
         times.append(time.perf_counter() - start)
         if out.returncode != 0:
             raise SystemExit(f"{task}: the program did not run:\n{out.stdout}{out.stderr}")
         output = out.stdout
+    return output, times
+
+
+def run_bend(task, cfg, repeat=1, seed=0):
+    """Build and run once; the convenience the tests use."""
+    binary, build_seconds = build_bend(task, cfg)
+    output, times = run_binary(task, binary, seed, repeat)
     return output, build_seconds, times, min(times)
 
 
@@ -365,9 +403,10 @@ def cache_file(url):
 
 
 def dataset_probe(cfg):
-    """Hash the dataset bytes, fill the local cache, and time the fetch once."""
+    """Hash the pinned dataset bytes, fill the cache, and verify the pin."""
     dataset = cfg["dataset"]
     files = dataset.get("files", [])
+    expected = dataset.get("expected_sha256")
     cache_root = os.path.join(ROOT, "reference/.cache/datasets")
     ENV["MLBEND_DATA"] = cache_root
     start = time.perf_counter()
@@ -376,9 +415,8 @@ def dataset_probe(cfg):
     if files:
         for url in files:
             path = cache_file(url)
-            if path and os.path.isfile(path):
-                data = open(path, "rb").read()
-            else:
+            data = open(path, "rb").read() if path and os.path.isfile(path) else None
+            if data is None or (expected and hashlib.sha256(data).hexdigest() != expected):
                 data = urllib.request.urlopen(url, timeout=120).read()
                 if path:
                     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -389,10 +427,14 @@ def dataset_probe(cfg):
     else:
         digest.update((dataset.get("name", "") + "\n" + dataset.get("source", "")).encode())
     seconds = time.perf_counter() - start
+    actual = digest.hexdigest()
+    if expected and actual != expected:
+        raise SystemExit(f"{dataset['name']}: the pinned bytes are {expected}, got {actual}")
     return {
         "files": files,
         "bytes": total,
-        "sha256": digest.hexdigest(),
+        "sha256": actual,
+        "expected_sha256": expected,
         "fetch_seconds": round(seconds, 3),
         "cache": cache_root,
     }
@@ -448,22 +490,69 @@ def machine():
     }
 
 
-def manifest_for(task, cfg, out, build_seconds, times, repeat, probe, trainer="bend"):
-    run_seconds = min(times) if times else 0.0
+def evaluate(task, cfg, seed, repeat, trainer, binary, build_seconds):
+    """One seed: run the program (or the adapter), and compare its numbers."""
+    ENV["MLBEND_SEED"] = str(seed)
+    if trainer == "numpy":
+        times, parsed = [], None
+    else:
+        out, times = run_binary(task, binary, seed, repeat)
+        parsed = cfg["parse"](out)
     start = time.perf_counter()
-    reference_values = cfg["reference"]()
+    reference_values = cfg["reference"](parsed)
     reference_seconds = time.perf_counter() - start
     if trainer == "numpy":
-        bend_values = reference_values
         table = compare(cfg, reference_values, reference_values)
     else:
-        bend_values = cfg["parse"](out)
-        table = compare(cfg, bend_values, reference_values)
+        table = compare(cfg, parsed, reference_values)
+    return {"seed": seed, "table": table, "run_seconds": min(times) if times else 0.0,
+            "times": times, "build_seconds": build_seconds,
+            "reference_seconds": reference_seconds}
+
+
+def mean_sd(values):
+    """The mean and the sample deviation, or the one value for a non-number."""
+    if values and all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                      for v in values):
+        mean = float(np.mean(values))
+        sd = float(np.std(values, ddof=1)) if len(values) > 1 else None
+        return mean, sd
+    return (values[0] if values else None), None
+
+
+def aggregate_tables(tables):
+    """One table from one table per seed: mean ± sd, pass only if every seed passed."""
+    out = {}
+    for name in tables[0]:
+        rows = [t[name] for t in tables]
+        bend, bend_sd = mean_sd([r["bend"] for r in rows])
+        reference, reference_sd = mean_sd([r["reference"] for r in rows])
+        deltas = [r.get("delta") for r in rows]
+        if all(isinstance(d, (int, float)) and not isinstance(d, bool) for d in deltas):
+            delta, delta_sd = mean_sd(deltas)
+        else:
+            delta, delta_sd = None, None
+        row = dict(rows[0])
+        row.update({"bend": bend, "bend_sd": bend_sd,
+                    "reference": reference, "reference_sd": reference_sd,
+                    "delta": delta, "delta_sd": delta_sd,
+                    "n_seeds": len(rows), "pass": all(r["pass"] for r in rows)})
+        out[name] = row
+    return out
+
+
+def manifest_for(task, cfg, evals, repeat, probe, trainer="bend"):
+    run_seconds = min(e["run_seconds"] for e in evals) if evals else 0.0
+    build_seconds = evals[0]["build_seconds"] if evals else 0.0
+    reference_seconds = max(e["reference_seconds"] for e in evals) if evals else 0.0
+    table = aggregate_tables([e["table"] for e in evals])
+    seeds = [e["seed"] for e in evals]
     manifest = {
         "schema": SCHEMA,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "task": {"name": task, "description": cfg["description"], "program": cfg["program"],
-                 "dataset": dict(cfg["dataset"], **probe), "seed": cfg.get("seed")},
+                 "dataset": dict(cfg["dataset"], **probe), "seed": seeds[0] if seeds else None},
+        "seeds": seeds,
         "trainer": trainer,
         "git": git_state(),
         "bend": {"version": bend_version()},
@@ -472,13 +561,17 @@ def manifest_for(task, cfg, out, build_seconds, times, repeat, probe, trainer="b
         "run": {
             "build_seconds": round(build_seconds, 3),
             "seconds_min": round(run_seconds, 3),
-            "seconds_all": [round(t, 3) for t in times],
+            "seconds_all": [round(t, 3) for e in evals for t in e["times"]],
             "repeat": repeat,
             "fetch_seconds": probe["fetch_seconds"],
             "compute_seconds": round(max(0.0, run_seconds - probe["fetch_seconds"]), 3),
             "reference_seconds": round(reference_seconds, 3),
             "speed_ratio": round(reference_seconds / run_seconds, 3) if run_seconds else None,
         },
+        "seed_runs": [{"seed": e["seed"], "metrics": e["table"],
+                       "run_seconds": round(e["run_seconds"], 3),
+                       "reference_seconds": round(e["reference_seconds"], 3)}
+                      for e in evals],
         "metrics": table,
         "passed": all(row["pass"] for row in table.values()),
     }
@@ -489,7 +582,18 @@ def manifest_for(task, cfg, out, build_seconds, times, repeat, probe, trainer="b
 # the report card and Weights & Biases
 # --------------------------------------------------------------------------
 
+def show_metric(value, sd, digits=6):
+    if value is None:
+        return "-"
+    if isinstance(value, float):
+        text = f"{value:.{digits}g}"
+        return text if not sd else f"{text} ± {sd:.2g}"
+    return str(value)
+
+
 def report_text(manifest):
+    seeds = manifest.get("seeds") or []
+    seed_text = f"   seeds: {len(seeds)}" + (f" ({seeds[0]}..{seeds[-1]})" if len(seeds) > 1 else "")
     lines = [f"task: {manifest['task']['name']}  ({manifest['task']['description']})",
              f"git: {manifest['git']['branch']} {manifest['git']['commit']}"
              + (" (dirty)" if manifest["git"]["dirty"] else ""),
@@ -497,14 +601,14 @@ def report_text(manifest):
              f"   run: {manifest['run']['seconds_min']} s"
              f"   reference: {manifest['run']['reference_seconds']} s"
              f"   fetch: {manifest['run']['fetch_seconds']} s"
-             f"   sha256: {manifest['task']['dataset']['sha256'][:12]}",
+             f"   sha256: {manifest['task']['dataset']['sha256'][:12]}" + seed_text,
              "",
-             f"{'metric':<18}{'bend':>14}{'reference':>14}{'delta':>12}  ok"]
+             f"{'metric':<18}{'bend':>28}{'reference':>28}{'delta':>22}  ok"]
     for name, row in manifest["metrics"].items():
-        bend = "-" if row["bend"] is None else (f"{row['bend']:.6g}" if isinstance(row["bend"], float) else str(row["bend"]))
-        want = "-" if row["reference"] is None else (f"{row['reference']:.6g}" if isinstance(row["reference"], float) else str(row["reference"]))
-        delta = "-" if row.get("delta") is None else (f"{row['delta']:.4g}" if isinstance(row["delta"], float) else "-")
-        lines.append(f"{name:<18}{bend:>14}{want:>14}{delta:>12}  {'ok' if row['pass'] else 'FAIL'}")
+        bend = show_metric(row["bend"], row.get("bend_sd"))
+        want = show_metric(row["reference"], row.get("reference_sd"))
+        delta = show_metric(row.get("delta"), row.get("delta_sd"), 4)
+        lines.append(f"{name:<18}{bend:>28}{want:>28}{delta:>22}  {'ok' if row['pass'] else 'FAIL'}")
     lines.append("")
     lines.append("PASS" if manifest["passed"] else "FAIL")
     return "\n".join(lines)
@@ -557,7 +661,6 @@ def summary(root_dir):
         raise SystemExit(f"no reports in {latest_dir}: run --all first")
     rows = [json.load(open(os.path.join(latest_dir, f)))
             for f in sorted(os.listdir(latest_dir)) if f.endswith(".json")]
-    limit = len(rows[0]["metrics"]) if rows else 0
     lines = [
         "# Results",
         "",
@@ -570,27 +673,29 @@ def summary(root_dir):
         f"Machine: {rows[0]['machine']['platform']} · {rows[0]['machine']['cpu_count']} CPUs ·"
         f" Bend {rows[0]['bend']['version']}" if rows else "",
         "",
-        "| task | dataset | hash | metric | Bend | reference | delta | fetch ms | Bend ms | compute ms | Python ms | ok |",
-        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|:--:|",
+        "| task | dataset | hash | metric | seeds | Bend | reference | delta | fetch ms | Bend ms | compute ms | Python ms | ok |",
+        "|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|:--:|",
     ]
     for m in rows:
         for name, row in m["metrics"].items():
             b = row["bend"]
             r = row["reference"]
             delta = row.get("delta")
-            ratio = m["run"]["speed_ratio"]
-            fmt = lambda v: "-" if v is None else (f"{v:.6g}" if isinstance(v, float) else str(v))
             lines.append(
                 f"| `{m['task']['name']}` | {m['task']['dataset']['name']} "
                 f"({m['task']['dataset']['rows']}x{m['task']['dataset']['features']}) "
                 f"| `{m['task']['dataset']['sha256'][:8]}` "
-                f"| {name} | {fmt(b)} | {fmt(r)} | {fmt(delta)} "
+                f"| {name} | {len(m.get('seeds') or [1])} "
+                f"| {show_metric(b, row.get('bend_sd'))} | {show_metric(r, row.get('reference_sd'))} "
+                f"| {show_metric(delta, row.get('delta_sd'), 4)} "
                 f"| {m['run']['fetch_seconds'] * 1000:.0f} "
                 f"| {m['run']['seconds_min'] * 1000:.0f} "
                 f"| {m['run']['compute_seconds'] * 1000:.0f} "
                 f"| {m['run']['reference_seconds'] * 1000:.0f} "
                 f"| {'ok' if row['pass'] else 'FAIL'} |")
-    lines += ["", "The dataset, seed, hub hashes and the git state of every run are in",
+    lines += ["", "Bend and reference are mean ± sample deviation over the seeds when a task",
+              "has more than one; a single-seed task has no deviation. The dataset, seeds,",
+              "hub hashes and the git state of every run are in",
               "`results/latest/<task>.json`; the timestamped reports are in `results/raw/`.", ""]
     path = os.path.join(root_dir, "RESULTS.md")
     open(path, "w").write("\n".join(lines))
@@ -609,6 +714,7 @@ def main():
     parser.add_argument("--repeat", type=int, default=1, help="run each program this many times and keep the minimum")
     parser.add_argument("--trainer", choices=["bend", "numpy"], default="bend",
                         help="which trainer runs the task: the Bend program or the NumPy reference")
+    parser.add_argument("--seeds", help="comma-separated seeds, overriding the task's list")
     parser.add_argument("--summary", action="store_true", help="write results/RESULTS.md from the latest reports")
     args = parser.parse_args()
 
@@ -629,12 +735,18 @@ def main():
     for name in names:
         cfg = TASKS[name]
         probe = dataset_probe(cfg)
+        seeds = cfg.get("seeds") or [cfg.get("seed", 0)]
+        if args.seeds:
+            seeds = [int(v) for v in args.seeds.split(",") if v.strip()]
         if args.trainer == "numpy":
+            seeds = seeds[:1]
             print(f"{name}: the NumPy trainer (no Bend build)")
-            out, build_seconds, times = "", 0.0, []
+            binary, build_seconds = None, 0.0
         else:
-            out, build_seconds, times, _ = run_bend(name, cfg, args.repeat)
-        manifest = manifest_for(name, cfg, out, build_seconds, times, args.repeat, probe, args.trainer)
+            binary, build_seconds = build_bend(name, cfg)
+        evals = [evaluate(name, cfg, seed, args.repeat, args.trainer, binary, build_seconds)
+                 for seed in seeds]
+        manifest = manifest_for(name, cfg, evals, args.repeat, probe, args.trainer)
         path = write_report(manifest, args.out)
         print(report_text(manifest))
         print(f"report: {path}")

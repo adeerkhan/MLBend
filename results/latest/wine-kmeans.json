@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-24T13:53:19.748657+00:00",
+  "created_at": "2026-10-24T17:50:08.039605+00:00",
   "task": {
     "name": "wine-kmeans",
     "description": "k-means over wine, three clusters for ten rounds",
@@ -11,8 +11,9 @@
       "features": 11,
       "source": "https://huggingface.co/datasets/mstz/wine",
       "files": [
-        "https://huggingface.co/datasets/mstz/wine/resolve/main/wine/train.csv"
+        "https://huggingface.co/datasets/mstz/wine/resolve/2042c73ed074afafc54264ba6ef0ad0450fa1e04/wine/train.csv"
       ],
+      "expected_sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c",
       "bytes": 399945,
       "sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c",
       "fetch_seconds": 0.001,
@@ -20,10 +21,13 @@
     },
     "seed": 0
   },
+  "seeds": [
+    0
+  ],
   "trainer": "bend",
   "git": {
-    "commit": "e22ef12",
-    "branch": "main",
+    "commit": "1ffe18a",
+    "branch": "evidence/pinned-data-seeds",
     "dirty": true
   },
   "bend": {
@@ -72,8 +76,8 @@
     },
     {
       "name": "mlbend-datasets",
-      "version": "0.1.5.0",
-      "hash": "0x177094bd1807192738f029aafe8a2759"
+      "version": "0.1.6.0",
+      "hash": "0xf3d145d639153c61b826e4f60d3c0dcd"
     },
     {
       "name": "mlbend-huggingface",
@@ -115,18 +119,51 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 60.396,
-    "seconds_min": 2.83,
+    "build_seconds": 46.473,
+    "seconds_min": 2.289,
     "seconds_all": [
-      2.83,
-      2.901
+      2.296,
+      2.289
     ],
     "repeat": 2,
     "fetch_seconds": 0.001,
-    "compute_seconds": 2.829,
-    "reference_seconds": 1.314,
-    "speed_ratio": 0.465
+    "compute_seconds": 2.288,
+    "reference_seconds": 1.073,
+    "speed_ratio": 0.469
   },
+  "seed_runs": [
+    {
+      "seed": 0,
+      "metrics": {
+        "inertia": {
+          "bend": 50645.64,
+          "reference": 50645.64456047263,
+          "delta": -0.004560472632874735,
+          "tolerance": 0.001,
+          "mode": "relative",
+          "pass": true
+        },
+        "cluster_sizes": {
+          "bend": [
+            2384,
+            990,
+            3123
+          ],
+          "reference": [
+            2384,
+            990,
+            3123
+          ],
+          "delta": 0,
+          "tolerance": 0,
+          "mode": "exact",
+          "pass": true
+        }
+      },
+      "run_seconds": 2.289,
+      "reference_seconds": 1.073
+    }
+  ],
   "metrics": {
     "inertia": {
       "bend": 50645.64,
@@ -134,7 +171,11 @@
       "delta": -0.004560472632874735,
       "tolerance": 0.001,
       "mode": "relative",
-      "pass": true
+      "pass": true,
+      "bend_sd": null,
+      "reference_sd": null,
+      "delta_sd": null,
+      "n_seeds": 1
     },
     "cluster_sizes": {
       "bend": [
@@ -147,10 +188,14 @@
         990,
         3123
       ],
-      "delta": 0,
+      "delta": 0.0,
       "tolerance": 0,
       "mode": "exact",
-      "pass": true
+      "pass": true,
+      "bend_sd": null,
+      "reference_sd": null,
+      "delta_sd": null,
+      "n_seeds": 1
     }
   },
   "passed": true

@@ -54,7 +54,7 @@ harness needs one.
 | [`mlbend-select`](select) | k-fold cross-validation on top of the split | v0.1: written, checked, published |
 | [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, one cluster per row | v0.1: written, checked, published |
 | [`mlbend-pipeline`](pipeline) | fit on the training rows only: the scaler of one fold, applied to both sides | v0.1: written, checked, published |
-| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, with an optional local cache (`MLBEND_DATA`) | v0.1.5: cache, checked, published |
+| [`mlbend-datasets`](datasets) | the datasets of scikit-learn, pinned revisions and an authoritative local cache (`MLBEND_DATA`) | v0.1.6: pinned and strict, checked |
 | [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the JSON rows | v0.1.1: written, checked, published |
 
 The eight packages live here, in one repository, as the workspace in
@@ -101,9 +101,9 @@ BendTorch and saves its loss curve.
 
 The manifest records the git commit and whether the tree was dirty, the Bend
 version, every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub
-hash, the machine, the seed, the tolerances, the dataset's SHA-256, the
-**build time**, the **run time** (minimum of the repeats), the **fetch** and
-the **reference time**. The runner fills `reference/.cache/datasets` with the
+hash, the machine, the seeds, the tolerances, the dataset's pinned revision and
+expected SHA-256, the bytes actually read, the **build time**, the **run time**
+(minimum of the repeats), the **fetch** and the **reference time**. The runner fills `reference/.cache/datasets` with the
 exact bytes it hashes and sets `MLBEND_DATA`, so a warm run measures compute;
 the fetch is recorded separately and is 0 on a warm cache. The build time is
 Bend's compiler and is reported separately. `--wandb` logs the same
@@ -136,8 +136,11 @@ The reports are committed, not thrown away:
 - `results/latest/<task>.json` and `results/raw/` — the full manifests and the
   timestamped history.
 
-The task timings are warm-cache compute: both sides read the cached bytes. The
-kernel benchmark has no dataset and no IO. `make experiments` and `make bench` regenerate them.
+The task timings are warm-cache compute: both sides read the cached bytes. A
+stochastic task (the five-fold cross-validation) is run over several seeds and
+reported as mean ± sample deviation; its reference reads the fold assignment
+the program printed, so the two compare the same partition and the same model.
+The kernel benchmark has no dataset and no IO. `make experiments` and `make bench` regenerate them.
 
 ## Checks
 

@@ -14,7 +14,7 @@ import urllib.request
 
 import numpy as np
 
-URL = "https://huggingface.co/datasets/mstz/wine/resolve/main/wine/train.csv"
+URL = "https://huggingface.co/datasets/mstz/wine/resolve/2042c73ed074afafc54264ba6ef0ad0450fa1e04/wine/train.csv"
 
 
 def load():

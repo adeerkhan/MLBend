@@ -8,22 +8,24 @@ Bend's compiler and is reported separately.
 
 Machine: Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 · 28 CPUs · Bend 2.0.38
 
-| task | dataset | hash | metric | Bend | reference | delta | fetch ms | Bend ms | compute ms | Python ms | ok |
-|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|:--:|
-| `attention-parity` | synthetic-attention (4x8) | `439ef1cd` | checksum | 1.76295 | 1.76295 | 3.34167e-09 | 0 | 1 | 1 | 7 | ok |
-| `cancer-knn` | breast_cancer (683x9) | `4c35090c` | accuracy | 0.978102 | 0.978102 | 1.0219e-08 | 0 | 225 | 225 | 1696 | ok |
-| `cancer-naive-bayes` | breast_cancer (683x9) | `4c35090c` | accuracy | 0.985401 | 0.985401 | -9.85401e-09 | 0 | 31 | 31 | 999 | ok |
-| `heart-naive-bayes` | heart_failure (299x12) | `e0771c8c` | accuracy | 0.933333 | 0.95 | -0.0166667 | 1 | 12 | 11 | 738 | ok |
-| `iris-crossval` | iris (150x4) | `6f608b71` | mean_accuracy | 0.933333 | 0.953333 | -0.02 | 1 | 99 | 98 | 704 | ok |
-| `iris-crossval` | iris (150x4) | `6f608b71` | fold_min | 0.833333 | 0.9 | - | 1 | 99 | 98 | 704 | ok |
-| `iris-crossval` | iris (150x4) | `6f608b71` | fold_max | 0.966667 | 1 | - | 1 | 99 | 98 | 704 | ok |
-| `iris-mlp` | iris (150x4) | `6f608b71` | accuracy | 0.973333 | 0.973333 | 2.66667e-08 | 0 | 574 | 574 | 339 | ok |
-| `transformer-periodic` | periodic-0-7 (32x8) | `3fd593d8` | first_loss | 2.35914 | 2.35914 | 6.81277e-07 | 0 | 32 | 32 | 50 | ok |
-| `transformer-periodic` | periodic-0-7 (32x8) | `3fd593d8` | final_loss | 0.00211434 | 0.1351 | - | 0 | 32 | 32 | 50 | ok |
-| `transformer-periodic` | periodic-0-7 (32x8) | `3fd593d8` | accuracy | 1 | 0.9375 | 0.0625 | 0 | 32 | 32 | 50 | ok |
-| `wine-kmeans` | wine (6497x11) | `7dcde7c7` | inertia | 50645.6 | 50645.6 | -0.00456047 | 1 | 2830 | 2829 | 1314 | ok |
-| `wine-kmeans` | wine (6497x11) | `7dcde7c7` | cluster_sizes | [2384, 990, 3123] | [2384, 990, 3123] | 0 | 1 | 2830 | 2829 | 1314 | ok |
-| `wine-pca` | wine (6497x11) | `7dcde7c7` | explained_variance_ratio | 0.275443 | 0.275443 | 3.95586e-07 | 0 | 5108 | 5108 | 1095 | ok |
+| task | dataset | hash | metric | seeds | Bend | reference | delta | fetch ms | Bend ms | compute ms | Python ms | ok |
+|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|:--:|
+| `attention-parity` | synthetic-attention (4x8) | `439ef1cd` | checksum | 1 | 1.76295 | 1.76295 | 3.342e-09 | 0 | 1 | 1 | 3 | ok |
+| `cancer-knn` | breast_cancer (683x9) | `4c35090c` | accuracy | 1 | 0.978102 | 0.978102 | 1.022e-08 | 1 | 196 | 195 | 1617 | ok |
+| `cancer-naive-bayes` | breast_cancer (683x9) | `4c35090c` | accuracy | 1 | 0.985401 | 0.985401 | -9.854e-09 | 0 | 22 | 22 | 535 | ok |
+| `heart-naive-bayes` | heart_failure (299x12) | `e0771c8c` | accuracy | 1 | 0.95 | 0.95 | 0 | 1 | 9 | 8 | 769 | ok |
+| `iris-crossval` | iris (150x4) | `6f608b71` | mean_accuracy | 5 | 0.930667 ± 0.006 | 0.930667 ± 0.006 | -5.867e-08 ± 1.4e-08 | 0 | 76 | 76 | 763 | ok |
+| `iris-crossval` | iris (150x4) | `6f608b71` | fold_min | 5 | 0.84 ± 0.037 | 0.84 ± 0.037 | -2e-08 ± 1.8e-08 | 0 | 76 | 76 | 763 | ok |
+| `iris-crossval` | iris (150x4) | `6f608b71` | fold_max | 5 | 0.986667 ± 0.018 | 0.986667 ± 0.018 | -1.067e-08 ± 1.5e-08 | 0 | 76 | 76 | 763 | ok |
+| `iris-mlp` | iris (150x4) | `6f608b71` | accuracy | 1 | 0.973333 | 0.973333 | 2.667e-08 | 0 | 482 | 482 | 271 | ok |
+| `transformer-periodic` | periodic-0-7 (32x8) | `3fd593d8` | first_loss | 1 | 2.35914 | 2.35914 | 6.813e-07 | 0 | 26 | 26 | 41 | ok |
+| `transformer-periodic` | periodic-0-7 (32x8) | `3fd593d8` | final_loss | 1 | 0.00211434 | 0.1351 | - | 0 | 26 | 26 | 41 | ok |
+| `transformer-periodic` | periodic-0-7 (32x8) | `3fd593d8` | accuracy | 1 | 1 | 0.9375 | 0.0625 | 0 | 26 | 26 | 41 | ok |
+| `wine-kmeans` | wine (6497x11) | `7dcde7c7` | inertia | 1 | 50645.6 | 50645.6 | -0.00456 | 1 | 2289 | 2288 | 1073 | ok |
+| `wine-kmeans` | wine (6497x11) | `7dcde7c7` | cluster_sizes | 1 | [2384, 990, 3123] | [2384, 990, 3123] | 0 | 1 | 2289 | 2288 | 1073 | ok |
+| `wine-pca` | wine (6497x11) | `7dcde7c7` | explained_variance_ratio | 1 | 0.275443 | 0.275443 | 3.956e-07 | 0 | 4016 | 4016 | 1170 | ok |
 
-The dataset, seed, hub hashes and the git state of every run are in
+Bend and reference are mean ± sample deviation over the seeds when a task
+has more than one; a single-seed task has no deviation. The dataset, seeds,
+hub hashes and the git state of every run are in
 `results/latest/<task>.json`; the timestamped reports are in `results/raw/`.

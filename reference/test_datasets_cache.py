@@ -49,6 +49,15 @@ def main():
         print(f"ERROR the cache was not read: {got} rows, expected {len(ROWS)}")
         return 1
     print(f"ok   the cache was read: {got} rows")
+    # the cache is authoritative: an empty directory must fail, not fetch
+    empty = tempfile.mkdtemp()
+    miss = subprocess.run([binary], capture_output=True, text=True,
+                          env=dict(env, MLBEND_DATA=empty), cwd=ROOT)
+    if "the dataset failed" not in miss.stdout:
+        print("ERROR a cache miss did not fail; it may have fetched instead")
+        print(miss.stdout + miss.stderr)
+        return 1
+    print("ok   a cache miss fails instead of fetching")
     return 0
 
 

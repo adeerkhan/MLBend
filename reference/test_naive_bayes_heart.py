@@ -23,7 +23,7 @@ ENV_DIR = os.path.join(ROOT, ".bend", "env")
 if os.path.isdir(ENV_DIR):
     ENV["BEND_LIB"] = ENV_DIR
 
-URL = "https://huggingface.co/datasets/mstz/heart_failure/resolve/main/death/train.csv"
+URL = "https://huggingface.co/datasets/mstz/heart_failure/resolve/57c2e1a4b3bb2f28e766c6d3b10bc0ced972c857/death/train.csv"
 
 
 def load():
@@ -58,7 +58,7 @@ def main():
     sklearn_accuracy = float(GaussianNB().fit(x[:split], y[:split]).score(x[split:], y[split:]))
     print(out.strip())
     print(f"sklearn: {sklearn_accuracy}")
-    ok = bend_accuracy >= 0.85 and abs(bend_accuracy - sklearn_accuracy) <= 0.02
+    ok = abs(bend_accuracy - sklearn_accuracy) <= 0.000001
     print(("ok   " if ok else "ERROR ") + f"the accuracies agree: {bend_accuracy} vs {sklearn_accuracy}")
     sys.exit(0 if ok else 1)
 
