@@ -122,6 +122,8 @@ The reports are committed, not thrown away:
 - [`results/transformer/`](results/transformer/) — the trained transformer's
   loss curve (`loss.svg`), its step-by-step table (`loss.tsv`) and the run
   manifest (`run.json`).
+- [`results/selection/`](results/selection/) — the kNN model-selection curve (k = 1..15).
+- [`results/report/`](results/report/) — the classification report and confusion matrix.
 - [`results/BENCH.md`](results/BENCH.md) — the compute-only kernel benchmark
   (one matrix-product workload, Bend against NumPy), with GFLOP/s.
 - `results/latest/<task>.json` and `results/raw/` — the full manifests and the

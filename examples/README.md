@@ -14,6 +14,7 @@ re-implements them.
 | [`transformer/main.bend`](transformer/main.bend) | a one-block causal transformer trained on a periodic sequence with the real BendTorch, against a NumPy twin, with the loss curve saved |
 | [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
 | [`naive_bayes/main.bend`](naive_bayes/main.bend) | Gaussian naive Bayes over the same data: the gradient-free baseline the experiment layer keeps beside the learned models |
+| [`naive_bayes_heart/main.bend`](naive_bayes_heart/main.bend) | the same baseline on heart failure: a second dataset, one copied program |
 | [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → scaler fitted on each training fold → logistic regression → stratified folds → accuracy, with no leakage |
 
 ## The logistic example
@@ -97,6 +98,13 @@ tokens of eight features with fixed weights, the same formulas in the PyTorch
 reference; every output agrees within 1.5e-8 (`reference/test_attention.py`).
 This is the forward pass. Training the block needs a softmax/exp gradient on
 BendTorch's tape, which does not exist yet — that is the next upstream step.
+
+## The heart-failure baseline
+
+The same naive Bayes program on `mstz/heart_failure`: 299 rows, twelve
+features, the label `is_dead`. Accuracy 0.9333 against scikit-learn's 0.95 on
+the same split; the file's `True`/`False` cells are read as 1 and 0 by both.
+It is the second dataset in the corpus (`heart-naive-bayes`).
 
 ## The PCA example
 

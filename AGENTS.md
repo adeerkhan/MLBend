@@ -35,6 +35,7 @@ engine. The only models that live here are gradient-free baselines.
     is next.** It is overwritten at the end of every session; read it first.
   - `docs/agents/domain.md`: the vocabulary and the design rules.
   - `docs/agents/issue-tracker.md`: how the issues carry the work.
+  - `docs/agents/adapters.md`: the task and adapter protocol, and the manifest.
 
 ## How an agent works here
 
