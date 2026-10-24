@@ -28,7 +28,7 @@ jobs:
             ~/.elan
           key: toolchain-${{ runner.os }}-${{ hashFiles('scripts/setup.sh') }}
 
-      - name: Set up (Bend 2.0.37, Lean 4.34.0, Python venv)
+      - name: Set up (Bend 2.0.38, Lean 4.34.0, Python venv)
         run: scripts/setup.sh
 
       - name: Checks (proofs, kernel, rejected programs, NumPy and scikit-learn)
