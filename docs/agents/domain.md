@@ -34,6 +34,7 @@ what the shape rules are, before it reads a line of Bend.
 | `mlbend-cluster` (`cluster/`) | k-means, functional: the centres after a fixed number of rounds | `List<&2, F32>` rows |
 | `mlbend-pipeline` (`pipeline/`) | fit on the training rows only, transform both sides of a fold | `List<&2, List<&2, F32>>` rows |
 | `mlbend-report` (`report/`) | the confusion matrix and the per-class report: precision, recall, F1, support, macro and weighted averages | `List<&2, Nat>` labels |
+| `mlbend-generative` (`generative/`) | the counter RNG (mix32 and its inverse, Box-Muller), the cosine and linear schedules, the time embedding | `List<&2, F32>` numbers |
 | `mlbend-huggingface` (`hf/`) | the HuggingFace client the datasets package reads through | bytes and JSON |
 
 All of them are one repository: each package is a directory beside this file,

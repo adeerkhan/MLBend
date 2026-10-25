@@ -140,6 +140,12 @@ now:
   next-token prediction over the periodic sequence 0..7. The loss falls from
   2.3591 to 0.0021; a NumPy twin starts at 2.3591 and ends at 0.1351. The loss
   curve, the table and the manifest are in `results/transformer/`.
+- `mlbend-generative@0.1.0.0` (2026-10-25, issue #10): the counter RNG
+  (murmur3's fmix32 and its closed-form inverse, Box-Muller over 24-bit
+  uniforms), the cosine and the linear schedules, and the sinusoidal time
+  embedding — four length laws proved, every number mirrored bit for bit
+  by the NumPy twin. The bijection of mix32 is tested, not proved: the
+  debt of issue #10.
 - `diffusion-2d` (2026-10-25): a DDPM denoiser — three linear layers with
   SiLU — trained by AdamW to predict the noise of a 32-step linear-β forward
   process over two moons, then sampled by the ancestral loop. The first
@@ -152,6 +158,16 @@ now:
   parameters are affine (they hold arrays), so a sampling loop cannot reuse
   them — `Layer.fwd` returns them in `Fwd{p, y, s}` and the loop threads
   them through a record, the pattern bendtorch's own eval loop uses.
+- `diffusion-digits` (WIP): the same skeleton over real data — the first
+  1024 rows of mstz/optdigits (8×8 digits, pinned revision, read through
+  `csv_of`), a 64-output denoiser, 64 sampled digits printed as a grid.
+  The exact gate caught four real bugs (σ_t, the per-row noise-index
+  reset, the `drop` semantics, the 65th-pixel consumption) and still
+  flags one data-ordering difference in the staged input build; the test
+  is parked (`reference/diffusion_digits_wip.py`) until the layout is
+  finished, and the denoiser needs a residual head (`T.Residual`) before
+  the samples stop diverging — an underfit ε̂ at high noise makes the
+  ancestral chain expand geometrically.
 
 **The foundation correction (2026-10-24).** The earlier "missing softmax" was
 true only of the old `bendtorch-core@0.1.0.0` line; the maintained

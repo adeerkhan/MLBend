@@ -33,6 +33,7 @@ Questions to ask of each law:
 | `mlbend-cluster` | `cluster_covers` | every row gets exactly one cluster, so no row is left out and none is in two |
 | `mlbend-pipeline` | `pipeline_preserves_rows` | transforming the rows keeps one output row for every input row |
 | `mlbend-report` | `matrix_rows`, `row_length` | `n` rows of the confusion matrix are `n` rows, and `n` cells of a row are `n` cells |
+| `mlbend-generative` | `noise_length`, `alphas_length`, `lin_alphas_length`, `temb_length` | m numbers asked for are m numbers built, and the schedules and embeddings have exactly as many entries as steps and rungs |
 
 ### The experiment layer
 

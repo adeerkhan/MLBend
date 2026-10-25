@@ -55,10 +55,11 @@ harness needs one.
 | [`mlbend-cluster`](cluster) | k-means, functional: a fixed number of rounds, one cluster per row | v0.1: written, checked, published |
 | [`mlbend-pipeline`](pipeline) | fit on the training rows only: the scaler of one fold, applied to both sides | v0.1: written, checked, published |
 | [`mlbend-report`](report) | the confusion matrix and the per-class report: precision, recall, F1, support, macro and weighted averages | v0.1: written, checked, two laws proved |
+| [`mlbend-generative`](generative) | the generative skeleton: a counter RNG (mix32 and its inverse, Box-Muller), the cosine and linear schedules, the time embedding | v0.1: written, checked, four laws proved |
 | [`mlbend-datasets`](datasets) | the datasets of scikit-learn, pinned revisions and an authoritative local cache (`MLBEND_DATA`) | v0.1.6: pinned and strict, published |
 | [`mlbend-huggingface`](hf) | a HuggingFace client: the dataset page, the file tree, a file's bytes, the JSON rows | v0.1.1: written, checked, published |
 
-The nine packages live here, in one repository, as the workspace in
+The ten packages live here, in one repository, as the workspace in
 `bend.toml`; there is no repository per package. `make release PKG=<dir>`
 publishes one to BendHub and records it under the tag `<name>-v<version>`.
 The package manager, `bendenv`, is the one piece that stays in its own
@@ -100,8 +101,19 @@ The corpus is not only classical: `attention-parity` runs a single-head
 self-attention block and checks every output number against PyTorch,
 `transformer-periodic` trains a one-block causal transformer with the real
 BendTorch, and `diffusion-2d` trains a DDPM denoiser and samples it — every
-"random" draw a pure function of a counter, so the NumPy twin draws the same
-numbers ('results/diffusion/' holds the scatter beside the loss curve).
+"random" draw a pure function of a counter (`mlbend-generative`), so the
+NumPy twin draws the same numbers (`results/diffusion/` holds the scatter
+beside the loss curve).
+
+**The GPU lane.** Bend programs reach the GPU through bangs (`!`), the
+kernels of `bend-ml-tensor-gpu`, and `bend -o` builds the device program
+when `CUDA_HOME` names a toolkit with `nvrtc.h` (NVRTC compiles it at build
+time; three small RPMs unpacked user-locally are enough — the recipe is in
+NOTES.md, 2026-10-25). bendtorch ships the drop-in (`torch/gpu.bend`); our
+examples use the proved CPU layers on purpose. Verified on an RTX 5060:
+the linear layers give bit-identical results on the GPU, and the
+exponential-taking layers differ only in CUDA's exp ulps — exactly
+bendtorch's documented policy.
 
 The manifest records the git commit and whether the tree was dirty, the Bend
 version, every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub
