@@ -1,0 +1,24 @@
+{
+  "created_at": "2026-10-25T13:33:26.710373+00:00",
+  "example": "examples/diffusion_digits/main.bend",
+  "dataset": {
+    "url": "https://huggingface.co/datasets/mstz/optdigits/resolve/4f20cc827b763fb69e2a80e18e892e4e11498aec/optdigits.data",
+    "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd",
+    "rows": 1024
+  },
+  "seconds": 61.791356563568115,
+  "bend": {
+    "first_loss": 8069.251,
+    "final_loss": 1.0365398,
+    "data_mean": 0.30756474,
+    "data_std": 0.37670296,
+    "sample_mean": 4888.716,
+    "sample_std": 77124.51
+  },
+  "numpy": {
+    "first_loss": 8062.689453125,
+    "final_loss": 1.074581265449524,
+    "sample_mean": 96.70661163330078,
+    "sample_std": 753.8903198242188
+  }
+}
