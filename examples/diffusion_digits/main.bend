@@ -193,12 +193,23 @@ def row_pixels_go(+s: Nat, +a: F32, +b: F32, +te: List<&2, F32>,
 type RR is Data:
   RR{frag: List<&2, F32>, rest: List<&2, F32>}
 
+# Sixty-four pixels consumed: the tail that is left of the row.
+def drop64_go(+xs: List<&2, F32>, +n: Nat) -> List<&2, F32>:
+  match xs n:
+    case _ 0n:
+      xs
+    case Con{h, t} 1n+rest:
+      drop64_go(t, rest)
+    case Nil{} _:
+      Nil{}
+
+# one row consumed: the finished block and the rest of the list
 def row_of(+s: Nat, +a: F32, +b: F32, +te: List<&2, F32>, x0: List<&2, F32>, +j: Nat) -> RR:
   match x0:
     case Nil{}:
       RR{Nil{}, Nil{}}
-    case Con{h, +tail}:
-      RR{row_pixels_go(s, a, b, te, Con{h, tail}, 64n, j, Nil{}), tail}
+    case Con{+h, +tail}:
+      RR{row_pixels_go(s, a, b, te, Con{h, tail}, 64n, j, Nil{}), drop64_go(Con{h, tail}, 64n)}
 
 def rr_frag(rr: RR) -> List<&2, F32>:
   match rr:
@@ -230,6 +241,15 @@ def cons_all(xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
     case Con{h, t}:
       cons_all(t, Con{h, acc})
 
+# the rows list back in ascending order: row 0 first
+def rows_rev(xs: List<&2, List<&2, F32>>, +acc: List<&2, List<&2, F32>>) ->
+  List<&2, List<&2, F32>>:
+  match xs:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      rows_rev(t, Con{h, acc})
+
 def flat_go(rows: List<&2, List<&2, F32>>, +acc: List<&2, F32>) -> List<&2, F32>:
   match rows:
     case Nil{}:
@@ -238,11 +258,13 @@ def flat_go(rows: List<&2, List<&2, F32>>, +acc: List<&2, F32>) -> List<&2, F32>
       flat_go(rest, cons_all(row, acc))
 
 def input_of(+s: Nat, +t: Nat, +a: F32, +b: F32, +x0: List<&2, F32>) -> List<&2, F32>:
-  list_rev(flat_go(rows_go(s, a, b, t, G.temb_of(t, 64n, 4n), 1024n, 0n, x0, Nil{}), Nil{}), Nil{})
+  list_rev(flat_go(rows_rev(rows_go(s, a, b, t, G.temb_of(t, 64n, 4n), 1024n, 0n, x0, Nil{}),
+    Nil{}), Nil{}), Nil{})
 
 # the sampler's input: 64 rows, the sample not noised again
 def sinput_of(+t: Nat, x: List<&2, F32>) -> List<&2, F32>:
-  list_rev(flat_go(rows_go((1000000n + t : Nat), 1.0, 0.0, t, G.temb_of(t, 64n, 4n), 64n, 0n, x, Nil{}), Nil{}), Nil{})
+  list_rev(flat_go(rows_rev(rows_go((1000000n + t : Nat), 1.0, 0.0, t, G.temb_of(t, 64n, 4n),
+    64n, 0n, x, Nil{}), Nil{}), Nil{}), Nil{})
 
 # ---- the training loop ----
 
