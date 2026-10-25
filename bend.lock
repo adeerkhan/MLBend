@@ -803,11 +803,65 @@ sha = "cb48e87c2b13837b125d72ac8e0291eaf8df814e5ea2345fe2789d11244a9864"
 path = "main.bend"
 
 [[package]]
-name = "bend-ml-tensor-fork"
-version = "0.1.2.0"
-hash = "0x5734508f2a6198d9a87a28d4c58bfbae"
+name = "bend-ml-tensor-array"
+version = "0.1.16.0"
+hash = "0x0159e1f0f11cc1d285ac6a993d19ba8a"
 source = "hub"
-dependencies = ["bend-ml-tensor-array@0.1.14.0"]
+dependencies = []
+constructors = [
+    "AL",
+    "BL",
+    "BLeaf",
+    "BNode",
+    "BRow",
+    "BV",
+    "CB",
+    "CR",
+    "G",
+    "L2",
+    "MBias",
+    "MCE",
+    "MColSum",
+    "MHits",
+    "ML",
+    "MM2",
+    "MMul",
+    "MMulNT",
+    "MMulTN",
+    "MPair",
+    "MRow",
+    "Mat",
+    "P2",
+    "PK",
+    "PKK",
+    "PKT",
+    "PLeaf",
+    "PNode",
+    "R",
+    "RW",
+    "S3",
+    "SL",
+    "T8",
+    "TD",
+    "TG",
+    "TL",
+    "TR",
+]
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "e967bdaec8b2472090b2619d98cdd882c1e9951f495929a1e71a8fc569879cf2"
+path = "main.bend"
+
+[[package]]
+name = "bend-ml-tensor-fork"
+version = "0.1.4.0"
+hash = "0xd13098b0f80022977b3ddb83a57e3c50"
+source = "hub"
+dependencies = ["bend-ml-tensor-array@0.1.16.0"]
 constructors = [
     "B2",
     "B3",
@@ -820,7 +874,7 @@ sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
 path = "LICENSE"
 
 [[package.files]]
-sha = "e8442eeb6de648fe2d4c7dcbb9ee7638b9a76a66336fcb0251a7807409bee8f2"
+sha = "054aaf6c7ee4fdbe35c627f0a8c6b7e715313595c04388d1be10c650bc03056c"
 path = "main.bend"
 
 [[package]]
@@ -994,6 +1048,22 @@ path = "LICENSE"
 
 [[package.files]]
 sha = "531df9a9bf5e7851d632569b7dc4a50ae412679845ebc33c823ab46fb3843e13"
+path = "main.bend"
+
+[[package]]
+name = "mlbend-generative"
+version = "0.1.0.0"
+hash = "0xa51d4d9fa3661462984f336054bbc146"
+source = "local"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "d75b59ad06cb3305119dfa26e150701aa813652ccefe59bb871b4e828a3c3b32"
 path = "main.bend"
 
 [[package]]

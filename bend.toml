@@ -22,6 +22,7 @@ members = [
     "cluster",
     "pipeline",
     "report",
+    "generative",
 ]
 
 [workspace.dependencies]

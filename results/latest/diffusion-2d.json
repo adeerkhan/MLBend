@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-25T08:26:10.687876+00:00",
+  "created_at": "2026-10-25T14:01:45.524435+00:00",
   "task": {
     "name": "diffusion-2d",
     "description": "a DDPM denoiser trained and sampled on two moons, BendTorch against NumPy",
@@ -24,7 +24,7 @@
   ],
   "trainer": "bend",
   "git": {
-    "commit": "37de8c2",
+    "commit": "e25ebad",
     "branch": "main",
     "dirty": true
   },
@@ -63,9 +63,14 @@
       "hash": "0x0f6479f09ada7ae614e64e31e8f5a730"
     },
     {
+      "name": "bend-ml-tensor-array",
+      "version": "0.1.16.0",
+      "hash": "0x0159e1f0f11cc1d285ac6a993d19ba8a"
+    },
+    {
       "name": "bend-ml-tensor-fork",
-      "version": "0.1.2.0",
-      "hash": "0x5734508f2a6198d9a87a28d4c58bfbae"
+      "version": "0.1.4.0",
+      "hash": "0xd13098b0f80022977b3ddb83a57e3c50"
     },
     {
       "name": "mlbend-cluster",
@@ -76,6 +81,11 @@
       "name": "mlbend-datasets",
       "version": "0.1.6.0",
       "hash": "0xf3d145d639153c61b826e4f60d3c0dcd"
+    },
+    {
+      "name": "mlbend-generative",
+      "version": "0.1.0.0",
+      "hash": "0xa51d4d9fa3661462984f336054bbc146"
     },
     {
       "name": "mlbend-huggingface",
@@ -122,57 +132,57 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 4.365,
-    "seconds_min": 3.26,
+    "build_seconds": 4.469,
+    "seconds_min": 30.848,
     "seconds_all": [
-      3.26
+      30.848
     ],
     "repeat": 1,
     "fetch_seconds": 0.0,
-    "compute_seconds": 3.26,
-    "reference_seconds": 3.781,
-    "speed_ratio": 1.16
+    "compute_seconds": 30.848,
+    "reference_seconds": 35.959,
+    "speed_ratio": 1.166
   },
   "seed_runs": [
     {
       "seed": 0,
       "metrics": {
         "first_loss": {
-          "bend": 6.542548,
-          "reference": 6.542548179626465,
-          "delta": -1.796264648135093e-07,
+          "bend": 152.95369,
+          "reference": 152.95370483398438,
+          "delta": -1.4833984380402399e-05,
           "tolerance": 0.001,
           "mode": "absolute",
           "pass": true
         },
         "final_loss": {
-          "bend": 0.2507059,
-          "reference": 0.24487042427062988,
+          "bend": 0.064961255,
+          "reference": 0.06871278584003448,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_mean": {
-          "bend": 1.452102,
-          "reference": 0.9871604442596436,
+          "bend": 0.3414564,
+          "reference": 0.459400475025177,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_std": {
-          "bend": 2.9962852,
-          "reference": 3.0596044063568115,
+          "bend": 0.3627671,
+          "reference": 0.6300413608551025,
           "pass": true,
           "note": "different folds; reported, not compared"
         }
       },
-      "run_seconds": 3.26,
-      "reference_seconds": 3.781
+      "run_seconds": 30.848,
+      "reference_seconds": 35.959
     }
   ],
   "metrics": {
     "first_loss": {
-      "bend": 6.542548,
-      "reference": 6.542548179626465,
-      "delta": -1.796264648135093e-07,
+      "bend": 152.95369,
+      "reference": 152.95370483398438,
+      "delta": -1.4833984380402399e-05,
       "tolerance": 0.001,
       "mode": "absolute",
       "pass": true,
@@ -182,8 +192,8 @@
       "n_seeds": 1
     },
     "final_loss": {
-      "bend": 0.2507059,
-      "reference": 0.24487042427062988,
+      "bend": 0.064961255,
+      "reference": 0.06871278584003448,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -193,8 +203,8 @@
       "n_seeds": 1
     },
     "sample_mean": {
-      "bend": 1.452102,
-      "reference": 0.9871604442596436,
+      "bend": 0.3414564,
+      "reference": 0.459400475025177,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -204,8 +214,8 @@
       "n_seeds": 1
     },
     "sample_std": {
-      "bend": 2.9962852,
-      "reference": 3.0596044063568115,
+      "bend": 0.3627671,
+      "reference": 0.6300413608551025,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,

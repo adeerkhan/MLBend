@@ -43,9 +43,9 @@ if os.path.isdir(ENV_DIR):
     ENV["BEND_LIB"] = ENV_DIR
 
 N = 128            # points
-T = 32             # diffusion steps
-STEPS = 400        # training steps
-H = 32             # hidden width
+T = 64             # diffusion steps
+STEPS = 4000       # training steps
+H = 64             # hidden width
 LR, B1, B2, EPS, WD = 0.01, 0.9, 0.999, 1e-8, 0.0
 
 F = np.float32
@@ -98,23 +98,23 @@ def moons():
     return np.array(out, dtype=F)
 
 
-def beta_of(t):
-    return F(F(0.0001) + F(F(0.2999) * F(F(t) / F(32.0))))
+def lin_beta_at(t, steps=T):
+    return F(F(0.0001) + F(F(0.2799) * F(F(t) / F(steps))))
 
 
-def alphas():
+def lin_alphas(steps=T):
     acc, out = F(1.0), []
-    for t in range(1, T + 1):
-        acc = F(acc * F(1.0 - beta_of(t)))
+    for t in range(1, steps + 1):
+        acc = F(acc * F(1.0 - lin_beta_at(t, steps)))
         out.append(acc)
     return np.array(out, dtype=F)
 
 
-ALPHAS = alphas()
+ALPHAS = lin_alphas()
 
 
 def temb_of(t):
-    tau = F(F(t) / F(32.0))
+    tau = F(F(t) / F(64.0))
     freqs = [F(0.001), F(0.01), F(0.1), F(1.0)]
     out = []
     for f in freqs:
@@ -202,17 +202,18 @@ def train(x0):
 def sample(params):
     x = noise_of(2000000).copy()
     for t in range(T, 0, -1):
-        beta = beta_of(t)
+        beta = lin_beta_at(t)
         abar = ALPHAS[t - 1]
         coef = F(beta / np.sqrt(F(1.0 - abar)).astype(F))
         scale = F(1.0 / np.sqrt(F(1.0 - beta)).astype(F))
+        sig = np.sqrt(beta).astype(F)
         inp = input_of(1000000 + t, t, F(1.0), F(0.0), x)
         eps = forward(params, inp).reshape(2 * N)
         z = noise_of(1000000 + t)
         if t == 1:
             x = F(scale * F(x - F(coef * eps)))
         else:
-            x = F(scale * F(F(x - F(coef * eps)) + z))
+            x = F(scale * F(F(x - F(coef * eps)) + F(sig * z)))
     return x
 
 
@@ -297,7 +298,8 @@ def numpy_answer():
     ss = stats(sample(params))
     dm = stats(x0)
     return {"first_loss": curve[0], "final_loss": curve[-1],
-            "sample_mean": ss[0], "sample_std": ss[2]}
+            "sample_mean": ss[0], "sample_std": ss[2],
+            "data_mean": dm[0], "data_std": dm[2]}
 
 
 def main():
@@ -309,8 +311,10 @@ def main():
     params, curve = train(x0)
     xs = sample(params)
 
-    # the printed steps: s = 0 (the first), then every 40th, then the last
-    idx = [0] + [s - 1 for s in range(STEPS) if s > 0 and s % 40 == 0 and s < STEPS] + [STEPS - 1]
+    # the printed steps: the Bend loop prints at i = 1, then every 40th
+    # step boundary, then the last
+    idx = [k - 1 for k in range(1, STEPS + 1)
+           if k == 1 or (k + 1) % 40 == 0 or k + 1 == STEPS]
     idx = sorted(set(idx))
     want = [curve[i] for i in idx]
 
