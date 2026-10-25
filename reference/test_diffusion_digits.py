@@ -1,20 +1,29 @@
-"""The digits diffusion model: BendTorch against a NumPy twin. WORK IN
-PROGRESS (issue #10's follow-up): renamed away from test_* on 2026-10-25
-so make check stays green while the input-layout mismatch is finished —
-the exact-comparison gate caught four real bugs already (see NOTES.md);
-one data-ordering difference remains. Run directly:
+"""The digits diffusion model: BendTorch against a NumPy twin.
 
-  reference/.venv/bin/python reference/diffusion_digits_wip.py
+  reference/.venv/bin/python reference/test_diffusion_digits.py
 
 `examples/diffusion_digits/main.bend` reads the first 1024 rows of
 mstz/optdigits (pinned revision, 8x8 digits, pixels scaled to [0, 1]),
 trains a three-linear-layer SiLU denoiser full-batch by AdamW to predict
 the noise of the 64-step linear schedule, then samples 64 fresh digits by
 the ancestral loop. This twin does the same in float32 with the same
-counter-based noise, compares the first loss (gated) and the sample
-statistics (reported), and draws the generated grid beside real digits:
+counter-based noise, computes in the same operation order, and compares:
 
-  results/diffusion-digits/grid.svg, loss.tsv, run.json
+  first_loss   the loss of the first step — the whole deterministic
+               pipeline (data, noise, schedule, weights, forward, loss)
+               in one number, gated
+  data_mean    the dataset's own mean, gated
+  final_loss   the loss of the last step — printed, not gated: the two
+               optimizers round differently and the gap grows with the
+               steps
+  sample_*     the sampled grid's statistics — printed, not gated: the
+               sampling loop runs the model 64 times, and one ulp of
+               exp/sin/cos drift amplified through it is a different grid
+
+The row order of the staged input was wrong until 2f2631b (one pixel was
+skipped per row), which the gate caught. Writes results/diffusion-digits/:
+loss.tsv, grid.svg, run.json. `numpy_answer` is what
+`reference/experiment.py`'s diffusion-digits task compares against.
 """
 import json
 import os
@@ -193,6 +202,16 @@ def sample(params):
         else:
             x = F(scale * F(F(x - F(coef * eps)) + F(sig * z)))
     return x
+
+
+def numpy_answer():
+    """The twin's numbers, as reference/experiment.py's runner compares them."""
+    x0 = load()
+    params, curve = train(x0)
+    xs = sample(params)
+    return {"first_loss": float(curve[0]), "final_loss": float(curve[-1]),
+            "data_mean": float(x0.mean()),
+            "sample_mean": float(xs.mean()), "sample_std": float(xs.std())}
 
 
 def run_bend():

@@ -182,6 +182,25 @@ def reference_diffusion(context=None):
     return numpy_answer()
 
 
+def parse_diffusion_digits(out):
+    # the prints: "loss:" at i=1,99,199,... carries curve[i-1], and the base
+    # case's "final_loss:" carries the last computed loss, which is numpy's curve[-1]
+    losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out, re.M)]
+    vals = {k: float(re.search(rf"^{k}: ([0-9.eE+-]+)$", out, re.M).group(1))
+            for k in ("data_mean", "sample_mean", "sample_std")}
+    final = re.search(r"^final_loss: ([0-9.eE+-]+)$", out, re.M)
+    return {"first_loss": losses[0],
+            "final_loss": float(final.group(1)) if final else losses[-1],
+            **vals}
+
+
+def reference_diffusion_digits(context=None):
+    sys.path.insert(0, os.path.join(ROOT, "reference"))
+    from test_diffusion_digits import numpy_answer
+
+    return numpy_answer()
+
+
 def reference_transformer(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_transformer import numpy_curve
@@ -281,6 +300,23 @@ TASKS = {
         "reference": reference_diffusion,
         "metrics": {
             "first_loss": {"tolerance": 0.001, "mode": "absolute"},
+            "final_loss": {"tolerance": 0, "mode": "report"},
+            "sample_mean": {"tolerance": 0, "mode": "report"},
+            "sample_std": {"tolerance": 0, "mode": "report"},
+        },
+    },
+    "diffusion-digits": {
+        "description": "a DDPM denoiser over the first 1024 optdigits digits, BendTorch against NumPy",
+        "program": "examples/diffusion_digits/main.bend",
+        "dataset": {"name": "optdigits", "rows": 1024, "features": 64,
+                    "source": "https://huggingface.co/datasets/mstz/optdigits",
+                    "files": ["https://huggingface.co/datasets/mstz/optdigits/resolve/4f20cc827b763fb69e2a80e18e892e4e11498aec/optdigits.data"], "expected_sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"},
+        "seed": 0,
+        "parse": parse_diffusion_digits,
+        "reference": reference_diffusion_digits,
+        "metrics": {
+            "first_loss": {"tolerance": 0.0001, "mode": "relative"},
+            "data_mean": {"tolerance": 0.00001, "mode": "absolute"},
             "final_loss": {"tolerance": 0, "mode": "report"},
             "sample_mean": {"tolerance": 0, "mode": "report"},
             "sample_std": {"tolerance": 0, "mode": "report"},
