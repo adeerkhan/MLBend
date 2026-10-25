@@ -7,6 +7,51 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-25 (later) — the first diffusion model
+
+**Where we are.** `diffusion-2d` is the corpus's tenth task: a DDPM
+denoiser (three `Linear` layers with `SiLU`) trained by `T.Train.step`
+with AdamW to predict the noise of a 32-step linear-β forward process
+over two moons, then sampled by the ancestral DDPM loop — all on
+`bendtorch@1.0.1.0`, in `examples/diffusion/main.bend`. The gate is the
+first training loss, **6.542548, against a float32 NumPy twin to 1.8e-7**;
+final loss, sample statistics and the scatter (`results/diffusion/`) are
+report-mode. The run is 3.3 s; the reference 3.8 s.
+
+- **Every "random" number is a pure function of a counter**: murmur3's
+  fmix32 over (step-salt·φ, index), Box-Muller over `(m24+1)/2^24`
+  uniforms — never zero, exactly representable. Base's `F32.sin/cos/log/
+  exp` (builtin bodies behind laws) made real Gaussians and a sinusoidal
+  time embedding possible.
+- **The finding for upstream**: model parameters hold arrays, so they are
+  affine — a sampling loop cannot reuse them. `T.Layer.fwd` returns them
+  in `Fwd{p, y, s}`; the sampler threads them through a `PS{p, x}` record
+  the way nuxyel's own eval loop does (`smol.bend`'s `ev_loop`). `Mat.dup`
+  is the one-shot duplication; a loop wants the threading shape. NOTES.md
+  has the full list of checker rules the file cost.
+- **The bug the exact comparison caught**: the moons list is interleaved
+  (u0, l0, u1, l1, …) and the twin first wrote the moons sequentially.
+  Row 0 matched, the loss sat 2 % off, and every scalar stage matched to
+  an ulp — order-blind statistics (mean/std) hid it; only the gated loss
+  caught it. Fixed in the twin.
+
+**What was run.**
+- `reference/experiment.py --task diffusion-2d` → PASS (first_loss delta
+  −1.8e-7); `--summary` reg rewrote `results/RESULTS.md`.
+- `reference/test_diffusion.py` → first loss agrees, data statistics
+  agree, writes `results/diffusion/{loss.tsv,loss.svg,scatter.svg,run.json}`.
+- `make check` → see the log below (the diffusion test joined).
+
+**What is next.**
+1. `make release PKG=report` still waits on the maintainer (CI red on kNN
+   until then).
+2. The W&B sweep over the selected parameter (handoff item 3).
+3. The sampler's quality: the sampled cloud is broader than the data
+   (std 3.0 vs 0.87) — more steps, a cosine schedule, or an ε-learned
+   variance would tighten it. The task's job was the pipeline, not the
+   picture, but the picture is now measurable.
+4. Watch bend-ml#20 and bend#1848/#1835 for answers.
+
 ## 2026-10-25 — mlbend-report, and two upstream issues
 
 **Where we are.** The report half of the evaluation surface is a package:

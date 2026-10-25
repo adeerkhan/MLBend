@@ -75,6 +75,7 @@ numbers with NumPy or scikit-learn, and writes a **report card** as JSON.
 $ reference/.venv/bin/python reference/experiment.py --list
 attention-parity    examples/attention/main.bend           single-head attention forward, against PyTorch
 transformer-periodic examples/transformer/main.bend        a one-block causal transformer, trained on BendTorch
+diffusion-2d        examples/diffusion/main.bend           a DDPM denoiser, trained and sampled on two moons
 cancer-knn          examples/knn/main.bend                 three-nearest-neighbours over breast cancer
 cancer-naive-bayes  examples/naive_bayes/main.bend         Gaussian naive Bayes over breast cancer
 heart-naive-bayes   examples/naive_bayes_heart/main.bend   the same baseline on heart failure
@@ -96,9 +97,11 @@ report: results/raw/cancer-knn-....json
 ```
 
 The corpus is not only classical: `attention-parity` runs a single-head
-self-attention block and checks every output number against PyTorch, and
+self-attention block and checks every output number against PyTorch,
 `transformer-periodic` trains a one-block causal transformer with the real
-BendTorch and saves its loss curve.
+BendTorch, and `diffusion-2d` trains a DDPM denoiser and samples it — every
+"random" draw a pure function of a counter, so the NumPy twin draws the same
+numbers ('results/diffusion/' holds the scatter beside the loss curve).
 
 The manifest records the git commit and whether the tree was dirty, the Bend
 version, every `mlbend-*`, `bend-ml-*` and `bendtorch-*` package at its hub

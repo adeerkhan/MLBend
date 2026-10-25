@@ -167,6 +167,21 @@ def reference_attention(context=None):
     return {"checksum": float(expected().sum(dtype="float32"))}
 
 
+def parse_diffusion(out):
+    losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out, re.M)]
+    sm = [float(v) for v in re.findall(r"^sample_mean: ([0-9.eE+-]+) ([0-9.eE+-]+)$", out, re.M)[0]]
+    sd = [float(v) for v in re.findall(r"^sample_std: ([0-9.eE+-]+) ([0-9.eE+-]+)$", out, re.M)[0]]
+    return {"first_loss": losses[0], "final_loss": losses[-1],
+            "sample_mean": sm[0], "sample_std": sd[0]}
+
+
+def reference_diffusion(context=None):
+    sys.path.insert(0, os.path.join(ROOT, "reference"))
+    from test_diffusion import numpy_answer
+
+    return numpy_answer()
+
+
 def reference_transformer(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_transformer import numpy_curve
@@ -254,6 +269,21 @@ TASKS = {
         "metrics": {
             "inertia": {"tolerance": 0.001, "mode": "relative"},
             "cluster_sizes": {"tolerance": 0, "mode": "exact"},
+        },
+    },
+    "diffusion-2d": {
+        "description": "a DDPM denoiser trained and sampled on two moons, BendTorch against NumPy",
+        "program": "examples/diffusion/main.bend",
+        "dataset": {"name": "two-moons", "rows": 128, "features": 2,
+                    "source": "generated: two interleaved half-circles on a fixed grid"},
+        "seed": 0,
+        "parse": parse_diffusion,
+        "reference": reference_diffusion,
+        "metrics": {
+            "first_loss": {"tolerance": 0.001, "mode": "absolute"},
+            "final_loss": {"tolerance": 0, "mode": "report"},
+            "sample_mean": {"tolerance": 0, "mode": "report"},
+            "sample_std": {"tolerance": 0, "mode": "report"},
         },
     },
     "transformer-periodic": {

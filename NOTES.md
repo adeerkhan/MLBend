@@ -5,6 +5,54 @@ relevant entry before changing performance-sensitive code or a law.
 
 ## 2026-10-25
 
+- **The first diffusion model in Bend** (`examples/diffusion`, the task
+  `diffusion-2d`): a three-linear-layer denoiser with SiLU trained by
+  `T.Train.step`/AdamW to predict the noise of a 32-step DDPM forward
+  process over two moons, then sampled by the ancestral loop. The gate is
+  the **first training loss, 6.542548, agreeing with a float32 NumPy twin
+  to 1.8e-7**: every "random" number is a pure function of a counter —
+  murmur3's fmix32 (the hash shape bendtorch's dropout mask uses, though
+  theirs is lowbias32) over the step salt and the index, Box-Muller over
+  uniforms on a 24-bit grid (`(m24+1)/2^24`, exactly representable, never
+  zero, so `log(u)` is safe). Base has `F32.sin/cos/log/exp` — they are
+  laws with builtin bodies, and they were the difference between a
+  sinusoidal time embedding plus real Gaussians and a much weaker design.
+- **The affine rule owns the sampling loop.** Model parameters hold
+  arrays, so they cannot be reused: a first draft passed `p` into 32
+  reverse steps and the checker refused ("p consumed more than once"), and
+  `+p` is refused too (a `+` needs Data, and an `Array` is not one). The
+  answer is bendtorch's own: `T.Layer.fwd` **returns the parameters** in
+  `Fwd{p, y, s}`, and nuxyel's eval loop (smol.bend's `ev_loop`) threads
+  them through a record into a continuation. Our sampler does the same
+  with a `PS{p, x}` record; `Mat.dup` exists for one-shot duplication but
+  a loop wants the threading shape. House rule for the future: *a Bend
+  inference loop returns its weights.*
+- **Arrays are linear; lists are the data plane.** The example was drafted
+  over raw `Array<F32>` and every multi-read walk failed (two `Array.get`
+  on one array is a double consume; `Array.get` returns the array beside
+  the value, so kernels thread it through tuples). The rewrite moved the
+  data, the noise, the embeddings and the samples to `List<&2, F32>`
+  (duplicable), touching `TA.Mat` only at the edges via `Mat.from_list` /
+  `Mat.to_list`. That is also the knn/attention house style.
+- **The one real bug the exact comparison caught**: the moons list is
+  *interleaved* (u0, l0, u1, l1, ...) — the walk appends one point of each
+  moon per step — and the NumPy twin first wrote the upper moon whole,
+  then the lower. Row 0 agreed, every later row did not; the first loss
+  sat 2 % off (6.5425 vs 6.4183) while every scalar stage (hash, uniform,
+  Gaussian, ᾱ, embedding, weights, single forward outputs) matched to an
+  ulp. The data's mean and std still agreed — order-blind statistics hide
+  layout bugs; only the gated loss caught it. Fixed in the twin; the Bend
+  side was right.
+- **The checker's rules the file cost the most to satisfy**, on top of the
+  known ones: no lets inside a `do` block after the first statement (put
+  computation in defs); a match cannot scrutinize a computed value, so
+  every unwrap of a `Fwd`/`LossOut`/`Pt` is its own def taking the value
+  as a parameter; a binder read twice in one match arm needs `++`; a Nat
+  match needs a `case _` catch-all; U32 literals are plain decimals with
+  `: U32` annotations (no `1u`, no hex); `Seq`'s state type parameter is
+  the *saved* state — `Linear` saves its input (`Mat<n,i>`), an activation
+  its output; and a Data record cannot hold arrays (`type PS is Type:` is
+  the affine record, the shape smol.bend uses for the same purpose).
 - **`mlbend-report@0.1.0.0` is written** (issue #9): the confusion matrix and
   the per-class report — precision, recall, F1, support, the macro and the
   weighted averages — over `Nat` labels, on `mlbend-metrics`' counts. Two laws

@@ -140,6 +140,18 @@ now:
   next-token prediction over the periodic sequence 0..7. The loss falls from
   2.3591 to 0.0021; a NumPy twin starts at 2.3591 and ends at 0.1351. The loss
   curve, the table and the manifest are in `results/transformer/`.
+- `diffusion-2d` (2026-10-25): a DDPM denoiser — three linear layers with
+  SiLU — trained by AdamW to predict the noise of a 32-step linear-β forward
+  process over two moons, then sampled by the ancestral loop. The first
+  training loss is the gate: every "random" number is a pure function of a
+  counter (murmur3's fmix32, Box-Muller over 24-bit uniforms), so the NumPy
+  twin draws the same numbers and the two agree to **1.8e-7**. The final
+  loss, the sample statistics and the scatter (`results/diffusion/`) are
+  report-mode: the optimizers round differently and the sampling loop
+  amplifies a ulp over its 32 steps. The finding the task cost: model
+  parameters are affine (they hold arrays), so a sampling loop cannot reuse
+  them — `Layer.fwd` returns them in `Fwd{p, y, s}` and the loop threads
+  them through a record, the pattern bendtorch's own eval loop uses.
 
 **The foundation correction (2026-10-24).** The earlier "missing softmax" was
 true only of the old `bendtorch-core@0.1.0.0` line; the maintained
