@@ -147,27 +147,30 @@ now:
   by the NumPy twin. The bijection of mix32 is tested, not proved: the
   debt of issue #10.
 - `diffusion-2d` (2026-10-25): a DDPM denoiser — three linear layers with
-  SiLU — trained by AdamW to predict the noise of a 32-step linear-β forward
+  SiLU — trained by AdamW to predict the noise of a 64-step linear-β forward
   process over two moons, then sampled by the ancestral loop. The first
   training loss is the gate: every "random" number is a pure function of a
   counter (murmur3's fmix32, Box-Muller over 24-bit uniforms), so the NumPy
-  twin draws the same numbers and the two agree to **1.8e-7**. The final
+  twin draws the same numbers and the two agree to **1.5e-5** (152.954
+  against 152.954). The final
   loss, the sample statistics and the scatter (`results/diffusion/`) are
   report-mode: the optimizers round differently and the sampling loop
-  amplifies a ulp over its 32 steps. The finding the task cost: model
+  amplifies a ulp over its 64 steps. The finding the task cost: model
   parameters are affine (they hold arrays), so a sampling loop cannot reuse
   them — `Layer.fwd` returns them in `Fwd{p, y, s}` and the loop threads
   them through a record, the pattern bendtorch's own eval loop uses.
-- `diffusion-digits` (WIP): the same skeleton over real data — the first
+- `diffusion-digits`: the same skeleton over real data — the first
   1024 rows of mstz/optdigits (8×8 digits, pinned revision, read through
   `csv_of`), a 64-output denoiser, 64 sampled digits printed as a grid.
   The exact gate caught four real bugs (σ_t, the per-row noise-index
-  reset, the `drop` semantics, the 65th-pixel consumption) and still
-  flags one data-ordering difference in the staged input build; the test
-  is parked (`reference/diffusion_digits_wip.py`) until the layout is
-  finished, and the denoiser needs a residual head (`T.Residual`) before
-  the samples stop diverging — an underfit ε̂ at high noise makes the
-  ancestral chain expand geometrically.
+  reset, the `drop` semantics, the 65th-pixel consumption) and a fifth in
+  the staged input build (a pixel skipped per row, rows newest-first,
+  fixed in `2f2631b`); the test is `reference/test_diffusion_digits.py`
+  and the task passes (first loss 8062.69, delta 4.7e-05). The denoiser
+  still needs a residual head (`T.Residual`) before the samples stop
+  diverging — an underfit ε̂ at high noise makes the ancestral chain
+  expand geometrically (`sample_mean` 50256.9 against the data's 96.7,
+  report-mode).
 
 **The foundation correction (2026-10-24).** The earlier "missing softmax" was
 true only of the old `bendtorch-core@0.1.0.0` line; the maintained

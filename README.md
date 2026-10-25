@@ -100,16 +100,20 @@ report: results/raw/cancer-knn-....json
 The corpus is not only classical: `attention-parity` runs a single-head
 self-attention block and checks every output number against PyTorch,
 `transformer-periodic` trains a one-block causal transformer with the real
-BendTorch, and `diffusion-2d` trains a DDPM denoiser and samples it — every
-"random" draw a pure function of a counter (`mlbend-generative`), so the
+BendTorch, and `diffusion-2d` and `diffusion-digits` train a DDPM denoiser
+and sample it — over two moons, and over the first 1024 rows of real
+`mstz/optdigits` digits (`results/diffusion-digits/grid.svg` shows real
+digits beside the samples). Every
+"random" draw is a pure function of a counter (`mlbend-generative`), so the
 NumPy twin draws the same numbers (`results/diffusion/` holds the scatter
 beside the loss curve).
 
 **The GPU lane.** Bend programs reach the GPU through bangs (`!`), the
 kernels of `bend-ml-tensor-gpu`, and `bend -o` builds the device program
 when `CUDA_HOME` names a toolkit with `nvrtc.h` (NVRTC compiles it at build
-time; three small RPMs unpacked user-locally are enough — the recipe is in
-NOTES.md, 2026-10-25). bendtorch ships the drop-in (`torch/gpu.bend`); our
+time; three small RPMs unpacked user-locally are enough — the recipe and the
+`libnvrtc.so.13` loader failure it fixes are in NOTES.md, 2026-10-26).
+bendtorch ships the drop-in (`torch/gpu.bend`); our
 examples use the proved CPU layers on purpose. Verified on an RTX 5060:
 the linear layers give bit-identical results on the GPU, and the
 exponential-taking layers differ only in CUDA's exp ulps — exactly

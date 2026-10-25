@@ -3,6 +3,61 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-26
+
+- **The digits layout bug, found and fixed (commit `2f2631b`).** The last
+  open difference in `examples/diffusion_digits` was the staged input build.
+  `row_of` returned `tail` — the list after *one* pixel — instead of the
+  remainder after the row's 64 pixels, so every row from 1 on was shifted by
+  a pixel; and `rows_go` consed, so the rows arrived newest-first while the
+  twin staged them oldest-first. Two changes fixed it: `drop64_go` consumes
+  exactly the 64 pixels of a row (`Con{+h, +tail}` so the head survives the
+  copy), and `rows_rev` puts row 0 back first — in both `input_of` and
+  `sinput_of`. After it: first loss **8062.6895 against 8062.689453125** and
+  data mean **0.30756474 against 0.30756473541259766**. The tell was always
+  the gate: order-blind statistics (mean over 65536 pixels) barely moved
+  while the loss did.
+- **What the printed losses mean** (measured, not assumed). The loop prints
+  `loss:` at i = 1, 99, 199, …, 2999 and each line carries the loss of the
+  state *entering* step i−1, so the first printed line is the twin's
+  `curve[0]` — verified: Bend 8062.6895, `curve[0]` 8062.689453125, while
+  `curve[1]` is already 4111.5. The base case's `final_loss:` line carries
+  the twin's `curve[-1]`. `loss.tsv`'s step column ({0, 98, 198, …}) matches
+  the print schedule exactly, so the pairing was right and the visible drift
+  at later steps (Bend 18.330002 vs 18.466026306152344 at step 98) is two
+  optimizers rounding differently over 99 AdamW steps — which is why only
+  the first loss is gated.
+- **The task is wired and passes** (`diffusion-digits`, commit `855af5b`):
+  first run **PASS**, first loss delta **4.69e-05** (relative 5.8e-9), data
+  mean delta **4.6e-9**; build 124 s, run 298 s, reference 35 s. The
+  report-mode fields say the sampler is the weak part: final loss 1.02584 vs
+  1.07458, `sample_mean` **50256.9** against the data's 96.7,
+  `sample_std` **748808** against 753.9 — an underfit denoiser whose
+  geometric expansion through 64 reverse steps is the known follow-up (a
+  residual head, `T.Residual`), not a pass condition.
+- **The GPU lane's `libnvrtc.so.13` failure was an environment bug, not a
+  compiler bug.** `bend -o` could not load `libnvrtc.so.13: cannot open
+  shared object file` because the default `CUDA_HOME` named a nonexistent
+  `~/.local/cuda12`, the libraries live in `lib64` (not `lib`), and
+  `LD_LIBRARY_PATH` was unset. The toolkit here is three RPMs —
+  `~/nvrtc.rpm`, `~/nvrtc-devel.rpm`, `~/cudart-devel.rpm` — unpacked into
+  `~/.local/cuda-nvrtc`, which holds `include/nvrtc.h`, `include/cuda.h`
+  and `lib64/libnvrtc.so.13`. The fix is committed in **bendtorch**
+  (`6ee6721`): `CUDA_HOME ?= $(HOME)/.local/cuda-nvrtc`,
+  `CUDA_LIB := $(if $(wildcard $(CUDA_HOME)/lib64),$(CUDA_HOME)/lib64,$(CUDA_HOME)/lib)`,
+  and every GPU recipe and demo run exports `LD_LIBRARY_PATH=$(CUDA_LIB)`.
+  With it, `make gpu` (needs `PY=/home/adeerkhan/github/fatima/.venv/bin/python`,
+  where torch 2.14.1+cu130 lives — the local venvs have no torch) and
+  `scripts/gpu_expcr.sh` pass: `gpu_test` all eight zeros,
+  `gpu_layers` SiLU 4 ulps, cross-entropy 4, attention 176128 at the small
+  sizes and 7680 at the large ones — their documented ulp policy.
+- **`make check` is 90/90**: `reference/test_diffusion_digits.py` is the
+  90th check (440 s, the slowest — Bend build + 3000-step run + the NumPy
+  twin). Both diffusion examples now have a README with their saved picture
+  (`scatter.svg`, `grid.svg`); regenerating them refreshed crossval prose
+  that predated the shared folds (both sides 0.9307) and heart naive Bayes'
+  number that predated the `var_smoothing` fix (0.95).
+
 ## 2026-10-25
 
 - **The first diffusion model in Bend** (`examples/diffusion`, the task

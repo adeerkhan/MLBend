@@ -7,9 +7,10 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
-## 2026-10-26 — the generative package, the GPU lane, the digits lesson
+## 2026-10-26 — the generative package, the GPU lane, the digits done
 
-**Where we are.** Three things moved; one is deliberately parked.
+**Where we are.** Three things moved; one is now finished rather than
+parked.
 
 - **`mlbend-generative@0.1.0.0`** (issue #10): the counter RNG (murmur3's
   fmix32 **plus its closed-form inverse**), the cosine and the linear
@@ -22,43 +23,57 @@ leaves the next one blind.
   statistics are report-mode with the measured reason in NOTES (a 1-ulp
   weight perturbation changes nothing, but optimizer rounding over 4000
   steps makes different denoisers).
-- **The GPU lane is real and now measured on this machine.** `bend -o`
+- **The GPU lane is real and measured on this machine.** `bend -o`
   builds the device program when `CUDA_HOME` has `nvrtc.h` (NVRTC at
-  build; three RPMs unpacked into `~/.local/cuda-nvrtc` suffice — recipe
-  in NOTES). Programs reach the GPU only through bangs =
-  `bend-ml-tensor-gpu`; bendtorch's `torch/gpu.bend` is the drop-in. On
-  the RTX 5060: `demo/gpu_test.bend` → all eight linear comparisons
-  **bit-identical on the GPU** (0.8 s, 20 % util, 1.7 GB);
+  build; three RPMs unpacked into `~/.local/cuda-nvrtc` — the recipe and
+  the failure it fixes are in NOTES). Programs reach the GPU only through
+  bangs = `bend-ml-tensor-gpu`; bendtorch's `torch/gpu.bend` is the
+  drop-in. On the RTX 5060: `demo/gpu_test.bend` → all eight linear
+  comparisons **bit-identical on the GPU** (0.8 s, 20 % util, 1.7 GB);
   `gpu_layers_test` → SiLU 4 ulps / attention in CUDA-exp ulps — exactly
   their documented policy. Ours stay CPU because they use the proved
-  `main.bend` layers. **Not yet filed**: the bendlang doc issue (the
-  CUDA_HOME/bangs/`--gpu-build` recipe is only in the compiler source).
-- **`diffusion-digits` is parked mid-fix** — real data (mstz/optdigits,
-  pinned, 1024 rows, `csv_of` drop=0), 64-pixel denoiser, sampling grid.
-  The exact gate caught four real bugs (σ_t; the noise index resetting
-  per row — the tell was the loss pinned at exactly 1.0, the
-  zero-predictor; the `drop` semantics; the 65th-pixel consumption) and
-  one remains: the staged cons/reverse input build still pairs data one
-  way and the twin another (first loss agrees to ~1 %). The test is
-  parked as `reference/diffusion_digits_wip.py`. Also: append-building
-  is quadratic (20 min → 28 s by cons+reverse), and the underfit
-  denoiser makes the sampler geometrically expand — the next model step
-  is a residual head (`T.Residual`), then the GPU import switch.
+  `main.bend` layers. **The `libnvrtc.so.13` failure was environmental
+  and is fixed in bendtorch (`6ee6721`, local commit):** the default
+  `CUDA_HOME` named a nonexistent `~/.local/cuda12`, the libs are in
+  `lib64`, and `LD_LIBRARY_PATH` was unset — `make gpu` and
+  `scripts/gpu_expcr.sh` now pass (all zeros) with
+  `PY=/home/adeerkhan/github/fatima/.venv/bin/python` (torch 2.14.1+cu130;
+  the local venvs have no torch). Do not re-edit the Makefile's CUDA lines
+  13–15; they are correct as committed. **Not yet filed**: the bendlang
+  doc issue (the CUDA_HOME/bangs/`--gpu-build` recipe is only in the
+  compiler source).
+- **`diffusion-digits` is done and in the corpus** (was parked): the last
+  layout bug — `row_of` skipping one pixel per row, and rows newest-first —
+  is fixed in `2f2631b` (`drop64_go`, `rows_rev`); the test is un-parked as
+  `reference/test_diffusion_digits.py` (the 90th check, 440 s) and the task
+  is wired into `experiment.py`: first run **PASS**, first loss delta
+  **4.69e-05**, data mean delta **4.6e-9**, report card in
+  `results/latest/diffusion-digits.json`, five rows in RESULTS.md, README
+  with `grid.svg`. The sampler still explodes (`sample_mean` 50256.9 vs
+  96.7) — report-mode, and the reason: an underfit denoiser, so the next
+  model step is a residual head (`T.Residual`), then the GPU import switch.
+  NOTES has the print-alignment finding (the printed `loss:` lines carry
+  `curve[i-1]`; `final_loss:` carries `curve[-1]`).
 
-**What was run.** `experiment.py --task diffusion-2d` → PASS (delta
-−1.5e-5); `--summary` rewrote RESULTS. `test_generative.py` and
-`test_diffusion.py` match (the generative twin includes the mix32
-roundtrip on 4096 values). The GPU builds and runs above. `make check`
-→ see below.
+**What was run.** `experiment.py --task diffusion-digits` → PASS;
+`--summary` rewrote RESULTS (12 tasks' rows). `make check` → **90/90**
+(log `/tmp/opencode/check11.log`). `make gpu` and `scripts/gpu_expcr.sh`
+in bendtorch → all zeros. `make_example_readmes.py` → READMEs for both
+diffusion examples (they had none) and refreshed the crossval/heart text
+that predated the shared folds and `var_smoothing`.
 
 **What is next.**
-1. Finish the digits layout (the one remaining ordering difference), then
-   the residual denoiser, then un-park the test.
-2. `make release PKG=report` and `PKG=generative` still wait on the
+1. The residual head (`T.Residual`) for the digits sampler, then the GPU
+   import switch (`torch/gpu.bend`, one import line) with a CPU-vs-GPU
+   step measurement.
+2. A CIFAR-10 task (3072 outputs) with the Bend-vs-NumPy/PyTorch
+   comparison and a sample grid under `results/`.
+3. `make release PKG=report` and `PKG=generative` still wait on the
    maintainer (CI red on the kNN check until report ships).
-3. File the bendlang doc issue for the GPU recipe.
-4. Port the diffusion example to `torch/gpu.bend` (one import line) and
-   measure the training step CPU vs GPU.
+4. File the bendlang doc issue for the GPU recipe.
+5. The W&B sweep over the selected parameter.
+6. Push this session's commits to `main` (they are local) and watch CI;
+   await bend-ml#19 and bendlang/bend#1845.
 
 ## 2026-10-25 (later) — the first diffusion model
 
