@@ -6,6 +6,6 @@ The whole chain: iris from HuggingFace, the scaler fitted by `mlbend-pipeline` o
 $ bendenv run -- bend examples/crossval/main.bend
 ```
 
-Mean accuracy **0.9333**, against scikit-learn's `Pipeline(StandardScaler, LogisticRegression)` at **0.9533** on the same folds. The two libraries shuffle with different generators, so the folds differ; the procedure agrees.
+Mean accuracy **0.9307**, against scikit-learn's `Pipeline(StandardScaler, LogisticRegression)` at **0.9307** on the same folds: the program prints the fold of every row and the reference runs those folds, so the two numbers agree to 5.9e-8 instead of agreeing only about the procedure.
 
 ![plot](plot.svg)

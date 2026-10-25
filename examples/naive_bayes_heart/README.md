@@ -6,6 +6,6 @@ The same baseline as `naive_bayes`, on a second dataset: 299 rows of twelve feat
 $ bendenv run -- bend examples/naive_bayes_heart/main.bend
 ```
 
-Accuracy **0.933333**, against scikit-learn's **0.950000** on the same split.
+Accuracy **0.950000**, against scikit-learn's **0.950000** on the same split.
 
 ![plot](plot.svg)

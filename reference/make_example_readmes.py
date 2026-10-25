@@ -175,8 +175,9 @@ def main():
           "`mlbend-metrics`.\n\n"
           "```console\n$ bendenv run -- bend examples/crossval/main.bend\n```\n\n"
           f"Mean accuracy **{acc:.4f}**, against scikit-learn's `Pipeline(StandardScaler, "
-          f"LogisticRegression)` at **{ref:.4f}** on the same folds. The two libraries "
-          "shuffle with different generators, so the folds differ; the procedure agrees.")
+          f"LogisticRegression)` at **{ref:.4f}** on the same folds: the program prints "
+          "the fold of every row and the reference runs those folds, so the two numbers "
+          "agree to 5.9e-8 instead of agreeing only about the procedure.")
 
     acc, ref = metric("iris-mlp", "accuracy")
     bar_svg(os.path.join(ROOT, "examples/mlp/plot.svg"), "Accuracy on iris",
@@ -259,6 +260,42 @@ def main():
           "The NumPy twin starts at the same loss and ends at 0.1351 with accuracy "
           "0.9375; the full curve and the manifest are in "
           "[`results/transformer/`](../../results/transformer/).")
+    # the two diffusion examples: their saved picture beside their report's numbers
+    src = os.path.join(ROOT, "results/diffusion/scatter.svg")
+    if os.path.exists(src):
+        open(os.path.join(ROOT, "examples/diffusion/plot.svg"), "w").write(open(src).read())
+    bend = latest("diffusion-2d")["metrics"]
+    first = bend["first_loss"]["bend"]
+    final = bend["final_loss"]["bend"]
+    write("diffusion", "A DDPM denoiser on two moons",
+          "A three-linear-layer SiLU denoiser on `bendtorch@1.0.1.0`, trained by AdamW for "
+          "4000 steps to predict the noise of a 64-step linear-β forward process over two "
+          "moons, then sampled by the ancestral loop. Every random number is a pure "
+          "function of a counter (murmur3's fmix32 over the step salt and the index, "
+          "Box-Muller over 24-bit uniforms), so the NumPy twin draws the same ones.\n\n"
+          "```console\n$ bendenv run -- bend examples/diffusion/main.bend\n```\n\n"
+          f"First loss **{first:.4f}** against the twin's — the gate — and final loss "
+          f"**{final:.4f}**, reported. The sampled cloud is broader than the data "
+          "(the sampler is the open question, not the trainer). The curve, the cloud and "
+          "the manifest are in [`results/diffusion/`](../../results/diffusion/).")
+
+    src = os.path.join(ROOT, "results/diffusion-digits/grid.svg")
+    if os.path.exists(src):
+        open(os.path.join(ROOT, "examples/diffusion_digits/plot.svg"), "w").write(open(src).read())
+    bend = latest("diffusion-digits")["metrics"]
+    first = bend["first_loss"]["bend"]
+    write("diffusion_digits", "A DDPM denoiser on digits",
+          "The same denoiser over real data: the first 1024 rows of `mstz/optdigits` "
+          "(pinned revision, its SHA-256 in the manifest), 8x8 digits scaled to [0, 1]. "
+          "64 pixels in, a 64-wide SiLU body, 64-step schedule, 3000 full-batch AdamW "
+          "steps, then 64 fresh digits by the ancestral loop. The image shows real "
+          "digits on the left and the samples on the right.\n\n"
+          "```console\n$ bendenv run -- bend examples/diffusion_digits/main.bend\n```\n\n"
+          f"First loss **{first:.2f}** against the NumPy twin's — the gate — and the data "
+          "mean to 4.6e-9. The final loss and the grid are reported, not gated: the "
+          "underfit denoiser makes the sampler expand geometrically, which is the known "
+          "follow-up (a residual head). The curve, the grid and the manifest are in "
+          "[`results/diffusion-digits/`](../../results/diffusion-digits/).")
     print("wrote example READMEs and plots")
 
 
