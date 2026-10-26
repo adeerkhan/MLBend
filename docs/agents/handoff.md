@@ -72,8 +72,14 @@ that predated the shared folds and `var_smoothing`.
    maintainer (CI red on the kNN check until report ships).
 4. File the bendlang doc issue for the GPU recipe.
 5. The W&B sweep over the selected parameter.
-6. Push this session's commits to `main` (they are local) and watch CI;
-   await bend-ml#19 and bendlang/bend#1845.
+6. **CI on `db495cf` is 87/90, and the three failures are all package
+   resolution**: `test_diffusion` and `test_diffusion_digits` fail because
+   `mlbend-generative@0.1.0.0` is not on BendHub, `test_knn` because
+   `mlbend-report@0.1.0.0` is not. CI deliberately resolves from the hub
+   (`scripts/setup.sh` creates no workspace, so `BEND_LIB` is unset there);
+   both packages wait on the maintainer's go for `make release`. The other
+   87 checks — every proof, kernel verdict and number — pass. Await
+   bend-ml#19 and bendlang/bend#1845 as well.
 
 ## 2026-10-25 (later) — the first diffusion model
 
