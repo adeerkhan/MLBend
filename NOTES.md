@@ -46,11 +46,20 @@ relevant entry before changing performance-sensitive code or a law.
   (`6ee6721`): `CUDA_HOME ?= $(HOME)/.local/cuda-nvrtc`,
   `CUDA_LIB := $(if $(wildcard $(CUDA_HOME)/lib64),$(CUDA_HOME)/lib64,$(CUDA_HOME)/lib)`,
   and every GPU recipe and demo run exports `LD_LIBRARY_PATH=$(CUDA_LIB)`.
-  With it, `make gpu` (needs `PY=/home/adeerkhan/github/fatima/.venv/bin/python`,
-  where torch 2.14.1+cu130 lives — the local venvs have no torch) and
-  `scripts/gpu_expcr.sh` pass: `gpu_test` all eight zeros,
+  With it, `make gpu` and `scripts/gpu_expcr.sh` pass: `gpu_test` all
+  eight zeros,
   `gpu_layers` SiLU 4 ulps, cross-entropy 4, attention 176128 at the small
   sizes and 7680 at the large ones — their documented ulp policy.
+  (Earlier sessions ran it with `PY=/home/adeerkhan/github/fatima/.venv/bin/python`
+  only because no `reference/.venv` existed anywhere on this machine;
+  `scripts/setup.sh` builds one with `torch==2.14.1+cpu` and that is what
+  the verified run used — the oracles are CPU-side.)
+  **Upstreamed on 2026-10-26**: BendTorch issue **#10** (both failure
+  modes reproduced from scratch: the hardcoded `lib` vs `lib64`, and the
+  gate printing "on the GPU" for a CPU build when no toolkit is found —
+  `ldd` shows zero CUDA libraries) + PR **#11** with the detection/lib64/
+  guard fix (`make laws`, `make gpu`, `make check` green on the branch),
+  and the recipe doc issue **bendlang/bend#1863**.
 - **`make check` is 90/90**: `reference/test_diffusion_digits.py` is the
   90th check (440 s, the slowest — Bend build + 3000-step run + the NumPy
   twin). Both diffusion examples now have a README with their saved picture

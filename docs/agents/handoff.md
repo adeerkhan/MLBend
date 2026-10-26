@@ -33,15 +33,19 @@ parked.
   `gpu_layers_test` → SiLU 4 ulps / attention in CUDA-exp ulps — exactly
   their documented policy. Ours stay CPU because they use the proved
   `main.bend` layers. **The `libnvrtc.so.13` failure was environmental
-  and is fixed in bendtorch (`6ee6721`, local commit):** the default
-  `CUDA_HOME` named a nonexistent `~/.local/cuda12`, the libs are in
-  `lib64`, and `LD_LIBRARY_PATH` was unset — `make gpu` and
-  `scripts/gpu_expcr.sh` now pass (all zeros) with
-  `PY=/home/adeerkhan/github/fatima/.venv/bin/python` (torch 2.14.1+cu130;
-  the local venvs have no torch). Do not re-edit the Makefile's CUDA lines
-  13–15; they are correct as committed. **Not yet filed**: the bendlang
-  doc issue (the CUDA_HOME/bangs/`--gpu-build` recipe is only in the
-  compiler source).
+  and is upstreamed now:** the default `CUDA_HOME` named a nonexistent
+  `~/.local/cuda12`, the libs are in `lib64`, and `LD_LIBRARY_PATH` was
+  unset — both failures are reproduced from scratch in BendTorch issue
+  **#10** (including the gate printing "on the GPU" for a CPU build when
+  no toolkit exists: `ldd` shows zero CUDA libraries), and the fix
+  (detection of the `nvrtc.h` candidates, `lib64`-over-`lib`, a guard)
+  is PR **#11** against `devel` with `make laws`, `make gpu` and
+  `make check` green and the lane verified end-to-end on the RTX 5060.
+  (No `reference/.venv` existed on this machine, which is why older
+  notes ran with `PY=…/fatima/.venv/bin/python`; `scripts/setup.sh`
+  builds one with `torch==2.14.1+cpu` and that suffices — the oracles
+  are CPU-side.) The recipe doc issue is filed too:
+  **bendlang/bend#1863** (it lives only in `cli_build`'s comment).
 - **`diffusion-digits` is done and in the corpus** (was parked): the last
   layout bug — `row_of` skipping one pixel per row, and rows newest-first —
   is fixed in `2f2631b` (`drop64_go`, `rows_rev`); the test is un-parked as
@@ -63,7 +67,16 @@ diffusion examples (they had none) and refreshed the crossval/heart text
 that predated the shared folds and `var_smoothing`. **Two datasets
 published under HF `arwics`**: `arwics/cifar10` (the flattened CSV, see
 below) and `arwics/mlbend-results` (a public mirror of `results/` — the
-table, the grids, the report cards).
+table, the grids, the report cards). **Both pending packages are
+released**: `mlbend-report@0.1.0.0` → `0x97687e0483c49ddb64fe1ee5f5244927`
+and `mlbend-generative@0.1.0.0` → `0xa51d4d9fa3661462984f336054bbc146`,
+linked and tagged (`*-v0.1.0.0`); with `BEND_LIB` unset, `examples/knn`,
+`examples/diffusion` and `examples/diffusion_digits` all build from the
+hub — CI's three red checks should clear. **Upstream this session**:
+BendTorch issue **#10** (the GPU build defaults, both failures
+reproduced) + PR **#11** (base `devel`; `make laws`, `make gpu` and
+`make check` all green on the branch, GPU lane verified end-to-end on
+the RTX 5060), and the recipe doc issue **bendlang/bend#1863**.
 
 **The upstream answers that changed while we waited.**
 - `bendlang/bend#1845` (**merged**): `File.read` now fills its buffer —
@@ -91,19 +104,14 @@ table, the grids, the report cards).
    (5000 rows × 3072 CHW pixels + label; round-trip verified). Size the
    step time first: full-batch 3072-output training on CPU Bend is
    hours-scale, so mini-batch — or make it the first GPU-lane task.
-3. `make release PKG=report` and `PKG=generative` still wait on the
-   maintainer (CI red on three checks until they ship).
-4. File the bendlang doc issue for the GPU recipe (NOTES 2026-10-26 now
-   has it to cite), and offer the bendtorch CUDA Makefile fix (`6ee6721`)
-   upstream.
+3. ~~`make release PKG=report` / `PKG=generative`~~ — **done** (hashes
+   above); watch the next CI run for 90/90.
+4. ~~The bendlang GPU-recipe doc issue and the bendtorch CUDA fix~~ —
+   **filed**: bendlang/bend#1863, BendTorch#10 + PR#11 (await review).
 5. The W&B sweep over the selected parameter.
-6. **CI on `db495cf` is 87/90, and the three failures are all package
-   resolution**: `test_diffusion` and `test_diffusion_digits` fail because
-   `mlbend-generative@0.1.0.0` is not on BendHub, `test_knn` because
-   `mlbend-report@0.1.0.0` is not. CI deliberately resolves from the hub
-   (`scripts/setup.sh` creates no workspace, so `BEND_LIB` is unset there);
-   both packages wait on the maintainer's go for `make release`. The other
-   87 checks — every proof, kernel verdict and number — pass.
+6. ~~CI 87/90 on `db495cf`~~ — the three failures were the two
+   unpublished packages (hub-only resolution by design); both are now
+   published and locally verified with `BEND_LIB` unset.
 
 ## 2026-10-25 (later) — the first diffusion model
 
