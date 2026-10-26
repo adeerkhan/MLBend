@@ -82,9 +82,10 @@ the RTX 5060), and the recipe doc issue **bendlang/bend#1863**. **The CIFAR-scal
 in both — ~98 % of the work is host counter-noise the bangs never
 reach.** Numbers in NOTES 2026-10-26; the follow-ups are bend-ml#23
 (device counter-RNG fill bang) and, for the task itself, MLBend#11.
-BendTorch#12 records the packaging gap that blocks any hub consumer
-from the GPU/fast lanes (the package ships neither file). **CI on
-`489f9b6` is 90/90** — first fully green run since the packages exist.
+(BendTorch#12 — the packaging gap I first reported — was **retracted**:
+`scripts/package.sh` ships the lanes as the hub satellites
+`bendtorch-fast@`/`bendtorch-gpu@`; I had checked only the core's file
+list.) **CI on `489f9b6` is 90/90** — first fully green run since the packages exist.
 
 **The upstream answers that changed while we waited.**
 - `bendlang/bend#1845` (**merged**): `File.read` now fills its buffer —
@@ -111,13 +112,25 @@ from the GPU/fast lanes (the package ships neither file). **CI on
    are in NOTES 2026-10-26.
 2. The residual head (`T.Residual`) for the digits sampler, so
    `sample_mean`/`sample_std` can be gated. The GPU import switch is
-   **blocked on BendTorch#12** (the published package ships neither
-   `gpu.bend` nor `fast.bend`) and, per the measurement, buys no speed
-   until **bend-ml#23** (device counter-RNG) lands — it is a coverage
+   **not blocked** (BendTorch#12 was retracted: the lanes are on the hub
+   as the `bendtorch-gpu@1.1.1.0` / `bendtorch-fast@1.1.1.0` satellites —
+   the core package simply does not carry them by design): importing the
+   gpu satellite needs only the `Linear -> LinearF` renames (or
+   BendTorch PR#13's aliases) — and per the measurement it buys no speed
+   until **bend-ml#23** (device counter-RNG) lands, so it is a coverage
    exercise, not a speed one.
 3. The W&B sweep over the selected parameter.
-4. Watch for replies: BendTorch PR **#11** and issues **#10/#12**,
-   bend-ml **#20/#22/#23**, bendlang **#1848/#1835/#1820/#1863**.
+4. Watch for replies: bendlang PRs **#1870** (closes #1868, the do-let
+   diagnostics) and **#1871** (closes #1863, `guide/GPU.md`), plus
+   **#1848/#1835/#1820**; BendTorch PRs **#11** (CUDA defaults) and
+   **#14** (closes #13, the lane-name aliases), issues **#10/#7**;
+   bend-ml **#20/#22/#23**. BendTorch#12 was retracted the same day
+   (the lanes are the hub satellites; see NOTES).
+5. **bend-ml#23's PR is real feature work** (a `fill_gauss` bang in
+   tensor-gpu: the leaf protocol, the counter math on device, a host
+   twin, GPU verification) — sized in hours; do it as focused work, not
+   slipped into another task. Everything it needs (the measurements, the
+   source-level cause, the ulp-policy precedent) is in the issue.
 
 ## 2026-10-25 (later) — the first diffusion model
 

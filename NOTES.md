@@ -110,6 +110,19 @@ relevant entry before changing performance-sensitive code or a law.
   `bendtorch/.scratch/` (throwaway), the patch script is
   `patch_cifar_probe.py`.
 
+- **The retraction lesson (BendTorch#12, closed within the hour).** I
+  filed "the published package ships neither `gpu.bend` nor `fast.bend`"
+  from listing the `bendtorch@` core hash's files. Wrong:
+  `scripts/package.sh` assembles **four** hub packages — the law-clean
+  core plus the `bendtorch-fast` / `bendtorch-gpu` / `bendtorch-load`
+  satellites, all live at **1.1.1.0** — and a consumer imports the lanes
+  by name. The lesson for the next issue: read the packaging pipeline's
+  *outputs* and ask the hub itself
+  (`curl https://hub.bend-lang.com/name/<name>`) before claiming what
+  does not exist; a hash's file list is one package, not the design.
+  What survived: #13 (a `main.bend`-written program still needs the
+  `Linear -> LinearF` renames — the aliases PR is BendTorch#13's).
+
 ## 2026-10-25
 
 - **The first diffusion model in Bend** (`examples/diffusion`, the task
