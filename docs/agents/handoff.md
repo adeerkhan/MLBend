@@ -60,17 +60,42 @@ parked.
 (log `/tmp/opencode/check11.log`). `make gpu` and `scripts/gpu_expcr.sh`
 in bendtorch → all zeros. `make_example_readmes.py` → READMEs for both
 diffusion examples (they had none) and refreshed the crossval/heart text
-that predated the shared folds and `var_smoothing`.
+that predated the shared folds and `var_smoothing`. **Two datasets
+published under HF `arwics`**: `arwics/cifar10` (the flattened CSV, see
+below) and `arwics/mlbend-results` (a public mirror of `results/` — the
+table, the grids, the report cards).
+
+**The upstream answers that changed while we waited.**
+- `bendlang/bend#1845` (**merged**): `File.read` now fills its buffer —
+  the partial-read bug that the dataset reads hit (a six-byte read
+  answered three) is fixed in upstream.
+- `bend-ml#19` is **closed**; the live design thread is **#20** (re-base
+  autodiff on tensor-array, or BendTorch is the answer — open) with PR
+  **#22** open (`tensor-array`: prove `to_list`'s count, test its
+  numbers — the roundtrip both tensors sides need).
+- `BendTorch#4` (softmax/exp/div gradients) is **closed** — attention
+  trains; open there: **#7** (inference loops must thread parameters
+  through `Fwd{p, y, s}`) and PR **#9** (the docs for it).
+- Still open with us: `bendlang#1848` (the two effect spellings) and its
+  PR **#1835**, PR **#1820** (the spin poll), bend-ml **#20**/**#22**,
+  BendTorch **#7**/**#9**.
 
 **What is next.**
 1. The residual head (`T.Residual`) for the digits sampler, then the GPU
    import switch (`torch/gpu.bend`, one import line) with a CPU-vs-GPU
    step measurement.
-2. A CIFAR-10 task (3072 outputs) with the Bend-vs-NumPy/PyTorch
-   comparison and a sample grid under `results/`.
+2. The CIFAR-10 task (3072 outputs): the data exists now —
+   `arwics/cifar10`, revision `f44619abdb57391606d732724f9fc40a684471bf`,
+   `train.csv`, expected sha256
+   `80f3ca81e56946a0eabc65f68b69558b4fdc741e1aafb0d9f552fcee768b3161`
+   (5000 rows × 3072 CHW pixels + label; round-trip verified). Size the
+   step time first: full-batch 3072-output training on CPU Bend is
+   hours-scale, so mini-batch — or make it the first GPU-lane task.
 3. `make release PKG=report` and `PKG=generative` still wait on the
-   maintainer (CI red on the kNN check until report ships).
-4. File the bendlang doc issue for the GPU recipe.
+   maintainer (CI red on three checks until they ship).
+4. File the bendlang doc issue for the GPU recipe (NOTES 2026-10-26 now
+   has it to cite), and offer the bendtorch CUDA Makefile fix (`6ee6721`)
+   upstream.
 5. The W&B sweep over the selected parameter.
 6. **CI on `db495cf` is 87/90, and the three failures are all package
    resolution**: `test_diffusion` and `test_diffusion_digits` fail because
@@ -78,8 +103,7 @@ that predated the shared folds and `var_smoothing`.
    `mlbend-report@0.1.0.0` is not. CI deliberately resolves from the hub
    (`scripts/setup.sh` creates no workspace, so `BEND_LIB` is unset there);
    both packages wait on the maintainer's go for `make release`. The other
-   87 checks — every proof, kernel verdict and number — pass. Await
-   bend-ml#19 and bendlang/bend#1845 as well.
+   87 checks — every proof, kernel verdict and number — pass.
 
 ## 2026-10-25 (later) — the first diffusion model
 
