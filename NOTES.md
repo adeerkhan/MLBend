@@ -67,6 +67,49 @@ relevant entry before changing performance-sensitive code or a law.
   that predated the shared folds (both sides 0.9307) and heart naive Bayes'
   number that predated the `var_smoothing` fix (0.95).
 
+- **One `~/.bend/bin/bend`, two pins: MLBend 2.0.38 vs BendTorch
+  2.0.39.** BendTorch's `scripts/setup.sh` SHA-checks **2.0.39** and
+  installs to the *same* global `$HOME/.bend` that MLBend pins at
+  **2.0.38** — so running the former in the BendTorch worktree silently
+  replaced the global compiler, and MLBend's `check_all.py` toolchain
+  gate caught it exactly as designed: `ERROR: bend 2.0.38 is required
+  (found bend 2.0.39)`. Restored with MLBend's own SHA-verified
+  `scripts/setup.sh`. **The recipe going forward**: BendTorch's setup
+  honors `BEND_HOME`, so run it as
+  `BEND_HOME=$HOME/.bend-2.0.39 scripts/setup.sh` and keep its pin
+  beside the global one; give each repo its own `BEND_BIN`. The gate
+  turning red within minutes of the flip is the system working — a
+  number checked is a number caught.
+
+- **CIFAR-scale steps are host-bound: the GPU lane does not help
+  (measured, both lanes).** A probe built from the digits example at
+  CIFAR shapes (n=256, d=3072, hidden 128, T=64, 16 samples), run on the
+  RTX 5060 with Bend 2.0.38 on an idle machine, three runs each:
+
+  | config | CPU (`torch/main.bend` + layers) | GPU (`torch/gpu.bend` layers) |
+  |---|---|---|
+  | 0 steps (x0 noise + stats + 64-step sampler) | 214.3 / 216.1 / 217.0 → **215.8 s** | 225.5 / 225.6 / 229.7 → **226.9 s** |
+  | 1 step (S1 − S0) | **~7.4 s/step** (S1: 223.1 / 223.1 / 223.4) | **~8.7 s/step** (S1: 234.0 / 234.5, one 255.0 outlier) |
+  | full 5-step run | 192.8 s | 201.6 s |
+  | `final_loss` after 5 steps | 71710.04 | 71710.03 (1 ulp — the lane's bits hold) |
+
+  **The GPU is never faster: +5 % on the sampler, +18 % on the step.**
+  The reason is arithmetic: a step's matrix work is ≈1.2 GFLOP
+  (0.1–0.3 s at BendTorch's own 10 GFLOP/s bench rate) against ~7 s of
+  **host** work — the counter noise (`G.noise_of` builds 786 432
+  Gaussians per step, each `gauss_at` recomputing *both* uniforms of its
+  pair and the `log`/`sqrt` radius: ~100 host graph reductions ≈ µs each)
+  plus the staged list input. The bangs make the ~2 % device share free
+  and leave the 98 % where it was; the sampler is ~215 s of pure host
+  noise in both lanes. Implications: (a) a CIFAR task must be sized by
+  *steps × 7.4 s* until the noise can be filled on the device — the
+  candidate fix is a counter-RNG fill bang in `bend-ml-tensor-gpu`
+  (filed as bend-ml#23); (b) MLBend's examples stay on the proved
+  `main.bend` layers with no loss, because the proved lane is the fast
+  lane here too; (c) the probe files live in `/tmp/opencode/` and
+  `bendtorch/.scratch/` (throwaway), the patch script is
+  `patch_cifar_probe.py`.
+
 ## 2026-10-25
 
 - **The first diffusion model in Bend** (`examples/diffusion`, the task

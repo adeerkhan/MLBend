@@ -76,7 +76,15 @@ hub — CI's three red checks should clear. **Upstream this session**:
 BendTorch issue **#10** (the GPU build defaults, both failures
 reproduced) + PR **#11** (base `devel`; `make laws`, `make gpu` and
 `make check` all green on the branch, GPU lane verified end-to-end on
-the RTX 5060), and the recipe doc issue **bendlang/bend#1863**.
+the RTX 5060), and the recipe doc issue **bendlang/bend#1863**. **The CIFAR-scale probe
+(RTX 5060, Bend 2.0.38, three runs per config): a training step is
+~7.4 s CPU and ~8.7 s on the GPU lane, the sampler ~215 s of host noise
+in both — ~98 % of the work is host counter-noise the bangs never
+reach.** Numbers in NOTES 2026-10-26; the follow-ups are bend-ml#23
+(device counter-RNG fill bang) and, for the task itself, MLBend#11.
+BendTorch#12 records the packaging gap that blocks any hub consumer
+from the GPU/fast lanes (the package ships neither file). **CI on
+`489f9b6` is 90/90** — first fully green run since the packages exist.
 
 **The upstream answers that changed while we waited.**
 - `bendlang/bend#1845` (**merged**): `File.read` now fills its buffer —
@@ -94,24 +102,22 @@ the RTX 5060), and the recipe doc issue **bendlang/bend#1863**.
   BendTorch **#7**/**#9**.
 
 **What is next.**
-1. The residual head (`T.Residual`) for the digits sampler, then the GPU
-   import switch (`torch/gpu.bend`, one import line) with a CPU-vs-GPU
-   step measurement.
-2. The CIFAR-10 task (3072 outputs): the data exists now —
-   `arwics/cifar10`, revision `f44619abdb57391606d732724f9fc40a684471bf`,
-   `train.csv`, expected sha256
-   `80f3ca81e56946a0eabc65f68b69558b4fdc741e1aafb0d9f552fcee768b3161`
-   (5000 rows × 3072 CHW pixels + label; round-trip verified). Size the
-   step time first: full-batch 3072-output training on CPU Bend is
-   hours-scale, so mini-batch — or make it the first GPU-lane task.
-3. ~~`make release PKG=report` / `PKG=generative`~~ — **done** (hashes
-   above); watch the next CI run for 90/90.
-4. ~~The bendlang GPU-recipe doc issue and the bendtorch CUDA fix~~ —
-   **filed**: bendlang/bend#1863, BendTorch#10 + PR#11 (await review).
-5. The W&B sweep over the selected parameter.
-6. ~~CI 87/90 on `db495cf`~~ — the three failures were the two
-   unpublished packages (hub-only resolution by design); both are now
-   published and locally verified with `BEND_LIB` unset.
+1. Implement the `cifar-10` task per **MLBend#11** (the issue carries the
+   pin, the config `n=256, hidden=128, steps=40, samples=8 ≈ 410 s`, the
+   gates and the acceptance criteria). The probe artifacts: the patch
+   script `/tmp/opencode/patch_cifar_probe.py`, the CPU binaries
+   `/tmp/opencode/cifar_probe*`, the GPU probe in
+   `bendtorch/.scratch/cifar_probe_gpu*` — all throwaway; the numbers
+   are in NOTES 2026-10-26.
+2. The residual head (`T.Residual`) for the digits sampler, so
+   `sample_mean`/`sample_std` can be gated. The GPU import switch is
+   **blocked on BendTorch#12** (the published package ships neither
+   `gpu.bend` nor `fast.bend`) and, per the measurement, buys no speed
+   until **bend-ml#23** (device counter-RNG) lands — it is a coverage
+   exercise, not a speed one.
+3. The W&B sweep over the selected parameter.
+4. Watch for replies: BendTorch PR **#11** and issues **#10/#12**,
+   bend-ml **#20/#22/#23**, bendlang **#1848/#1835/#1820/#1863**.
 
 ## 2026-10-25 (later) — the first diffusion model
 
