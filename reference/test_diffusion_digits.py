@@ -5,8 +5,9 @@
 `examples/diffusion_digits/main.bend` reads the first 1024 rows of
 mstz/optdigits (pinned revision, 8x8 digits, pixels scaled to [0, 1]),
 trains a three-linear-layer SiLU denoiser full-batch by AdamW to predict
-the noise of the 64-step linear schedule, then samples 64 fresh digits by
-the ancestral loop. This twin does the same in float32 with the same
+the noise of the 64-step linear schedule, then samples 64 fresh digits
+two ways: the ancestral loop over all 64 rungs and DDIM over every 4th
+rung (issue #12). This twin does the same in float32 with the same
 counter-based noise, computes in the same operation order, and compares:
 
   first_loss   the loss of the first step — the whole deterministic
@@ -16,9 +17,22 @@ counter-based noise, computes in the same operation order, and compares:
   final_loss   the loss of the last step — printed, not gated: the two
                optimizers round differently and the gap grows with the
                steps
-  sample_*     the sampled grid's statistics — printed, not gated: the
+  sample_*     the ancestral grid's statistics — report mode: the
                sampling loop runs the model 64 times, and one ulp of
                exp/sin/cos drift amplified through it is a different grid
+  ddim_*       the DDIM grid's statistics — report mode, for the same
+               reason
+
+Plus the frozen probe (reference/probe_digits.bend): the two samplers
+with the deterministic starting weights, no training, compared with this
+twin element by element — statistics are order-invariant, so only the
+reads can catch a reordered array (issue #13), and a second DDIM run
+with the draw on and another salt must be bit-identical at eta = 0. The
+probe prints the model's output for the first step too, and both sides
+step with it: that tight gate is about the sampler's arithmetic and the
+array's order, not about the matmul (BendTorch's dot accumulates in four
+partial sums where numpy's BLAS does not — measured 7 ulps on eps,
+reported rather than gated).
 
 The row order of the staged input was wrong until 2f2631b (one pixel was
 skipped per row), which the gate caught. Writes results/diffusion-digits/:
@@ -35,6 +49,12 @@ import time
 from datetime import datetime, timezone
 
 import numpy as np
+
+# The step algebra is one definition, mirrored once: mlbend-generative's
+# `sigma_of`, `step_of`, `ddim` and the strided walk over the same T = 64
+# linear schedule. test_diffusion.py carries that mirror; the loops below
+# are this example's own (4096 pixels a cloud).
+from test_diffusion import ddim, rungs, step_of
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BEND = os.environ.get("BEND_BIN") or os.path.expanduser("~/.bend/bin/bend")
@@ -148,10 +168,15 @@ def forward(params, inp):
     return F(h @ params["w3"].T + params["b3"])
 
 
+def init_params():
+    """The starting weights — the example's params(), frozen (no training)."""
+    return {"w1": init(1, H, D + 8), "b1": np.zeros(H, dtype=F),
+            "w2": init(2, H, H), "b2": np.zeros(H, dtype=F),
+            "w3": init(3, D, H), "b3": np.zeros(D, dtype=F)}
+
+
 def train(x0):
-    params = {"w1": init(1, H, D + 8), "b1": np.zeros(H, dtype=F),
-              "w2": init(2, H, H), "b2": np.zeros(H, dtype=F),
-              "w3": init(3, D, H), "b3": np.zeros(D, dtype=F)}
+    params = init_params()
     moment = {k: np.zeros_like(v) for k, v in params.items()}
     velocity = {k: np.zeros_like(v) for k, v in params.items()}
     curve = []
@@ -186,21 +211,53 @@ def train(x0):
     return params, curve
 
 
+def rev_step_eps(x, t, eps):
+    """The step's arithmetic around a model output already in hand: the
+    coefficients the example computes, in the example's order (sig divides
+    before it multiplies), and the draw from the step's counter."""
+    beta = lin_beta_at(t)
+    abar = ALPHAS[t - 1]
+    prev = ALPHAS[t - 2] if t > 1 else F(1.0)
+    coef = F(beta / np.sqrt(F(1.0 - abar)).astype(F))
+    scale = F(1.0 / np.sqrt(F(1.0 - beta)).astype(F))
+    sig = np.sqrt(F(beta * F(F(F(1.0) - prev) / F(F(1.0) - abar)))).astype(F)
+    z = noise_of(1000000 + t, S * D)
+    # the draw rides outside `scale`: Algorithm 2 adds sigma_t*z to
+    # the already-scaled mean (issue #14)
+    return F(F(scale * F(x - F(coef * eps))) + F(sig * z))
+
+
+def rev_step(params, x, t):
+    """One ancestral step, the example's reverse_step order."""
+    inp = input_of(1000000 + t, t, F(1.0), F(0.0), x, S)
+    eps = forward(params, inp).reshape(S * D)
+    return rev_step_eps(x, t, eps)
+
+
 def sample(params):
+    """The ancestral loop with the posterior's sigma (issue #14): at t=1
+    that variance is 0, so the last step adds nothing."""
     x = noise_of(2000000, S * D).copy()
     for t in range(T, 0, -1):
-        beta = lin_beta_at(t)
-        abar = ALPHAS[t - 1]
-        coef = F(beta / np.sqrt(F(1.0 - abar)).astype(F))
-        scale = F(1.0 / np.sqrt(F(1.0 - beta)).astype(F))
-        sig = np.sqrt(beta).astype(F)
+        x = rev_step(params, x, t)
+    return x
+
+
+def ddim_sample(params, eta, k, draw=True, salt=0):
+    """The example's DDIM loop: every k-th rung, top first, the two rung
+    lists in lockstep. The step itself (sigma, the five coefficients,
+    the elementwise fold) is mlbend-generative's, mirrored once in
+    test_diffusion.py over the same T = 64 linear schedule."""
+    pos = rungs(k)
+    x = noise_of(2000000, S * D).copy()
+    for i, idx in enumerate(pos):
+        abar = ALPHAS[idx]
+        prev = ALPHAS[pos[i + 1]] if i + 1 < len(pos) else F(1.0)
+        t = idx + 1
+        z = noise_of(1000000 + salt + t, S * D) if draw else np.zeros(S * D, dtype=F)
         inp = input_of(1000000 + t, t, F(1.0), F(0.0), x, S)
         eps = forward(params, inp).reshape(S * D)
-        z = noise_of(1000000 + t, S * D)
-        if t == 1:
-            x = F(scale * F(x - F(coef * eps)))
-        else:
-            x = F(scale * F(F(x - F(coef * eps)) + F(sig * z)))
+        x = ddim(step_of(abar, prev, eta), x, eps, z)
     return x
 
 
@@ -230,10 +287,13 @@ def run_bend():
 def parse(out):
     losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out, re.M)]
     vals = {k: float(re.search(rf"^{k}: ([0-9.eE+-]+)$", out, re.M).group(1))
-            for k in ("data_mean", "data_std", "sample_mean", "sample_std")}
+            for k in ("data_mean", "data_std", "sample_mean", "sample_std",
+                      "ddim_mean", "ddim_std")}
     samples = np.array([float(v) for v in
                         re.search(r"^samples: (.+)$", out, re.M).group(1).split()], dtype=F)
-    return losses, vals, samples
+    ddim = np.array([float(v) for v in
+                     re.search(r"^ddim_samples: (.+)$", out, re.M).group(1).split()], dtype=F)
+    return losses, vals, samples, ddim
 
 
 def grid_svg(path, data, samples):
@@ -259,14 +319,60 @@ def grid_svg(path, data, samples):
     open(path, "w").write("\n".join(parts))
 
 
+def run_probe():
+    """The frozen probe: the model's output and the samplers with the
+    starting weights, one line of 4096 numbers each (issue #13 —
+    statistics are order-blind, only the reads are not)."""
+    binary = os.path.join(tempfile.mkdtemp(), "mlbend-digits-probe")
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "reference/probe_digits.bend")],
+                           capture_output=True, text=True, env=ENV, cwd=ROOT)
+    if build.returncode != 0:
+        raise SystemExit("the probe did not build:\n" + build.stdout + build.stderr)
+    out = subprocess.run([binary], capture_output=True, text=True, env=ENV, cwd=ROOT)
+    if out.returncode != 0:
+        raise SystemExit("the probe did not run:\n" + out.stdout + out.stderr)
+    lines = {}
+    for line in out.stdout.strip().split("\n"):
+        if ": " in line:
+            tag, rest = line.split(": ", 1)
+            lines[tag] = np.array([float(v) for v in rest.split()], dtype=F).astype(F)
+    return lines
+
+
+def rel(a, b):
+    """The worst element-wise relative gap, in float64 so it is exact."""
+    a = a.astype(np.float64)
+    b = b.astype(np.float64)
+    m = np.maximum(np.abs(a), np.abs(b))
+    m = np.where(m > 0, m, 1.0)
+    return float(np.max(np.abs(a - b) / m))
+
+
+def maxabs(a, b):
+    return float(np.max(np.abs(a.astype(np.float64) - b.astype(np.float64))))
+
+
+# Measured on this probe before the gates were set (2026-10-27): the
+# step with the model's output shared sits at 3.8e-06 absolute — one ulp
+# of the 30-magnitude values, from a fused multiply-add on one side —
+# and the two frozen clouds sit at 5.1e-04 and 3.9e-04 relative, which
+# is what 64 (and 16) forward passes of a 7-ulp model gap cost. Each
+# gate keeps ~5x over its own measurement; a reversed array would be
+# ~2 in both metrics.
+TOL_STEP = 1e-5
+TOL_CLOUD = 5e-3
+
+
 def main():
     out, seconds = run_bend()
-    losses, vals, bend_samples = parse(out)
-    print("\n".join([l for l in out.strip().split("\n") if not l.startswith("samples:")]))
+    losses, vals, bend_samples, bend_ddim = parse(out)
+    print("\n".join([l for l in out.strip().split("\n")
+                     if not l.startswith(("samples:", "ddim_samples:"))]))
 
     x0 = load()
     params, curve = train(x0)
     xs = sample(params).reshape(S, D)
+    dxs = ddim_sample(params, 0.0, 4, draw=False).reshape(S, D)
 
     fail = 0
     if abs(losses[0] - curve[0]) <= 1e-2 * max(1.0, abs(curve[0])):
@@ -283,6 +389,51 @@ def main():
     print(f"     final_loss (report): {losses[-1]} vs {curve[-1]}")
     print(f"     sample_mean (report): {vals['sample_mean']} vs {float(xs.mean()):.4f}")
     print(f"     sample_std  (report): {vals['sample_std']} vs {float(xs.std()):.4f}")
+    print(f"     ddim_mean   (report): {vals['ddim_mean']} vs {float(dxs.mean()):.4f}")
+    print(f"     ddim_std    (report): {vals['ddim_std']} vs {float(dxs.std()):.4f}")
+
+    # the frozen probe (issues #12, #13): the samplers against the twin,
+    # element by element. The step gate feeds Bend's own model output to
+    # both sides, so what it gates is the sampler's arithmetic and the
+    # array's order — the matmul gap is a report line instead. Mean and
+    # std are order-invariant: only the reads can catch a reordered array.
+    p0 = init_params()
+    frozen = run_probe()
+    start = noise_of(2000000, S * D)
+    twin_step = rev_step_eps(start, 64, frozen["eps"])
+    twin_anc = sample(p0).astype(F)
+    twin_ddim = ddim_sample(p0, 0.0, 4, draw=False, salt=0).astype(F)
+    eps_twin = forward(p0, input_of(1000000 + 64, 64, F(1.0), F(0.0), start, S)).reshape(S * D)
+    print(f"     eps (report): Bend vs twin maxabs {maxabs(frozen['eps'], eps_twin):.3g}, "
+          f"worst relative {rel(frozen['eps'], eps_twin):.3g}")
+
+    if maxabs(frozen["step"], twin_step) <= TOL_STEP:
+        print(f"ok   one frozen step vs the twin (shared model output): "
+              f"worst absolute {maxabs(frozen['step'], twin_step):.3g}")
+    else:
+        print(f"ERROR one frozen step differs from the twin: "
+              f"worst absolute {maxabs(frozen['step'], twin_step):.3g}")
+        fail += 1
+    if rel(frozen["frozen"], twin_anc) <= TOL_CLOUD:
+        print(f"ok   the frozen ancestral cloud vs the twin: "
+              f"worst relative {rel(frozen['frozen'], twin_anc):.3g}")
+    else:
+        print(f"ERROR the frozen ancestral cloud differs from the twin: "
+              f"worst relative {rel(frozen['frozen'], twin_anc):.3g}")
+        fail += 1
+    if rel(frozen["frozen_ddim"], twin_ddim) <= TOL_CLOUD:
+        print(f"ok   the frozen DDIM cloud vs the twin: "
+              f"worst relative {rel(frozen['frozen_ddim'], twin_ddim):.3g}")
+    else:
+        print(f"ERROR the frozen DDIM cloud differs from the twin: "
+              f"worst relative {rel(frozen['frozen_ddim'], twin_ddim):.3g}")
+        fail += 1
+    if np.array_equal(frozen["frozen_ddim"], frozen["frozen_ddim2"]):
+        print("ok   eta = 0 reads no noise: another salt and the draw are bit-identical")
+    else:
+        print(f"ERROR eta = 0 moved with the draw: "
+              f"worst relative {rel(frozen['frozen_ddim'], frozen['frozen_ddim2']):.3g}")
+        fail += 1
 
     res = os.path.join(ROOT, "results/diffusion-digits")
     os.makedirs(res, exist_ok=True)
@@ -299,7 +450,8 @@ def main():
                "seconds": seconds,
                "bend": {"first_loss": losses[0], "final_loss": losses[-1], **vals},
                "numpy": {"first_loss": curve[0], "final_loss": curve[-1],
-                         "sample_mean": float(xs.mean()), "sample_std": float(xs.std())}},
+                         "sample_mean": float(xs.mean()), "sample_std": float(xs.std()),
+                         "ddim_mean": float(dxs.mean()), "ddim_std": float(dxs.std())}},
               open(os.path.join(res, "run.json"), "w"), indent=2)
     print(f"wrote {res}/loss.tsv, grid.svg, run.json")
     return 1 if fail else 0
