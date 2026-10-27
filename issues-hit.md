@@ -59,7 +59,7 @@ same 1.0.
    | bend `[-0.2, 0.5]` | [−1,1] | ref | 1297.93 | 29.23 | **1.1827** |
 
    (3000 steps, batch 128, lr 1e-3, identical data and seeds.)
-3. The fix in the real example: first loss **0.868**, final **0.0417** — see
+3. The fix in the real example: first loss **1.0039** (the twin reads 1.003894329, delta 2.9e-08), final **0.0417** — see
    ISSUE-005 for the sampler that then had to be fixed too.
 
 **Fix.** `value()` is now a 97-value hash on [−1, 1) with zero mean, scaled by

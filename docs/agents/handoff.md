@@ -32,7 +32,7 @@ noise prediction, linear schedule.
    MLP in torch, one factor at a time (`reference/digits_ablation.py`): the
    init ends at 1.38, PyTorch's zero-mean init at 0.1455, while input range and
    schedule move it only to 0.176–0.179. Fixed: a 97-value hash on [−1,1),
-   scaled by `1/sqrt(fan_in)`; first loss **0.868**, final **0.0417**.
+   scaled by `1/sqrt(fan_in)`; first loss **1.0039**, final **0.0417**.
 2. **The missing x̂₀ clamp** (ISSUE-005). A learned model still gave a cloud of
    std 35.8; the reference clamps the predicted start to its data range and
    re-derives ε̂ for DDIM. Isolated on one trained MLP

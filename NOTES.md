@@ -26,7 +26,8 @@ relevant entry before changing performance-sensitive code or a law.
   positive mean (+0.15) summed over a 72-wide first layer starts every unit
   near +10 and SiLU carries it forward; the first loss was **8062.7** against
   the reference's 0.963. Fixed: a 97-value hash on [−1, 1), scaled by
-  `1/sqrt(fan_in)` at the row builder.
+  `1/sqrt(fan_in)` at the row builder — the first loss became **1.0039**
+  (against the twin's 1.003894329, a delta of 2.9e-08) and the final **0.0417**.
 - **Learning was half of it; the sampler was the other half.** After the fix
   the loss fell to **0.0417** (better than the reference's 0.078) but the cloud
   was still **std 35.8**, mean −1.39. The reference clamps the predicted
