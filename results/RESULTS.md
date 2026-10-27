@@ -13,15 +13,15 @@ Machine: Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 · 28 CPUs · Bend 2.
 | `attention-parity` | synthetic-attention (4x8) | `439ef1cd` | checksum | 1 | 1.76295 | 1.76295 | 3.342e-09 | 0 | 1 | 1 | 3 | ok |
 | `cancer-knn` | breast_cancer (683x9) | `4c35090c` | accuracy | 1 | 0.978102 | 0.978102 | 1.022e-08 | 1 | 196 | 195 | 1617 | ok |
 | `cancer-naive-bayes` | breast_cancer (683x9) | `4c35090c` | accuracy | 1 | 0.985401 | 0.985401 | -9.854e-09 | 0 | 22 | 22 | 535 | ok |
-| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | first_loss | 1 | 152.954 | 152.954 | -1.483e-05 | 0 | 31862 | 31862 | 35782 | ok |
-| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | final_loss | 1 | 0.0649613 | 0.0687128 | - | 0 | 31862 | 31862 | 35782 | ok |
-| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | sample_mean | 1 | 0.385003 | 0.446751 | - | 0 | 31862 | 31862 | 35782 | ok |
-| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | sample_std | 1 | 0.599225 | 0.558409 | - | 0 | 31862 | 31862 | 35782 | ok |
-| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | first_loss | 1 | 8062.69 | 8062.69 | 4.688e-05 | 3 | 143533 | 143530 | 11764 | ok |
-| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | data_mean | 1 | 0.307565 | 0.307565 | 4.587e-09 | 3 | 143533 | 143530 | 11764 | ok |
-| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | final_loss | 1 | 1.02584 | 1.07458 | - | 3 | 143533 | 143530 | 11764 | ok |
-| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | sample_mean | 1 | 1.20495e+17 | 84.0263 | - | 3 | 143533 | 143530 | 11764 | ok |
-| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | sample_std | 1 | 1.07518e+19 | 640.499 | - | 3 | 143533 | 143530 | 11764 | ok |
+| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | first_loss | 1 | 152.954 | 152.954 | -1.483e-05 | 0 | 31919 | 31919 | 36063 | ok |
+| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | final_loss | 1 | 0.0649613 | 0.0569123 | - | 0 | 31919 | 31919 | 36063 | ok |
+| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | sample_mean | 1 | 0.385003 | 0.385002 | - | 0 | 31919 | 31919 | 36063 | ok |
+| `diffusion-2d` | two-moons (128x2) | `6764e1b1` | sample_std | 1 | 0.599225 | 0.599225 | - | 0 | 31919 | 31919 | 36063 | ok |
+| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | first_loss | 1 | 1.00389 | 1.00389 | -2.907e-08 | 2 | 148399 | 148397 | 12189 | ok |
+| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | data_mean | 1 | 0.307565 | 0.307565 | 4.587e-09 | 2 | 148399 | 148397 | 12189 | ok |
+| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | final_loss | 1 | 0.0416787 | 0.0444931 | - | 2 | 148399 | 148397 | 12189 | ok |
+| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | sample_mean | 1 | 0.38456 | 0.380702 | - | 2 | 148399 | 148397 | 12189 | ok |
+| `diffusion-digits` | optdigits (1024x64) | `e1b683cc` | sample_std | 1 | 0.354907 | 0.359419 | - | 2 | 148399 | 148397 | 12189 | ok |
 | `heart-naive-bayes` | heart_failure (299x12) | `e0771c8c` | accuracy | 1 | 0.95 | 0.95 | 0 | 1 | 9 | 8 | 769 | ok |
 | `iris-crossval` | iris (150x4) | `6f608b71` | mean_accuracy | 5 | 0.930667 ± 0.006 | 0.930667 ± 0.006 | -5.867e-08 ± 1.4e-08 | 0 | 76 | 76 | 763 | ok |
 | `iris-crossval` | iris (150x4) | `6f608b71` | fold_min | 5 | 0.84 ± 0.037 | 0.84 ± 0.037 | -2e-08 ± 1.8e-08 | 0 | 76 | 76 | 763 | ok |

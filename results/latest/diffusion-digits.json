@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-27T13:46:42.456830+00:00",
+  "created_at": "2026-10-27T16:58:00.458882+00:00",
   "task": {
     "name": "diffusion-digits",
     "description": "a DDPM denoiser over the first 1024 optdigits digits, BendTorch against NumPy",
@@ -16,7 +16,7 @@
       "expected_sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd",
       "bytes": 563639,
       "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd",
-      "fetch_seconds": 0.003,
+      "fetch_seconds": 0.002,
       "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
@@ -26,7 +26,7 @@
   ],
   "trainer": "bend",
   "git": {
-    "commit": "3a80a19",
+    "commit": "0c45702",
     "branch": "main",
     "dirty": true
   },
@@ -134,15 +134,15 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 63.863,
-    "seconds_min": 143.533,
+    "build_seconds": 77.197,
+    "seconds_min": 148.399,
     "seconds_all": [
-      143.533
+      148.399
     ],
     "repeat": 1,
-    "fetch_seconds": 0.003,
-    "compute_seconds": 143.53,
-    "reference_seconds": 11.764,
+    "fetch_seconds": 0.002,
+    "compute_seconds": 148.397,
+    "reference_seconds": 12.189,
     "speed_ratio": 0.082
   },
   "seed_runs": [
@@ -150,9 +150,9 @@
       "seed": 0,
       "metrics": {
         "first_loss": {
-          "bend": 8062.6895,
-          "reference": 8062.689453125,
-          "delta": 4.6875000407453626e-05,
+          "bend": 1.0038943,
+          "reference": 1.003894329071045,
+          "delta": -2.9071044904682708e-08,
           "tolerance": 0.0001,
           "mode": "relative",
           "pass": true
@@ -166,33 +166,33 @@
           "pass": true
         },
         "final_loss": {
-          "bend": 1.0258427,
-          "reference": 1.074581265449524,
+          "bend": 0.041678708,
+          "reference": 0.04449313133955002,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_mean": {
-          "bend": 1.2049499e+17,
-          "reference": 84.02626037597656,
+          "bend": 0.38455975,
+          "reference": 0.3807023763656616,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_std": {
-          "bend": 1.0751823e+19,
-          "reference": 640.4992065429688,
+          "bend": 0.3549075,
+          "reference": 0.3594193458557129,
           "pass": true,
           "note": "different folds; reported, not compared"
         }
       },
-      "run_seconds": 143.533,
-      "reference_seconds": 11.764
+      "run_seconds": 148.399,
+      "reference_seconds": 12.189
     }
   ],
   "metrics": {
     "first_loss": {
-      "bend": 8062.6895,
-      "reference": 8062.689453125,
-      "delta": 4.6875000407453626e-05,
+      "bend": 1.0038943,
+      "reference": 1.003894329071045,
+      "delta": -2.9071044904682708e-08,
       "tolerance": 0.0001,
       "mode": "relative",
       "pass": true,
@@ -214,8 +214,8 @@
       "n_seeds": 1
     },
     "final_loss": {
-      "bend": 1.0258427,
-      "reference": 1.074581265449524,
+      "bend": 0.041678708,
+      "reference": 0.04449313133955002,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -225,8 +225,8 @@
       "n_seeds": 1
     },
     "sample_mean": {
-      "bend": 1.2049499e+17,
-      "reference": 84.02626037597656,
+      "bend": 0.38455975,
+      "reference": 0.3807023763656616,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -236,8 +236,8 @@
       "n_seeds": 1
     },
     "sample_std": {
-      "bend": 1.0751823e+19,
-      "reference": 640.4992065429688,
+      "bend": 0.3549075,
+      "reference": 0.3594193458557129,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,

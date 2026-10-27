@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-27T13:43:03.073332+00:00",
+  "created_at": "2026-10-27T16:54:02.371429+00:00",
   "task": {
     "name": "diffusion-2d",
     "description": "a DDPM denoiser trained and sampled on two moons, BendTorch against NumPy",
@@ -24,7 +24,7 @@
   ],
   "trainer": "bend",
   "git": {
-    "commit": "3a80a19",
+    "commit": "0c45702",
     "branch": "main",
     "dirty": true
   },
@@ -132,16 +132,16 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 4.59,
-    "seconds_min": 31.862,
+    "build_seconds": 4.919,
+    "seconds_min": 31.919,
     "seconds_all": [
-      31.862
+      31.919
     ],
     "repeat": 1,
     "fetch_seconds": 0.0,
-    "compute_seconds": 31.862,
-    "reference_seconds": 35.782,
-    "speed_ratio": 1.123
+    "compute_seconds": 31.919,
+    "reference_seconds": 36.063,
+    "speed_ratio": 1.13
   },
   "seed_runs": [
     {
@@ -157,25 +157,25 @@
         },
         "final_loss": {
           "bend": 0.064961255,
-          "reference": 0.06871278584003448,
+          "reference": 0.05691231042146683,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_mean": {
           "bend": 0.3850035,
-          "reference": 0.4467509984970093,
+          "reference": 0.3850017189979553,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_std": {
           "bend": 0.59922546,
-          "reference": 0.5584088563919067,
+          "reference": 0.5992251038551331,
           "pass": true,
           "note": "different folds; reported, not compared"
         }
       },
-      "run_seconds": 31.862,
-      "reference_seconds": 35.782
+      "run_seconds": 31.919,
+      "reference_seconds": 36.063
     }
   ],
   "metrics": {
@@ -193,7 +193,7 @@
     },
     "final_loss": {
       "bend": 0.064961255,
-      "reference": 0.06871278584003448,
+      "reference": 0.05691231042146683,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -204,7 +204,7 @@
     },
     "sample_mean": {
       "bend": 0.3850035,
-      "reference": 0.4467509984970093,
+      "reference": 0.3850017189979553,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -215,7 +215,7 @@
     },
     "sample_std": {
       "bend": 0.59922546,
-      "reference": 0.5584088563919067,
+      "reference": 0.5992251038551331,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,

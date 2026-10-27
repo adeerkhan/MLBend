@@ -1,28 +1,28 @@
 {
-  "created_at": "2026-10-27T13:57:44.635552+00:00",
+  "created_at": "2026-10-27T17:11:25.432488+00:00",
   "example": "examples/diffusion_digits/main.bend",
   "dataset": {
     "url": "https://huggingface.co/datasets/mstz/optdigits/resolve/4f20cc827b763fb69e2a80e18e892e4e11498aec/optdigits.data",
     "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd",
     "rows": 1024
   },
-  "seconds": 144.19331645965576,
+  "seconds": 144.70272612571716,
   "bend": {
-    "first_loss": 8062.6895,
-    "final_loss": 1.0367838,
+    "first_loss": 1.0038943,
+    "final_loss": 0.044079617,
     "data_mean": 0.30756474,
     "data_std": 0.3766606,
-    "sample_mean": 1.2049499e+17,
-    "sample_std": 1.0751823e+19,
-    "ddim_mean": 498116.7,
-    "ddim_std": 34504556.0
+    "sample_mean": 0.38455975,
+    "sample_std": 0.3549075,
+    "ddim_mean": 0.41528606,
+    "ddim_std": 0.4059164
   },
   "numpy": {
-    "first_loss": 8062.689453125,
-    "final_loss": 1.074581265449524,
-    "sample_mean": 84.02626037597656,
-    "sample_std": 640.4992065429688,
-    "ddim_mean": 81.32025146484375,
-    "ddim_std": 404.15301513671875
+    "first_loss": 1.003894329071045,
+    "final_loss": 0.04449313133955002,
+    "sample_mean": 0.3807023763656616,
+    "sample_std": 0.3594193458557129,
+    "ddim_mean": 0.40570637583732605,
+    "ddim_std": 0.4072851836681366
   }
 }
