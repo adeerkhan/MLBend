@@ -270,14 +270,16 @@ def main():
     write("diffusion", "A DDPM denoiser on two moons",
           "A three-linear-layer SiLU denoiser on `bendtorch@1.0.1.0`, trained by AdamW for "
           "4000 steps to predict the noise of a 64-step linear-β forward process over two "
-          "moons, then sampled by the ancestral loop. Every random number is a pure "
-          "function of a counter (murmur3's fmix32 over the step salt and the index, "
-          "Box-Muller over 24-bit uniforms), so the NumPy twin draws the same ones.\n\n"
+          "moons, then sampled two ways: the ancestral loop over all 64 rungs, and DDIM "
+          "over every 4th rung — 16 model calls instead of 64, and at η = 0 a step reads "
+          "no noise at all. Every random number is a pure function of a counter "
+          "(murmur3's fmix32 over the step salt and the index, Box-Muller over 24-bit "
+          "uniforms), so the NumPy twin draws the same ones.\n\n"
           "```console\n$ bendenv run -- bend examples/diffusion/main.bend\n```\n\n"
           f"First loss **{first:.4f}** against the twin's — the gate — and final loss "
-          f"**{final:.4f}**, reported. The sampled cloud is broader than the data "
-          "(the sampler is the open question, not the trainer). The curve, the cloud and "
-          "the manifest are in [`results/diffusion/`](../../results/diffusion/).")
+          f"**{final:.4f}**, reported. Both clouds' statistics are report-mode: the "
+          "optimizers round differently and a 64-step loop amplifies a ulp. The curve, "
+          "the cloud and the manifest are in [`results/diffusion/`](../../results/diffusion/).")
 
     src = os.path.join(ROOT, "results/diffusion-digits/grid.svg")
     if os.path.exists(src):
@@ -288,13 +290,18 @@ def main():
           "The same denoiser over real data: the first 1024 rows of `mstz/optdigits` "
           "(pinned revision, its SHA-256 in the manifest), 8x8 digits scaled to [0, 1]. "
           "64 pixels in, a 64-wide SiLU body, 64-step schedule, 3000 full-batch AdamW "
-          "steps, then 64 fresh digits by the ancestral loop. The image shows real "
-          "digits on the left and the samples on the right.\n\n"
+          "steps, then 64 fresh digits by the ancestral loop and DDIM over every 4th rung. "
+          "The image shows real digits on the left and the samples on the right, and the "
+          "samplers are checked element by element against the NumPy twin by "
+          "`reference/test_diffusion_digits.py` (a frozen-weights probe, because mean and "
+          "std over a grid cannot see a reordered array).\n\n"
           "```console\n$ bendenv run -- bend examples/diffusion_digits/main.bend\n```\n\n"
           f"First loss **{first:.2f}** against the NumPy twin's — the gate — and the data "
-          "mean to 4.6e-9. The final loss and the grid are reported, not gated: the "
-          "underfit denoiser makes the sampler expand geometrically, which is the known "
-          "follow-up (a residual head). The curve, the grid and the manifest are in "
+          "mean to 4.6e-9. The final loss, both clouds' statistics and the grid are "
+          "reported, not gated: the underfit denoiser makes the sampler expand "
+          "geometrically, which is the known follow-up (a residual head), and the "
+          "variance is factored by its largest deviation so the statistics stay finite "
+          "at that magnitude. The curve, the grid and the manifest are in "
           "[`results/diffusion-digits/`](../../results/diffusion-digits/).")
     print("wrote example READMEs and plots")
 
