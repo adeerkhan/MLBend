@@ -19,6 +19,18 @@ T = 64 and the same noise-prediction task as the Bend example.
 
 ---
 
+## Upstream requests
+
+Opened from this work, each with its reproduction and numbers in the issue:
+
+- [bendlang/bend#1894](https://github.com/bendlang/bend/issues/1894) — the run
+  path's stack overflow (ISSUE-007).
+- [nuxyel/BendTorch#15](https://github.com/nuxyel/BendTorch/issues/15) —
+  `Conv2d`/`GroupNorm` (ISSUE-008).
+- [nuxyel/bend-ml#26](https://github.com/nuxyel/bend-ml/issues/26) — the value
+  law for `Array.set`/`Array.get`; it needs two Base lemmas, so it is an issue
+  with the analysis rather than a PR. Filed 2026-10-27.
+
 ## ISSUE-001 — the digits denoiser learned nothing (ours, high) — FIXED
 
 **What.** `examples/diffusion_digits/main.bend` trained a 3-layer SiLU MLP for

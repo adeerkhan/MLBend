@@ -46,6 +46,9 @@ select:           ## model selection and a classification report (kNN)
 plots:            ## write examples/<name>/README.md and plot.svg for every example
 	$(PY) reference/make_example_readmes.py
 
+issues:          ## render issues-hit.md as issues-hit.html (bend-lang theme)
+	$(PY) reference/make_issues_html.py
+
 sweep:            ## start the W&B sweep defined in reference/wandb_sweep.yaml
 	$(PY) -m wandb sweep reference/wandb_sweep.yaml
 
