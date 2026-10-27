@@ -154,12 +154,16 @@ def silu(x):
 
 
 def value(i, j, seed):
-    m = (i * 3 + j * 5 + seed) % 7
-    return F(F(F(m) * F(0.1)) - F(0.2))
+    """The example's value(): a 97-value hash on [-1, 1), zero-mean."""
+    m = (i * 3 + j * 5 + seed * 7) % 97
+    return F(F(F(m) - F(48.0)) / F(48.0))
 
 
 def init(seed, r, c):
-    return np.array([[value(i, j, seed) for j in range(c)] for i in range(r)], dtype=F)
+    """The example's params(): value() scaled by 1/sqrt(fan_in), PyTorch's
+    Linear init made deterministic (see ISSUE-001)."""
+    a = F(F(1.0) / np.sqrt(F(c)))
+    return F(np.array([[value(i, j, seed) for j in range(c)] for i in range(r)], dtype=F) * a)
 
 
 def forward(params, inp):
@@ -186,19 +190,23 @@ def train(x0):
         inp = input_of(s, t, np.sqrt(abar).astype(F),
                        np.sqrt(F(1.0 - abar)).astype(F), x0, N)
         tgt = noise_of(s, N * D).reshape(N, D)
-        h1 = silu(F(inp @ params["w1"].T + params["b1"]))
-        h2 = silu(F(h1 @ params["w2"].T + params["b2"]))
+        z1 = F(inp @ params["w1"].T + params["b1"])
+        h1 = silu(z1)
+        z2 = F(h1 @ params["w2"].T + params["b2"])
+        h2 = silu(z2)
         out = F(h2 @ params["w3"].T + params["b3"])
         diff = F(out - tgt)
         curve.append(float(np.mean(F(diff * diff))))
         d_out = F(F(2.0 / F(N * D)) * diff)
         grads = {"w3": F(d_out.T @ h2), "b3": d_out.sum(axis=0).astype(F)}
-        s2 = F(1.0 / F(1.0 + np.exp(np.float32(-h2))))
-        d_h2 = F(F(F(d_out @ params["w3"]) * s2) * F(1.0 + F(h2 * F(1.0 - s2))))
+        # the SiLU derivative is taken at the PRE-activation, as bendtorch's
+        # silu_d does; taking it at the activated value was ISSUE-006
+        s2 = F(1.0 / F(1.0 + np.exp(np.float32(-z2))))
+        d_h2 = F(F(F(d_out @ params["w3"]) * s2) * F(1.0 + F(z2 * F(1.0 - s2))))
         grads["w2"] = F(d_h2.T @ h1)
         grads["b2"] = d_h2.sum(axis=0).astype(F)
-        s1 = F(1.0 / F(1.0 + np.exp(np.float32(-h1))))
-        d_h1 = F(F(F(d_h2 @ params["w2"]) * s1) * F(1.0 + F(h1 * F(1.0 - s1))))
+        s1 = F(1.0 / F(1.0 + np.exp(np.float32(-z1))))
+        d_h1 = F(F(F(d_h2 @ params["w2"]) * s1) * F(1.0 + F(z1 * F(1.0 - s1))))
         grads["w1"] = F(d_h1.T @ inp)
         grads["b1"] = d_h1.sum(axis=0).astype(F)
         for k in params:
@@ -213,18 +221,20 @@ def train(x0):
 
 def rev_step_eps(x, t, eps):
     """The step's arithmetic around a model output already in hand: the
-    coefficients the example computes, in the example's order (sig divides
-    before it multiplies), and the draw from the step's counter."""
+    model's implied start, clamped to the data range [0, 1], then the
+    posterior mean formed from it (ISSUE-005) — the example's order."""
     beta = lin_beta_at(t)
     abar = ALPHAS[t - 1]
     prev = ALPHAS[t - 2] if t > 1 else F(1.0)
-    coef = F(beta / np.sqrt(F(1.0 - abar)).astype(F))
-    scale = F(1.0 / np.sqrt(F(1.0 - beta)).astype(F))
+    c1 = F(beta * F(np.sqrt(prev).astype(F) / F(F(1.0) - abar)))
+    c2 = F(np.sqrt(F(F(1.0) - beta)).astype(F) * F(F(F(1.0) - prev) / F(F(1.0) - abar)))
+    sa = F(np.sqrt(abar).astype(F))
+    sm = F(np.sqrt(F(F(1.0) - abar)).astype(F))
     sig = np.sqrt(F(beta * F(F(F(1.0) - prev) / F(F(1.0) - abar)))).astype(F)
     z = noise_of(1000000 + t, S * D)
-    # the draw rides outside `scale`: Algorithm 2 adds sigma_t*z to
-    # the already-scaled mean (issue #14)
-    return F(F(scale * F(x - F(coef * eps))) + F(sig * z))
+    x0 = F(F(x - F(sm * eps)) / sa)
+    xc = np.clip(x0, F(0.0), F(1.0)).astype(F)
+    return F(F(F(c1 * xc) + F(c2 * x)) + F(sig * z))
 
 
 def rev_step(params, x, t):
@@ -257,6 +267,12 @@ def ddim_sample(params, eta, k, draw=True, salt=0):
         z = noise_of(1000000 + salt + t, S * D) if draw else np.zeros(S * D, dtype=F)
         inp = input_of(1000000 + t, t, F(1.0), F(0.0), x, S)
         eps = forward(params, inp).reshape(S * D)
+        # the clamped start, and the noise it re-derives (ISSUE-005)
+        sa = F(np.sqrt(abar).astype(F))
+        sm = F(np.sqrt(F(F(1.0) - abar)).astype(F))
+        x0 = F(F(x - F(sm * eps)) / sa)
+        xc = np.clip(x0, F(0.0), F(1.0)).astype(F)
+        eps = F(F(x - F(sa * xc)) / sm)
         x = ddim(step_of(abar, prev, eta), x, eps, z)
     return x
 
@@ -307,7 +323,9 @@ def grid_svg(path, data, samples):
         for r in range(8):
             for c in range(8):
                 v = int(round(255 * (1 - float(px[r, c]))))
-                parts.append(f'<rect x="{ox + c*cell//8*8//8 + c*(cell/8):.1f}" y="{oy + r*(cell/8):.1f}" '
+                # the cell offset is c*(cell/8); a stray c*cell//8*8//8 here
+                # made every cell 1.7x too wide (ISSUE-003)
+                parts.append(f'<rect x="{ox + c*(cell/8):.1f}" y="{oy + r*(cell/8):.1f}" '
                              f'width="{cell/8:.1f}" height="{cell/8:.1f}" fill="rgb({v},{v},{v})"/>')
     for i in range(rows * rows):
         ox = pad + (i % rows) * cell

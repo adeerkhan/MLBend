@@ -181,21 +181,24 @@ def train(x0):
         curve.append(float(loss))
         d_out = F(F(2.0 / F(2 * N)) * diff)
         # the hidden activations, for the gradients
-        h1 = silu(F(inp @ params["w1"].T + params["b1"]))
-        h2 = silu(F(h1 @ params["w2"].T + params["b2"]))
-        # silu backward: dy * s * (1 + x * (1 - s)), s = sigmoid(x)
+        z1 = F(inp @ params["w1"].T + params["b1"])
+        h1 = silu(z1)
+        z2 = F(h1 @ params["w2"].T + params["b2"])
+        h2 = silu(z2)
+        # silu backward: dy * s * (1 + x * (1 - s)), s = sigmoid(x), and x is
+        # the PRE-activation as bendtorch's silu_d has it (ISSUE-006)
         grads = {}
         grads["w3"] = F(d_out.T @ h2)
         grads["b3"] = d_out.sum(axis=0).astype(F)
-        s2 = F(1.0 / F(1.0 + np.exp(np.float32(-h2))))
+        s2 = F(1.0 / F(1.0 + np.exp(np.float32(-z2))))
         d_pre2 = F(d_out @ params["w3"])
-        d_h2 = F(F(d_pre2 * s2) * F(1.0 + F(h2 * F(1.0 - s2))))
+        d_h2 = F(F(d_pre2 * s2) * F(1.0 + F(z2 * F(1.0 - s2))))
         grads["w2"] = F(d_h2.T @ h1)
         grads["b2"] = d_h2.sum(axis=0).astype(F)
-        s1 = F(1.0 / F(1.0 + np.exp(np.float32(-h1))))
+        s1 = F(1.0 / F(1.0 + np.exp(np.float32(-z1))))
 
         d_pre1 = F(d_h2 @ params["w2"])
-        d_h1 = F(F(d_pre1 * s1) * F(1.0 + F(h1 * F(1.0 - s1))))
+        d_h1 = F(F(d_pre1 * s1) * F(1.0 + F(z1 * F(1.0 - s1))))
         grads["w1"] = F(d_h1.T @ inp)
         grads["b1"] = d_h1.sum(axis=0).astype(F)
         for k in params:

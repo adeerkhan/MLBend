@@ -279,25 +279,33 @@ def cfg() -> T.OptCfg:
 def mse(y: Y(), tgt: Y()) -> T.LossOut<Y()>:
   T.MSE(n(), d(), y, tgt)
 
+# The initial weights: deterministic, zero-mean, and scaled by
+# 1/sqrt(fan_in) at the row builder — PyTorch's Linear init, which is what
+# the vendored reference uses. The previous (k*0.1 - 0.2) had mean +0.15,
+# so summed over 72 inputs every unit started saturated: the first loss
+# was 8062.7 against the reference's 0.96 and the model never left the
+# "predict nothing" floor at 1.0 (ISSUE-001; the ablation that pinned the
+# cause is reference/digits_ablation.py).
 def value(+i: Nat, +j: Nat, +seed: Nat) -> F32:
-  F32.sub(F32.mul(F32.from_nat(Nat.mod(Nat.add(Nat.add(Nat.mul(i, 3n), Nat.mul(j, 5n)), seed), 7n)),
-    0.1), 0.2)
+  F32.div(F32.sub(F32.from_nat(Nat.mod(Nat.add(Nat.add(Nat.mul(i, 3n), Nat.mul(j, 5n)),
+    Nat.mul(seed, 7n)), 97n)), 48.0), 48.0)
 
-def row_vals(+c: Nat, +i: Nat, +j: Nat, +seed: Nat, acc: List<&2, F32>) -> List<&2, F32>:
+def row_vals(+c: Nat, +i: Nat, +j: Nat, +seed: Nat, +s: F32, acc: List<&2, F32>) -> List<&2, F32>:
   match c:
     case 0n:
       acc
     case 1n+rest:
-      row_vals(rest, i, (1n + j : Nat), seed,
-        List.append(&2, F32, acc, Con{value(i, j, seed), Nil{}}))
+      row_vals(rest, i, (1n + j : Nat), seed, s,
+        List.append(&2, F32, acc, Con{(s * value(i, j, seed) : F32), Nil{}}))
 
 def rows_vals(+r: Nat, +c: Nat, +i: Nat, +seed: Nat, acc: List<&2, F32>) -> List<&2, F32>:
   match r:
     case 0n:
       acc
     case 1n+rest:
+      s = F32.div(1.0, F32.sqrt(F32.from_nat(c)))
       rows_vals(rest, c, (1n + i : Nat), seed,
-        List.append(&2, F32, acc, row_vals(c, i, 0n, seed, Nil{})))
+        List.append(&2, F32, acc, row_vals(c, i, 0n, seed, s, Nil{})))
 
 def mat_of(+r: Nat, +c: Nat, +seed: Nat) -> TA.Mat<r, c>:
   TA.Mat.from_list(r, c, rows_vals(r, c, 0n, seed, Nil{}))
@@ -379,44 +387,65 @@ def predict(p: B4P(), +t: Nat, +x: List<&2, F32>) -> PE:
 # and the draw is added after it, outside the scale (issue #14): Ho et
 # al.'s Algorithm 2 adds sigma_t·z to the already-scaled mean, and this
 # is exactly what makes DDIM with eta = 1 reproduce the step.
-def rev_elem(+coef: F32, +scale: F32, +sig: F32, +xv: F32, +eps: F32, +z: F32) -> F32:
-  ((scale * (xv - (coef * eps : F32) : F32) : F32) + (sig * z : F32) : F32)
+# The five coefficients of one reverse step, computed once per step:
+# the two fractions that form the posterior mean, the two roots that
+# recover the start from (x, eps), and the posterior's sigma.
+type RC is Data:
+  RC{c1: F32, c2: F32, sa: F32, sm: F32, sig: F32}
+
+# One element of the new sample. The model's implied start is
+# reconstructed first —
+#
+#   x0 = (x - sqrt(1 - abar) eps) / sqrt(abar)
+#
+# — clamped to the data range [0, 1], and only then is the posterior mean
+# formed from it. Without the clamp a trained digits model's cloud walks
+# to std 35.8 against the data's 0.377; with it, 0.30 (ISSUE-005,
+# isolated by reference/digits_sample_probe.py). The vendored reference
+# clamps the same way (`p_mean_variance` / `clip_x_start`).
+def rev_elem(co: RC, +xv: F32, +eps: F32, +z: F32) -> F32:
+  match co:
+    case RC{c1, c2, sa, sm, sig}:
+      x0 = ((xv - (sm * eps : F32) : F32) / sa : F32)
+      xc = F32.clamp(x0, 0.0, 1.0)
+      (((c1 * xc : F32) + (c2 * xv : F32) : F32) + (sig * z : F32) : F32)
 
 # One step over the sample. The walk conses (issue #13: append would be
 # O(n²) over 4096 elements × 64 steps), so the accumulator comes back
 # reversed once at the end — one List.reverse per step, and the array
 # is in order again.
-def rev_go(+coef: F32, +scale: F32, +sig: F32, x: List<&2, F32>, eps: List<&2, F32>,
+def rev_go(+co: RC, x: List<&2, F32>, eps: List<&2, F32>,
   z: List<&2, F32>, left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
   match x eps z left:
     case Con{xv, xt} Con{ev, et} Con{zv, zt} 1n+rest:
-      rev_go(coef, scale, sig, xt, et, zt, rest,
-        Con{rev_elem(coef, scale, sig, xv, ev, zv), acc})
+      rev_go(co, xt, et, zt, rest, Con{rev_elem(co, xv, ev, zv), acc})
     case _ _ _ 0n:
       acc
     case _ _ _ _:
       acc
 
-def rev_pe(pe: PE, +coef: F32, +scale: F32, +sig: F32, +z: List<&2, F32>,
-  +x: List<&2, F32>) -> PS:
+def rev_pe(pe: PE, +co: RC, +z: List<&2, F32>, +x: List<&2, F32>) -> PS:
   match pe:
     case PE{p2, eps}:
-      PS{p2, List.reverse(&2, F32, rev_go(coef, scale, sig, x, eps, z, 4096n, Nil{}))}
+      PS{p2, List.reverse(&2, F32, rev_go(co, x, eps, z, 4096n, Nil{}))}
 
-# One reverse step of the ancestral loop. The mean is the DDPM step;
-# the noise is the exact posterior's sigma = sqrt(beta_tilde_t)
-# (issue #14) — the one DDIM with eta = 1 reproduces exactly. At t = 1
-# that variance is 0 (1-ᾱ_0 = 0), so the last step adds nothing and
-# the `last` flag is gone.
+# One reverse step of the ancestral loop. The mean is the posterior's,
+# formed from the clamped start; the noise is the exact posterior's
+# sigma = sqrt(beta_tilde_t) (issue #14) — the one DDIM with eta = 1
+# reproduces. At t = 1 that variance is 0 (1-ᾱ_0 = 0), so the last step
+# adds nothing.
 def reverse_step(+t: Nat, st: PS) -> PS:
   match st:
     case PS{p, +x}:
       +beta = G.lin_beta_at(t, 64n)
       +abar_t = abar(t)
-      +coef = (beta / F32.sqrt((1.0 - abar_t : F32)) : F32)
-      +scale = (1.0 / F32.sqrt((1.0 - beta : F32)) : F32)
-      +sig = F32.sqrt((beta * ((1.0 - abar_below(t) : F32) / (1.0 - abar_t : F32)) : F32))
-      rev_pe(predict(p, t, x), coef, scale, sig, G.noise_of((1000000n + t : Nat), 4096n), x)
+      +bar_prev = abar_below(t)
+      +c1 = (beta * (F32.sqrt(bar_prev) / (1.0 - abar_t) : F32) : F32)
+      +c2 = (F32.sqrt((1.0 - beta : F32)) * ((1.0 - bar_prev : F32) / (1.0 - abar_t : F32)) : F32)
+      +sa = F32.sqrt(abar_t)
+      +sm = F32.sqrt((1.0 - abar_t : F32))
+      +sig = F32.sqrt((beta * ((1.0 - bar_prev : F32) / (1.0 - abar_t : F32)) : F32))
+      rev_pe(predict(p, t, x), RC{c1, c2, sa, sm, sig}, G.noise_of((1000000n + t : Nat), 4096n), x)
 
 def sample_go(t: Nat, st: PS) -> PS:
   match t:
@@ -482,13 +511,36 @@ def ddim_z(+t: Nat, +salt: Nat, draw: Bool) -> List<&2, F32>:
     case False{}:
       Nil{}
 
+# The noise the clamped start implies: the reference's
+# `rederive_pred_noise`. A start outside [0, 1] is pulled back, and the
+# step is taken from the noise that start implies rather than the raw
+# prediction — the DDIM counterpart of `rev_elem`'s clamp (ISSUE-005).
+def clip_eps_go(+sa: F32, +sm: F32, x: List<&2, F32>, eps: List<&2, F32>,
+  left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match x eps left:
+    case Con{+xv, xt} Con{ev, et} 1n+rest:
+      x0 = ((xv - (sm * ev : F32) : F32) / sa : F32)
+      xc = F32.clamp(x0, 0.0, 1.0)
+      clip_eps_go(sa, sm, xt, et, rest,
+        Con{((xv - (sa * xc : F32) : F32) / sm : F32), acc})
+    case _ _ 0n:
+      acc
+    case _ _ _:
+      acc
+
+def clip_eps(+abar_now: F32, x: List<&2, F32>, eps: List<&2, F32>) -> List<&2, F32>:
+  +sa = F32.sqrt(abar_now)
+  +sm = F32.sqrt((1.0 - abar_now : F32))
+  List.reverse(&2, F32, clip_eps_go(sa, sm, x, eps, 4096n, Nil{}))
+
 # one rung: the model's noise there, folded with the rung below into
 # the sample (the package's ddim does the folding and keeps the shape)
 def ddim_pe(pe: PE, +abar_now: F32, +abar_prev: F32, +eta_now: F32, +z: List<&2, F32>,
   +x: List<&2, F32>) -> PS:
   match pe:
     case PE{p2, eps}:
-      PS{p2, G.ddim(G.step_of(abar_now, abar_prev, eta_now), x, eps, z)}
+      PS{p2, G.ddim(G.step_of(abar_now, abar_prev, eta_now), x,
+        clip_eps(abar_now, x, eps), z)}
 
 # the walk down the rungs: each rung's ᾱ beside its index, the rung
 # below as the head of what is left (or ᾱ_0 when nothing is left). The
