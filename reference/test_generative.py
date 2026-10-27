@@ -5,9 +5,13 @@
 Every number of the package is a pure function of counters, so the twin
 computes the same functions in float32 with the same operation order and
 the two must agree: the uniforms and the Gaussians, the cosine schedule
-and its betas, the time embedding. The bijection of mix32 is tested on a
-grid both here and in generative/tests/ok.bend; proving it is the debt of
-issue #10.
+and its betas, the time embedding, the strided walk and its count, and
+one DDIM step (the coefficients and the elementwise update). The
+bijection of mix32 is tested on a grid both here and in
+generative/tests/ok.bend; proving it is the debt of issue #10. The count
+is also checked against its closed form on a grid, which is what lets
+strided_length (a statement about the walk) be read as a statement about
+a number.
 """
 import sys
 
@@ -79,6 +83,52 @@ def temb_of(t, steps, k):
     return out
 
 
+def groups_of(n, k, skip):
+    """The count of the strided walk, as the Bend recursion does it."""
+    if n == 0:
+        return 0
+    if skip == 0:
+        return 1 + groups_of(n - 1, k, max(k - 1, 0))
+    return groups_of(n - 1, k, skip - 1)
+
+
+def strided_from(xs, k, skip):
+    """The walk itself: drop `skip`, emit one, drop k-1, emit one, ..."""
+    if not xs:
+        return []
+    if skip == 0:
+        return [xs[0]] + strided_from(xs[1:], k, max(k - 1, 0))
+    return strided_from(xs[1:], k, skip - 1)
+
+
+def sigma_of(abar, abar_prev, eta):
+    above = np.maximum(F(0.0), F(F(1.0) - abar_prev))
+    below = np.maximum(F(0.0), F(F(1.0) - F(abar / abar_prev)))
+    return F(eta * F(np.sqrt(F(above / F(F(1.0) - abar))) * np.sqrt(below)))
+
+
+def step_of(abar, abar_prev, eta):
+    """The five coefficients, in the order step_of computes them."""
+    sig = sigma_of(abar, abar_prev, eta)
+    c0 = F(F(1.0) / np.sqrt(abar))
+    c1 = np.sqrt(np.maximum(F(0.0), F(F(1.0) - abar)))
+    c2 = np.sqrt(np.maximum(F(0.0), abar_prev))
+    c3 = np.sqrt(np.maximum(F(0.0), F(F(1.0) - F(abar_prev + F(sig * sig)))))
+    return c0, c1, c2, c3, sig
+
+
+def ddim(co, x, eps, z):
+    """One step over the lists: eps and z pad with 0.0 when short."""
+    c0, c1, c2, c3, sig = co
+    out = []
+    for i in range(len(x)):
+        e = eps[i] if i < len(eps) else F(0.0)
+        zz = z[i] if i < len(z) else F(0.0)
+        x0 = F(F(x[i] - F(c1 * e)) * c0)
+        out.append(F(F(F(x0 * c2) + F(c3 * e)) + F(sig * zz)))
+    return out
+
+
 def close(a, b, tol=1e-6):
     return abs(float(a) - float(b)) <= tol * max(1.0, abs(float(a)), abs(float(b)))
 
@@ -117,6 +167,65 @@ def main():
             fail += 1
     if not (alphas and temb and not fail):
         pass
+
+    # the strided walk, its count and one DDIM step, against the pins
+    a8 = [alpha_at(t, 8) for t in range(1, 9)]
+    xs = [F(1.0), F(2.0), F(-0.5)]
+    es = [F(0.1), F(-0.2), F(0.3)]
+    zs = [F(0.0), F(1.0), F(-1.0)]
+    zbig = [F(1000.0), F(-1000.0), F(500.0)]
+    walk_checks = [
+        ("strided3", strided_from(a8, 3, 2), [0.6842266, 0.14427207]),
+        ("strided0", strided_from(a8, 3, 0), [0.95780456, 0.49384364, 0.037471935]),
+        ("stridedn", strided_from(list(range(10)), 3, 2), [2, 5, 8]),
+        ("groups_a", [groups_of(10, 3, 0)], [4]),
+        ("groups_b", [groups_of(10, 3, 2)], [3]),
+        ("groups_c", [groups_of(64, 4, 3)], [16]),
+        ("groups_d", [groups_of(5, 4, 3)], [1]),
+        ("groups_e", [groups_of(0, 4, 0)], [0]),
+        ("groups_f", [groups_of(8, 8, 7)], [1]),
+        ("groups_g", [groups_of(7, 1, 0)], [7]),
+        ("groups_h", [groups_of(3, 5, 0)], [1]),
+        ("sigma1", [sigma_of(F(0.25), F(0.5), F(1.0))], [0.57735026]),
+        ("sigma0", [sigma_of(F(0.25), F(0.5), F(0.0))], [0.0]),
+        ("sigmac", [sigma_of(F(0.6), F(0.5), F(1.0))], [0.0]),
+        ("step", list(step_of(F(0.25), F(0.5), F(1.0))),
+         [2.0, 0.8660254, 0.70710677, 0.4082483, 0.57735026]),
+        ("ddim", ddim(step_of(F(0.25), F(0.5), F(1.0)), xs, es, zs),
+         [1.3325639, 3.5690765, -1.5294058]),
+        ("ddimz", ddim(step_of(F(0.25), F(0.5), F(1.0)), xs, es, []),
+         [1.3325639, 2.9917264, -0.95205563]),
+        ("eta0a", ddim(step_of(F(0.25), F(0.5), F(0.0)), xs, es, zs),
+         [1.3624496, 2.9319549, -0.8623981]),
+        ("eta0b", ddim(step_of(F(0.25), F(0.5), F(0.0)), xs, es, zbig),
+         [1.3624496, 2.9319549, -0.8623981]),
+    ]
+    bad = [c for c in walk_checks
+           if not (len(c[1]) == len(c[2]) and all(close(g, w) for g, w in zip(c[1], c[2])))]
+    if bad:
+        for name, got, want in bad:
+            print(f"ERROR {name}: {[float(g) for g in got]} vs {want}")
+        fail += len(bad)
+    else:
+        print(f"ok   the walk, the count and one DDIM step ({len(walk_checks)} checks)")
+
+    # the count against its closed form, and the walk against the count:
+    # drop `skip`, then one every k, is ceil((n-skip)/k) whenever there
+    # is anything left to emit. This is the arithmetic the proved
+    # strided_length transfers onto the list walk.
+    grid_bad = []
+    for n in range(0, 40):
+        for k in range(1, 7):
+            for skip in range(0, 8):
+                want = 0 if n <= skip else (n - skip - 1) // k + 1
+                if (groups_of(n, k, skip) != want
+                        or len(strided_from(list(range(n)), k, skip)) != want):
+                    grid_bad.append((n, k, skip))
+    if grid_bad:
+        print(f"ERROR the walk and its count off the closed form: {grid_bad[:6]}")
+        fail += 1
+    else:
+        print("ok   the walk and its count agree with ceil((n-skip)/k) on 1680 counts")
     roundtrip = sum(1 for z in range(1, 4097) if int(mix32_inv(mix32(np.uint32(z)))) == z)
     if roundtrip == 4096:
         print(f"ok   mix32 roundtrip on 4096 values")

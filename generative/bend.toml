@@ -1,6 +1,6 @@
 [project]
 name = "mlbend-generative"
-version = "0.1.0.0"
-description = "The generative skeleton: a counter RNG (murmur3's fmix32 and its inverse, Box-Muller Gaussians), the cosine diffusion schedule, and the sinusoidal time embedding — with length laws."
+version = "0.1.1.0"
+description = "The generative skeleton: a counter RNG (murmur3's fmix32 and its inverse, Box-Muller Gaussians), the cosine diffusion schedule, the sinusoidal time embedding, the strided rung walk and one DDIM step — with length laws."
 
 [dependencies]

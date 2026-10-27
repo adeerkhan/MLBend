@@ -1052,8 +1052,8 @@ path = "main.bend"
 
 [[package]]
 name = "mlbend-generative"
-version = "0.1.0.0"
-hash = "0xa51d4d9fa3661462984f336054bbc146"
+version = "0.1.1.0"
+hash = "0xd48e7ce018b6fa7dc613b629e4260a23"
 source = "local"
 dependencies = []
 constructors = []
@@ -1063,7 +1063,7 @@ sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
 path = "LICENSE"
 
 [[package.files]]
-sha = "d75b59ad06cb3305119dfa26e150701aa813652ccefe59bb871b4e828a3c3b32"
+sha = "6233f6ae4f8e3af7259a97079c83e1e521363960cefb21e3923207d797c7e926"
 path = "main.bend"
 
 [[package]]

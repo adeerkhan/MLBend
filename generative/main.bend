@@ -1,6 +1,6 @@
 # mlbend-generative: the generative skeleton, natively in Bend 2.
 #
-#   import mlbend-generative@0.1.0.0/main.bend as G
+#   import mlbend-generative@0.1.1.0/main.bend as G
 #
 # What a generative model needs besides the network: randomness that a
 # verifier can draw again, a noise schedule, and a time embedding. The
@@ -12,7 +12,10 @@
 #
 # What is proved: the shape — the noise of any counter is exactly m
 # numbers (noise_length), a schedule over t steps is exactly t
-# (alphas_length), an embedding of k rungs is exactly 2k (temb_length).
+# (alphas_length), an embedding of k rungs is exactly 2k (temb_length),
+# a strided walk over n entries emits exactly the entries its count says
+# (strided_length), and a DDIM step over n elements is n elements
+# (ddim_length).
 # The builders recurse on the count left, the current index riding after
 # it, and the law's variables are ordered the same way — the structural
 # variable before the riding one — which is what lets the checker follow
@@ -257,4 +260,163 @@ def temb_length(t, steps, k, p):
     case 1n+rest:
       %temb_length(t, steps, rest, (1n + p : Nat)) :
         {1n+(1n+List.length(&2, F32, temb_from(t, steps, rest, (1n + p : Nat)))) == 1n+(1n+_) : Nat}
+      {==}
+
+# ---- the strided subsequence ----
+#
+# A few-step sampler (DDIM) visits every k-th rung of the schedule
+# instead of every rung. The walk is over the list itself: it can only
+# emit entries the list really has, so no index can fall off the end and
+# answer 0.0 — the silent out-of-range of `at`. `skip` says how many
+# entries drop before the first emission; a sampler anchors the top rung
+# with skip = (T-1) mod k, which lands the last emission on the last
+# entry whatever T and k are.
+
+# How many entries the walk emits over n entries. The count recurses on
+# the count left, exactly as the walk recurses on the list left, and the
+# two matches (on the count, on the skip) are in the same order — that
+# is what lets the law below follow both by induction.
+def groups_of(+n: Nat, +k: Nat, +skip: Nat) -> Nat:
+  match n:
+    case 0n:
+      0n
+    case 1n+m:
+      match skip:
+        case 0n:
+          (1n + groups_of(m, k, Nat.sub(k, 1n)) : Nat)
+        case 1n+r:
+          groups_of(m, k, r)
+
+# Every k-th entry of xs, the (skip+1)-th first: drop `skip`, emit one,
+# drop k-1, emit one, and so on to the end of the list. The list is
+# matched first (binders in order), the skip beside it.
+def strided_from(-A: Data, xs: List<&2, A>, +k: Nat, +skip: Nat) -> List<&2, A>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{h, t}:
+      match skip:
+        case 0n:
+          Con{h, strided_from(A, t, k, Nat.sub(k, 1n))}
+        case 1n+r:
+          strided_from(A, t, k, r)
+
+# every k-th entry of xs, the k-th first
+def strided(-A: Data, xs: List<&2, A>, +k: Nat) -> List<&2, A>:
+  strided_from(A, xs, k, Nat.sub(k, 1n))
+
+# LAW 5 (strided_length): every k-th entry of n entries is exactly the
+# number the count says.
+law strided_length:
+  for -A: Data
+  for +xs: List<&2, A>
+  for +k: Nat
+  for +skip: Nat
+  {List.length(&2, A, strided_from(A, xs, k, skip)) == groups_of(List.length(&2, A, xs), k, skip) : Nat}
+
+# every k-th entry of n entries is exactly the number the count says
+def strided_length(A, xs, k, skip):
+  match xs:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      match skip:
+        case 0n:
+          %strided_length(A, t, k, Nat.sub(k, 1n)) :
+            {1n+List.length(&2, A, strided_from(A, t, k, Nat.sub(k, 1n))) == 1n+_ : Nat}
+          {==}
+        case 1n+r:
+          %strided_length(A, t, k, r) :
+            {List.length(&2, A, strided_from(A, t, k, r)) == _ : Nat}
+          {==}
+
+# ---- the DDIM step (Song et al., 2020) ----
+#
+# The same forward model, a different sampler. From abar at the current
+# rung, abar_prev at the rung below and the noise level eta:
+#
+#   sigma  = eta·sqrt((1-abar_prev)/(1-abar))·sqrt(1-abar/abar_prev)
+#   x0     = (x - sqrt(1-abar)·eps)/sqrt(abar)
+#   x_prev = sqrt(abar_prev)·x0 + sqrt(1-abar_prev-sigma²)·eps + sigma·z
+#
+# eta = 0 never reads z, so the step is a pure function of the model and
+# the rungs; eta = 1 over every rung reproduces the ancestral DDPM step,
+# because that sigma² is exactly the posterior beta-tilde_t (the algebra
+# is checked against the ancestral mean in reference/test_ddim.py to
+# float32 rounding).
+
+def sigma_of(+abar: F32, +abar_prev: F32, +eta: F32) -> F32:
+  +above = F32.max(0.0, (1.0 - abar_prev : F32))
+  +below = F32.max(0.0, (1.0 - (abar / abar_prev : F32) : F32))
+  (eta * (F32.sqrt((above / (1.0 - abar : F32) : F32)) * F32.sqrt(below) : F32) : F32)
+
+# The five coefficients of one step: the four roots and the noise scale.
+# They are computed once per step, not once per element — the CIFAR
+# probe measures 786k elements in a step, and five sqrts each would be
+# paid 786k times. Every radicand is clamped at 0, so float rounding
+# cannot hand sqrt a negative and turn a whole grid into NaN.
+type Step is Data:
+  Step{c0: F32, c1: F32, c2: F32, c3: F32, sig: F32}
+
+def step_of(+abar: F32, +abar_prev: F32, +eta: F32) -> Step:
+  +sig = sigma_of(abar, abar_prev, eta)
+  +c0 = (1.0 / F32.sqrt(abar) : F32)
+  +c1 = F32.sqrt(F32.max(0.0, (1.0 - abar : F32)))
+  +c2 = F32.sqrt(F32.max(0.0, abar_prev))
+  +c3 = F32.sqrt(F32.max(0.0, (1.0 - (abar_prev + (sig * sig : F32) : F32) : F32)))
+  Step{c0, c1, c2, c3, sig}
+
+# one element of the step: x0 folded into x_prev
+def ddim_elem(+co: Step, +x: F32, +eps: F32, +z: F32) -> F32:
+  match co:
+    case Step{c0, c1, c2, c3, sig}:
+      +x0 = ((x - (c1 * eps : F32)) * c0 : F32)
+      (((x0 * c2 : F32) + (c3 * eps : F32) : F32) + (sig * z : F32) : F32)
+
+# the head of a list, or 0.0 when it is empty: the missing eps or z of a
+# step whose z is not drawn at all (eta = 0 passes Nil, and sigma·0.0 is
+# 0.0)
+def head_or_zero(xs: List<&2, F32>) -> F32:
+  match xs:
+    case Nil{}:
+      0.0
+    case Con{h, t}:
+      h
+
+# the rest of a list, or empty: the tail beside head_or_zero above
+def tail_or_nil(xs: List<&2, F32>) -> List<&2, F32>:
+  match xs:
+    case Nil{}:
+      Nil{}
+    case Con{h, t}:
+      t
+
+# One step over the whole sample: elementwise, and the shape follows x —
+# n elements in, n elements out (LAW 6). eps and z ride beside it: a
+# shorter list pads with 0.0, which is exactly right for the z of an
+# eta = 0 step and is caught by the twin's numbers otherwise.
+def ddim(+co: Step, x: List<&2, F32>, +eps: List<&2, F32>, +z: List<&2, F32>) -> List<&2, F32>:
+  match x:
+    case Nil{}:
+      Nil{}
+    case Con{h, t}:
+      Con{ddim_elem(co, h, head_or_zero(eps), head_or_zero(z)),
+        ddim(co, t, tail_or_nil(eps), tail_or_nil(z))}
+
+# LAW 6 (ddim_length): a step over n elements is n elements.
+law ddim_length:
+  for +co: Step
+  for +x: List<&2, F32>
+  for +eps: List<&2, F32>
+  for +z: List<&2, F32>
+  {List.length(&2, F32, ddim(co, x, eps, z)) == List.length(&2, F32, x) : Nat}
+
+# a step over n elements is n elements
+def ddim_length(co, x, eps, z):
+  match x:
+    case Nil{}:
+      {==}
+    case Con{h, t}:
+      %ddim_length(co, t, tail_or_nil(eps), tail_or_nil(z)) :
+        {1n+List.length(&2, F32, ddim(co, t, tail_or_nil(eps), tail_or_nil(z))) == 1n+_ : Nat}
       {==}
