@@ -337,6 +337,24 @@ def grid_svg(path, data, samples):
     open(path, "w").write("\n".join(parts))
 
 
+def legibility(samples, data):
+    """The best absolute correlation between a sample and any training digit.
+
+    The statistics say the cloud is in the data's range; this says whether a
+    sample looks like a digit at all. Random images score ~0.33 on this data,
+    the dense MLP 0.41, a ViT-style denoiser 0.80, the reference's UNet 0.93
+    (reference/digits_vit_probe.py). Reported, not gated yet: the threshold is
+    set when the denoiser that can meet it lands (ISSUE-008)."""
+    s = np.asarray(samples).reshape(-1, D).astype(np.float64)
+    d = np.asarray(data).reshape(-1, D).astype(np.float64)
+    s = s - s.mean(1, keepdims=True)
+    s = s / (np.linalg.norm(s, axis=1, keepdims=True) + 1e-12)
+    d = d - d.mean(1, keepdims=True)
+    d = d / (np.linalg.norm(d, axis=1, keepdims=True) + 1e-12)
+    c = np.abs(s @ d.T).max(1)
+    return float(c.mean()), float(c.min()), float(c.max())
+
+
 def run_probe():
     """The frozen probe: the model's output and the samplers with the
     starting weights, one line of 4096 numbers each (issue #13 —
@@ -409,6 +427,11 @@ def main():
     print(f"     sample_std  (report): {vals['sample_std']} vs {float(xs.std()):.4f}")
     print(f"     ddim_mean   (report): {vals['ddim_mean']} vs {float(dxs.mean()):.4f}")
     print(f"     ddim_std    (report): {vals['ddim_std']} vs {float(dxs.std()):.4f}")
+    corr_mean, corr_min, corr_max = legibility(bend_samples, x0)
+    rng = np.random.default_rng(0)
+    base = legibility(rng.random((S, D)).astype(F), x0)[0]
+    print(f"     sample_corr (report): {corr_mean:.3f} "
+          f"(min {corr_min:.3f}, max {corr_max:.3f}); random images {base:.3f}")
 
     # the frozen probe (issues #12, #13): the samplers against the twin,
     # element by element. The step gate feeds Bend's own model output to
@@ -466,7 +489,8 @@ def main():
                "example": "examples/diffusion_digits/main.bend",
                "dataset": {"url": URL, "sha256": SHA, "rows": N},
                "seconds": seconds,
-               "bend": {"first_loss": losses[0], "final_loss": losses[-1], **vals},
+               "bend": {"first_loss": losses[0], "final_loss": losses[-1],
+                         "sample_corr": corr_mean, **vals},
                "numpy": {"first_loss": curve[0], "final_loss": curve[-1],
                          "sample_mean": float(xs.mean()), "sample_std": float(xs.std()),
                          "ddim_mean": float(dxs.mean()), "ddim_std": float(dxs.std())}},

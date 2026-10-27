@@ -60,6 +60,18 @@ relevant entry before changing performance-sensitive code or a law.
   schedule — ISSUE-002), and the sinusoidal embedding injected as per-block
   scale/shift rather than concatenated as 8 input columns (not the cause; a
   model-quality question — H4).
+- **The denoiser is the remaining gap, and the route is measured.** The
+  reference's UNet scores **0.926** on the legibility statistic (best
+  correlation with any training digit), the dense MLP **0.408** (random
+  images 0.326) — and the MLP has the *lower* training loss, 0.042 against
+  0.078, so the loss was flattering it. `Conv2d` does not exist in BendTorch
+  (issue #15), so the route is attention: the torch probe
+  (`reference/digits_vit_probe.py`, 16 tokens of 2×2 patches, dim 64, 4 heads,
+  3 blocks, 103k parameters, 3000 steps) reaches **0.798** with the cloud at
+  0.260/0.299 and 4096/4096 in range. The port to Bend is
+  [adeerkhan/MLBend#16](https://github.com/adeerkhan/MLBend/issues/16); the
+  digits test now reports the statistic (`sample_corr`, 0.408 today) so the
+  gate can be set when that denoiser lands.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.

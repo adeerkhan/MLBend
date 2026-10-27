@@ -309,4 +309,8 @@ structure. That is the gap.
 
 **Status.** Filed as [nuxyel/BendTorch#15](https://github.com/nuxyel/BendTorch/issues/15).
 Interim route: a ViT-style denoiser from `Attention` + `LayerNorm`, which do
-exist; `Conv2d` later.
+exist; `Conv2d` later. **Measured** (`reference/digits_vit_probe.py`): 16
+tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps
+— nearest-digit `|corr|` **0.798** (min 0.676), cloud **0.260/0.299**,
+4096/4096 in [0,1]. The route works; the port is
+[adeerkhan/MLBend#16](https://github.com/adeerkhan/MLBend/issues/16).

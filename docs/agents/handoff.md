@@ -67,8 +67,12 @@ frozen step 3.6e-07, clouds 1.8e-05 / 1.2e-04, η = 0 bit-identical); the two
 **Did not run:** the GPU lane, the CIFAR work, and CI (this section is written
 before the push).
 
-**Next.** ISSUE-002's schedule question; the legibility metric and the
-ViT-style denoiser (ISSUE-008's interim route); then the parked work (#11
+**Next.** [adeerkhan/MLBend#16](https://github.com/adeerkhan/MLBend/issues/16):
+port the ViT-style denoiser (spec measured in
+`reference/digits_vit_probe.py`: 0.798 legibility against the MLP's 0.408)
+as `examples/diffusion_vit/`, with the legibility mean ≥ 0.75 as its gate —
+the digits test now prints the statistic (`sample_corr`) so the threshold has
+a baseline. Then ISSUE-002's schedule question, then the parked work (#11
 CIFAR-10 with the CUDA lane, and bend-ml #23). Two upstream issues are open
 from this work: [bendlang/bend#1894](https://github.com/bendlang/bend/issues/1894)
 (the run path's stack, ISSUE-007) and
