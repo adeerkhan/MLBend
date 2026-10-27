@@ -7,6 +7,85 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-27 — DDIM ships, and the two sampling bugs it exposed
+
+**Where things stand.** `make check` is **91/91** on this machine (Bend
+2.0.38, Lean 4.34.0 for `--verdict`; the 91st check is
+`reference/test_ddim.py`). `mlbend-generative@0.1.1.0` is written, proved and
+**not yet published** — `make release PKG=generative` publishes it, then
+pushes these commits and the tag. Issues #12–#15 are still open and close with
+this change.
+
+**What shipped.**
+
+- **The DDIM sampler (issue #12), in the package.** `mlbend-generative`
+  0.1.1.0 adds `sigma_of` (the posterior's σ), `step_of` (the five
+  coefficients of one step), `ddim` (the element-wise fold) and the strided
+  rung walk (`strided_from`, `groups_of`), with two new laws:
+  `strided_length` and `ddim_length` (six in the package now). Both examples
+  sample the same trained weights two ways: the ancestral loop over all 64
+  rungs, and DDIM over every 4th rung — **16 model calls instead of 64**.
+  At η = 0 a step reads no noise at all; that is gated as a test (the two
+  examples' probes, and `reference/test_ddim.py`), not stated as a law, and
+  `docs/AUDIT.md` says why.
+- **#14, the ancestral step's noise was wrong twice.** σ = √β_t *inside* the
+  1/√α scale; Algorithm 2 wants the posterior's σ = √β̃_t *outside* it.
+  Measured: 0.6236 against 0.5291 at t = 64, 0.0670 where the posterior is
+  exactly 0 at t = 1, noise variance **11.29 against 8.914** (21% too much).
+  The 2d cloud's spread against the data's 0.866/0.494 went from 0.363/0.259
+  to **0.599/0.424**; the first-loss gate did not move (training never sees
+  σ).
+- **#15, the 2d step divided by the cosine schedule's ᾱ** while the schedule
+  is linear. The ratio table (up to 1.9312×, agreeing at the top rung) is in
+  the issue.
+- **#13, the digits array's order.** One step came back reversed; the fix
+  conses and reverses once per step in both examples. The tolerance work is
+  the interesting part: statistics are order-blind, so the probe compares
+  element-wise, and Bend's own `eps` differs from the twin's by **7 ulps**
+  (BendTorch's `dotr` sums in four accumulators; numpy's BLAS does not), `x`
+  by 3 and `z` by 2. The probe therefore feeds **Bend's model output to both
+  sides**: the step gate is **3.81e-06** absolute, the frozen clouds
+  **5.05e-04** and **3.91e-04** relative, and a reversed array would read
+  **1.98**. `TOL_STEP = 1e-5`, `TOL_CLOUD = 5e-3`.
+- **The digits report's cloud.** With the corrected step the trained digits
+  sampler's cloud is deterministic (two runs bit for bit, final loss
+  1.0258427) and reaches **1.08e20** — the underfit denoiser's known
+  geometric expansion, still the residual-head follow-up. The example's f32
+  variance sum overflowed there and printed `sample_std: inf`; I made the
+  variance overflow-safe (factor by the largest deviation, sum, multiply
+  back) rather than teach every parser about `inf`: it now prints
+  **1.0752e19**.
+- **Docs and artifacts.** `docs/PLAN.md` (0.1.1.0 + both diffusion tasks),
+  `docs/AUDIT.md` (two laws, the η = 0 test note), `NOTES.md` §2026-10-27
+  (the measurements), both example READMEs regenerated with the two samplers,
+  both report cards and plots rerun, and the two frozen probes are in
+  `reference/`.
+
+**What ran, and what did not.**
+
+- Ran: `make check` (91/91); `reference/test_diffusion_digits.py` alone (all
+  gates; build + 3000-step run, ~5 min); `make experiment TASK=diffusion-2d`
+  (PASS, first loss 152.95369); `make experiment TASK=diffusion-digits`
+  (PASS, data mean delta 4.6e-09, sample statistics report-mode);
+  `make plots`; `--check-only` on both examples (the digits one still prints
+  the accepted 315-defs unsafe/foreign message, which `verdict_ok` allows).
+- Did not run: the GPU lane, the CIFAR-10 work (issue #11), and the upstream
+  build of a fresh checkout — that last one matters, because the examples now
+  import `mlbend-generative@0.1.1.0` and it is **not on the hub** until the
+  release below runs. CI in a clean checkout will fail on it until then.
+
+**Next.**
+
+1. `make release PKG=generative` — publishes 0.1.1.0 to BendHub, then pushes
+   the commits and tags `mlbend-generative-v0.1.1.0`. Do it before pushing
+   anything that imports the version.
+2. Close #12, #13, #14, #15 with what was done, measured and left (the
+   residual head on the digits denoiser is the only left-behind piece).
+3. Then the parked work: #11 CIFAR-10, and bend-ml #23.
+4. Upstream still awaits replies: bendlang PRs #1870/#1871, issues
+   #1848/#1835/#1820; BendTorch PRs #11/#14, issues #10/#7; bend-ml
+   #20/#22/#23.
+
 ## 2026-10-26 — the generative package, the GPU lane, the digits done
 
 **Where we are.** Three things moved; one is now finished rather than

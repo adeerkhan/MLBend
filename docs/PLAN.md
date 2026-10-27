@@ -140,36 +140,51 @@ now:
   next-token prediction over the periodic sequence 0..7. The loss falls from
   2.3591 to 0.0021; a NumPy twin starts at 2.3591 and ends at 0.1351. The loss
   curve, the table and the manifest are in `results/transformer/`.
-- `mlbend-generative@0.1.0.0` (2026-10-25, issue #10): the counter RNG
-  (murmur3's fmix32 and its closed-form inverse, Box-Muller over 24-bit
-  uniforms), the cosine and the linear schedules, and the sinusoidal time
-  embedding — four length laws proved, every number mirrored bit for bit
-  by the NumPy twin. The bijection of mix32 is tested, not proved: the
-  debt of issue #10.
-- `diffusion-2d` (2026-10-25): a DDPM denoiser — three linear layers with
-  SiLU — trained by AdamW to predict the noise of a 64-step linear-β forward
-  process over two moons, then sampled by the ancestral loop. The first
-  training loss is the gate: every "random" number is a pure function of a
-  counter (murmur3's fmix32, Box-Muller over 24-bit uniforms), so the NumPy
-  twin draws the same numbers and the two agree to **1.5e-5** (152.954
-  against 152.954). The final
-  loss, the sample statistics and the scatter (`results/diffusion/`) are
-  report-mode: the optimizers round differently and the sampling loop
-  amplifies a ulp over its 64 steps. The finding the task cost: model
-  parameters are affine (they hold arrays), so a sampling loop cannot reuse
-  them — `Layer.fwd` returns them in `Fwd{p, y, s}` and the loop threads
-  them through a record, the pattern bendtorch's own eval loop uses.
+- `mlbend-generative@0.1.1.0` (2026-10-27, issues #10 and #12): the counter
+  RNG (murmur3's fmix32 and its closed-form inverse, Box-Muller over 24-bit
+  uniforms), the cosine and the linear schedules, the sinusoidal time
+  embedding, and now the DDIM algebra — the posterior's σ, the five
+  coefficients of the step, the element-wise fold, and the strided rung walk
+  (`strided_from`, `groups_of`) that samples every k-th rung. Six length
+  laws are proved (`noise_length`, `alphas_length`, `lin_alphas_length`,
+  `temb_length`, `strided_length`, `ddim_length`), and every number is
+  mirrored bit for bit by the NumPy twins. The bijection of mix32 is tested,
+  not proved: the debt of issue #10.
+- `diffusion-2d` (2026-10-25, extended 2026-10-27 with issue #12): a DDPM
+  denoiser — three linear layers with SiLU — trained by AdamW to predict the
+  noise of a 64-step linear-β forward process over two moons, then sampled
+  two ways: the ancestral loop over all 64 rungs, and DDIM over every 4th
+  rung (16 model calls instead of 64; at η = 0 a step reads no noise at all,
+  so the cloud is a pure function of the model and the starting noise). The
+  first training loss is the gate: every "random" number is a pure function
+  of a counter (murmur3's fmix32, Box-Muller over 24-bit uniforms), so the
+  NumPy twin draws the same numbers and the two agree to **1.5e-5**
+  (152.954 against 152.954). Two sampling bugs went with the new sampler
+  (issues #14 and #15): the step divided by the *cosine* ᾱ while the
+  schedule is linear, and its noise was √β_t *inside* the 1/√α scale
+  instead of the posterior's σ *outside* it. The final loss, both clouds'
+  statistics and the scatter (`results/diffusion/`) are report-mode: the
+  optimizers round differently and a 64-step loop amplifies a ulp. The
+  finding the task cost: model parameters are affine (they hold arrays), so
+  a sampling loop cannot reuse them — `Layer.fwd` returns them in
+  `Fwd{p, y, s}` and the loop threads them through a record, the pattern
+  bendtorch's own eval loop uses.
 - `diffusion-digits`: the same skeleton over real data — the first
   1024 rows of mstz/optdigits (8×8 digits, pinned revision, read through
-  `csv_of`), a 64-output denoiser, 64 sampled digits printed as a grid.
-  The exact gate caught four real bugs (σ_t, the per-row noise-index
-  reset, the `drop` semantics, the 65th-pixel consumption) and a fifth in
-  the staged input build (a pixel skipped per row, rows newest-first,
-  fixed in `2f2631b`); the test is `reference/test_diffusion_digits.py`
-  and the task passes (first loss 8062.69, delta 4.7e-05). The denoiser
-  still needs a residual head (`T.Residual`) before the samples stop
-  diverging — an underfit ε̂ at high noise makes the ancestral chain
-  expand geometrically (`sample_mean` 50256.9 against the data's 96.7,
+  `csv_of`), a 64-output denoiser, 64 sampled digits printed as a grid, and
+  now the same two samplers as the 2d task (ancestral and DDIM at every 4th
+  rung, issue #12). The exact gate caught four real bugs (σ_t, the per-row
+  noise-index reset, the `drop` semantics, the 65th-pixel consumption), a
+  fifth in the staged input build (a pixel skipped per row, rows newest-first,
+  fixed in `2f2631b`), and the sampler work added two more (issues #13 and
+  #14); the test is `reference/test_diffusion_digits.py`, the task passes
+  (first loss 8062.69, delta 4.7e-05) and a frozen-weights probe checks both
+  samplers element by element against the twin (step 3.8e-06, clouds 5.0e-04
+  and 3.9e-04 relative). The denoiser still needs a residual head
+  (`T.Residual`) before the samples stop diverging — an underfit ε̂ at high
+  noise makes the ancestral chain expand geometrically, deterministically to
+  a cloud of 1.08e20 (`sample_mean` 1.2e17 against the data's 0.31, and the
+  statistics are factored so the variance stays finite at that magnitude;
   report-mode).
 
 **The foundation correction (2026-10-24).** The earlier "missing softmax" was

@@ -33,7 +33,7 @@ Questions to ask of each law:
 | `mlbend-cluster` | `cluster_covers` | every row gets exactly one cluster, so no row is left out and none is in two |
 | `mlbend-pipeline` | `pipeline_preserves_rows` | transforming the rows keeps one output row for every input row |
 | `mlbend-report` | `matrix_rows`, `row_length` | `n` rows of the confusion matrix are `n` rows, and `n` cells of a row are `n` cells |
-| `mlbend-generative` | `noise_length`, `alphas_length`, `lin_alphas_length`, `temb_length` | m numbers asked for are m numbers built, and the schedules and embeddings have exactly as many entries as steps and rungs |
+| `mlbend-generative` | `noise_length`, `alphas_length`, `lin_alphas_length`, `temb_length`, `strided_length`, `ddim_length` | m numbers asked for are m numbers built, the schedules and embeddings have exactly as many entries as steps and rungs, the every-k-th walk emits exactly the count its own function says, and one DDIM step maps n elements to n elements |
 
 ### The experiment layer
 
@@ -91,3 +91,8 @@ two sequences are `List<&2, F32>` (the values may be read twice) and
   law is debt; see `NOTES.md`).
 - Nothing is proved about the *order* of the sums: they are fixed by the code,
   not by a law.
+- No claim about the sampled cloud. The two samplers' numbers are tested
+  against the NumPy twin (`reference/test_diffusion.py`, `reference/test_ddim.py`),
+  and whether a step at η = 0 reads no noise counter at all is a gate on
+  output, not a law: it is a claim about which terms the loop evaluates, and
+  the loop lives in an example (issue #12 records why it is a test).

@@ -3,6 +3,82 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-27
+
+- **The DDIM sampler, and the two sampling bugs it exposed (issues #12, #14,
+  #15).** `mlbend-generative` 0.1.1.0 adds the DDIM algebra — `sigma_of` (the
+  posterior's σ), `step_of` (the five coefficients of one step), `ddim` (the
+  element-wise fold) and the strided rung walk (`strided_from`, `groups_of`) —
+  with two new laws: `strided_length` (the every-k-th walk emits exactly the
+  count `groups_of` says, so the rung lists run in lockstep) and
+  `ddim_length` (one step over n elements is n elements). Both examples now
+  run the same trained weights down all 64 rungs (ancestral) and down every
+  4th rung (DDIM, **16 model calls instead of 64**), and at η = 0 the step
+  reads no noise at all: `reference/probe_digits.bend` draws the same cloud
+  bit for bit with the draw on, another salt and 4096 elements, and
+  `test_ddim.py` gates it on the 2d model too. That invariance is a **test, not
+  a law**, and `docs/AUDIT.md` says why: it is a claim about which terms the
+  loop evaluates, and the loop lives in an example.
+- **#14: the ancestral step's noise was wrong twice.** It used σ = √β_t *inside*
+  the 1/√α scale, where Ho et al.'s Algorithm 2 puts the posterior's
+  σ = √β̃_t *outside* it. Measured on the linear schedule the examples use:
+  the effective noise at t = 64 was **0.6236 against the posterior's 0.5291**,
+  at t = 1 **0.0670 where the posterior is exactly 0** (so the last step drew
+  noise it must not), and over the whole walk the noise variance was
+  **11.29 against 8.914** — 21% too much. The 2d cloud responded: its spread
+  against the data's 0.866/0.494 went from **0.363/0.259** (pre-fix report) to
+  **0.599/0.424**, while the gate (first loss 152.954, delta 1.5e-5) did not
+  move, because training never sees σ.
+- **#15: the 2d step divided by the cosine schedule's ᾱ while training used the
+  linear one.** `G.alpha_at(t, 64n)` (cosine) and `G.lin_alphas(64n)` (linear)
+  disagree by up to **1.9312×** (t = 4) and agree at the top rung; the table is
+  in issue #15, with the committed pre-fix report gap that led to it. The fix
+  is `abar(t)` everywhere, and the same `abar_below(t)` the digits example got.
+- **#13: the digits array's order, and what the probe can and cannot see.** The
+  consing `rev_go` handed back a reversed array; one step showed it
+  (Bend vs the in-order twin 27.0, vs the reversed twin 3.6e-7). Two things I
+  had to measure before choosing a tolerance: the *statistics* (mean, std over
+  the flat array) are **order-blind**, so only element-wise reads can catch a
+  reorder — hence the probe — and Bend's own `eps` differs from the twin's by
+  **7 ulps** (BendTorch's `dotr` accumulates in four partial sums; numpy's BLAS
+  does not), with `x` at 3 ulps and `z` at 2. So the probe's tight gate feeds
+  **Bend's model output to both sides**: what it gates is the sampler's
+  arithmetic and the array's order, not the matmul. Measured, with that gate:
+  the step **3.81e-06** absolute (one FMA ulp of the 30-magnitude values), the
+  frozen clouds **5.05e-04** (ancestral) and **3.91e-04** (DDIM) relative
+  against a reversed array's **1.98**. The gates are `TOL_STEP = 1e-5` and
+  `TOL_CLOUD = 5e-3`, ~5× over their own measurement. One correction worth
+  keeping: for an **even** number of steps the old alternating orientation
+  cancelled, so the digits *cosine* cloud was not reversed in the end; what
+  was reversed was every intermediate and every odd-count probe. The 2d walk
+  never had the bug (it appends in ascending index order).
+- **The digits report's cloud, and an f32 variance that overflowed.** With the
+  corrected step the trained digits sampler's cloud is deterministic (two runs
+  bit for bit: final loss 1.0258427) and reaches **1.08e20** — the underfit
+  denoiser's known geometric expansion (still the residual-head follow-up, not
+  a gate). The example's `std_of` summed squares in f32, so 4096 values of
+  1e20 overflowed the sum and the report printed `sample_std: inf`, which also
+  breaks every parser in the layer. I made the variance overflow-safe instead
+  of tolerating `inf`: it factors each deviation by the largest one, sums the
+  squares of *those*, and multiplies the scale back — the same variance, finite
+  at any magnitude (**1.0752e19** here). The underfit denoiser itself is not
+  touched: `sample_mean` 1.2e17 against the data's 0.31 is the debt the README
+  already names.
+- **Measured in `reference/test_ddim.py`** (the 91st check): the posterior's
+  variance against its closed form a **8.196e-08**, η = 0 reads exactly **0.0**
+  of noise, one 2d step **9.54e-07**, the rung positions exact (the
+  skip = (T−1) mod k anchor lands the top at ᾱ_T for every k), and the four
+  clouds walk **2.7e-06, 7.07e-06, 5.53e-06, 2.0e-06** from their twins — the
+  same order as the twin-to-twin baseline (6.0e-06), so the 16-call walk costs
+  no more than the 64-call one.
+- **Three checker rules I paid for again.** A `match` cannot scrutinize a local
+  binder (bind the `Bool` and hand it to a def that matches on it — `std_of`
+  does); a let that is read twice needs `+` (even when one read is only the
+  guard's `is_eq`); and a parameter whose type is a `Type` (the trained
+  `B4P()`, `T.Train`) cannot be marked `+` and cannot be used twice, so the
+  digits report hands the weights to the second sampler through the `PS` state
+  exactly as the 2d example does.
+
 ## 2026-10-26
 
 - **The digits layout bug, found and fixed (commit `2f2631b`).** The last
