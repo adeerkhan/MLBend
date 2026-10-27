@@ -1,0 +1,49 @@
+{
+  "created_at": "2026-10-27T16:30:34.657555+00:00",
+  "reference": "lucidrains/denoising-diffusion-pytorch (vendored, reference/lucidrains)",
+  "steps": 3000,
+  "batch": 128,
+  "seconds": 621.3238196372986,
+  "model": {
+    "unet_dim": 32,
+    "params": 825889
+  },
+  "schedule": {
+    "reference_beta_first": 0.0015625,
+    "reference_beta_last": 0.3125,
+    "reference_abar_T": 1.223547678819159e-05,
+    "bend_beta_first": 0.0044734375,
+    "bend_beta_last": 0.27999999999999997,
+    "bend_abar_T": 4.085385357996893e-05
+  },
+  "loss": {
+    "first": 0.9633966088294983,
+    "final": 0.07796917110681534
+  },
+  "lucidrains": {
+    "ddim": {
+      "mean": 0.27736878395080566,
+      "std": 0.3400186002254486,
+      "min": 0.0,
+      "max": 1.0,
+      "in_unit": 4096
+    },
+    "ancestral": {
+      "mean": 0.2837691903114319,
+      "std": 0.3515212833881378,
+      "min": 0.0,
+      "max": 1.0,
+      "in_unit": 4096
+    }
+  },
+  "bend": {
+    "first_loss": 8062.6895,
+    "final_loss": 1.0367838,
+    "data_mean": 0.30756474,
+    "data_std": 0.3766606,
+    "sample_mean": 1.2049499e+17,
+    "sample_std": 1.0751823e+19,
+    "ddim_mean": 498116.7,
+    "ddim_std": 34504556.0
+  }
+}

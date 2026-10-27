@@ -28,3 +28,6 @@ wandb/
 
 # the dataset cache the runner fills (the hashes are in the manifests)
 reference/.cache/
+
+# the torch reference environment (reference/lucidrains)
+.venv-lucidrains/
