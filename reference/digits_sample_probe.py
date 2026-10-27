@@ -24,7 +24,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "reference"))
 
 from digits_ablation import D, N, T, bend_betas, make_model, temb, LR
-from test_diffusion_digits import load
+from test_diffusion_digits import load, legibility
 
 STEPS = 3000
 SAMPLES = 64
@@ -94,8 +94,9 @@ def main():
                               ("ddim  clamped ", True, True)):
         v = sample(model, abar, tembs, ddim, clamp)
         unit = int(((v >= 0) & (v <= 1)).sum())
+        corr = legibility(v, load())[0] if clamp else float("nan")
         print(f"{name}  mean {v.mean():+9.4f}  std {v.std():9.4f}  "
-              f"min {v.min():+9.3f}  max {v.max():+9.3f}  in [0,1]: {unit}/4096")
+              f"in [0,1]: {unit}/4096  legibility {corr:.3f}")
 
 
 if __name__ == "__main__":

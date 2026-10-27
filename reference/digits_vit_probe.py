@@ -55,10 +55,26 @@ class Block(nn.Module):
         return x + self.mlp(self.ln2(x))
 
 
+POS_MODE = os.environ.get("POS", "learned")
+
+
+def pos_features():
+    """Fixed sinusoidal positions, as 8 values per token (Bend can carry a
+    position only as part of the row: BendTorch has no per-row table)."""
+    out = []
+    for p in range(TOKENS):
+        row = []
+        for f in (0.001, 0.01, 0.1, 1.0):
+            row += [np.sin(p * f), np.cos(p * f)]
+        out.append(row)
+    return torch.tensor(out, dtype=torch.float32)
+
+
 class Vit(nn.Module):
     def __init__(self):
         super().__init__()
-        self.embed = nn.Linear(PIX + 8, DIM)      # patch pixels + the time embedding
+        extra = 8 if POS_MODE == "features" else 0
+        self.embed = nn.Linear(PIX + 8 + extra, DIM)   # pixels + time (+ position)
         self.pos = nn.Parameter(torch.zeros(1, TOKENS, DIM))
         self.blocks = nn.ModuleList(Block() for _ in range(BLOCKS))
         self.ln = nn.LayerNorm(DIM)
@@ -66,7 +82,11 @@ class Vit(nn.Module):
 
     def forward(self, patches, te):
         te = te.unsqueeze(1).expand(-1, patches.shape[1], -1)
-        x = self.embed(torch.cat([patches, te], dim=-1)) + self.pos
+        if POS_MODE == "features":
+            pf = pos_features().to(patches.device).unsqueeze(0).expand(patches.shape[0], -1, -1)
+            x = self.embed(torch.cat([patches, te, pf], dim=-1))
+        else:
+            x = self.embed(torch.cat([patches, te], dim=-1)) + self.pos
         for b in self.blocks:
             x = b(x)
         return self.head(self.ln(x))

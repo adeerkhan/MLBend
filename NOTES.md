@@ -72,6 +72,23 @@ relevant entry before changing performance-sensitive code or a law.
   [adeerkhan/MLBend#16](https://github.com/adeerkhan/MLBend/issues/16); the
   digits test now reports the statistic (`sample_corr`, 0.408 today) so the
   gate can be set when that denoiser lands.
+- **The port's design is fixed, and the end-to-end numbers now exist.** Two
+  things had to be settled before writing Bend code. (1) BendTorch has no
+  per-row position table, so a learned position embedding is not expressible;
+  the same ViT with fixed sinusoidal position *features* (8 values per token,
+  beside the 8 time-embedding values) scores **0.809** — against 0.798 for the
+  learned table — so the port uses features: 4 pixels + 8 time + 8 position =
+  20 per token, embedded to 64. (2) The pipelines were compared end to end on
+  the *same* architecture (the MLP), each trained and sampled by its own side,
+  legibility = best correlation with any training digit, random 0.326:
+
+  | arm | DDPM | DDIM |
+  |---|---|---|
+  | Bend MLP (full batch, AdamW 0.01) | 0.408 | 0.407 |
+  | torch MLP (batch 128, Adam 1e-3) | 0.566 | 0.365 |
+
+  Same order, different recipes; neither sampler is the limiter. The quality
+  ceiling is the denoiser: ViT **0.809**, the reference's UNet **0.926**.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
