@@ -3,6 +3,75 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-27 (later) — the digits denoiser, rebuilt against the reference
+
+- **Why a reference at all.** The NumPy twin agrees with the Bend example *by
+  construction* — it is a mirror I wrote — so it cannot tell me whether the
+  example is right, only whether the two agree. `lucidrains/denoising-diffusion-pytorch`
+  is what the field actually runs, so it became the second opinion. Vendored
+  verbatim (`reference/lucidrains/`, commit `c8155b1d`, MIT, sha256 manifest,
+  its own torch venv; nothing in `make check` imports it). Its `__init__`
+  imports every submodule, so "the necessary files" is the whole package.
+- **The comparison, on the same task** (1024 optdigits, T = 64, noise
+  prediction, linear schedule): the reference reaches **0.106 in 300 steps**
+  and **0.078 in 3000** (batch 128), and its sampled clouds sit at
+  **0.2774/0.3400** (DDIM) and **0.2838/0.3515** (ancestral) with **4096/4096**
+  pixels in [0,1], against the data's 0.3076/0.3767. Bend, at the time:
+  **1.0258 after 3000 full-batch steps**, cloud mean 1.2e17.
+- **The cause was the initialiser, and the ablation says so.** Our exact MLP,
+  optimizer and data, one factor at a time (`reference/digits_ablation.py`):
+  the example's init `[-0.2, +0.5]` ends at **1.3766/1.1827**, PyTorch's
+  zero-mean init at **0.1455** — while [0,1] vs [−1,1] input range and our
+  schedule vs the reference's move it only between 0.1455 and 0.1787. The
+  positive mean (+0.15) summed over a 72-wide first layer starts every unit
+  near +10 and SiLU carries it forward; the first loss was **8062.7** against
+  the reference's 0.963. Fixed: a 97-value hash on [−1, 1), scaled by
+  `1/sqrt(fan_in)` at the row builder.
+- **Learning was half of it; the sampler was the other half.** After the fix
+  the loss fell to **0.0417** (better than the reference's 0.078) but the cloud
+  was still **std 35.8**, mean −1.39. The reference clamps the predicted
+  start to its data range before forming the posterior mean, and re-derives ε̂
+  from the clamped start for DDIM; we did neither. Isolated on one trained MLP
+  (`reference/digits_sample_probe.py`): DDPM **32.79 → 0.3005**, DDIM
+  **17.77 → 0.3614**, pixels in [0,1] **123/4096 → 4096/4096**. Both steps now
+  reconstruct `x0 = (x − √(1−ᾱ)ε̂)/√ᾱ`, clamp to [0,1], and form the mean from
+  it. The Bend clouds are now **0.3846/0.3549** (ancestral) and
+  **0.4153/0.4059** (DDIM), 4096/4096 in range — the digits example finally
+  shows what it claims.
+- **The twins' backward pass was wrong, and only the fixed Bend arm could
+  reveal it.** Both NumPy twins evaluated the SiLU derivative at the
+  *activated* value instead of the pre-activation (BendTorch's `silu_d` takes
+  the pre-activation). It was invisible while both arms sat at the mean —
+  wrong and right gradients are both ~0 there — and it became visible the
+  moment Bend learned and the twin did not: **identical first loss**
+  (1.0038943 vs 1.003894329) and finals of **0.044 against 1.031**. The gated
+  number is one step with no update, so `make check` could not see it; that is
+  now written down in `docs/AUDIT.md`. After the fix the mirror is far better
+  than it had ever been measured: the 2d final loss over 4000 steps agrees to
+  **1.4e-08** and its clouds to ~1e-6, and the digits final loss to **1 %**
+  (0.04408 vs 0.04449).
+- **What the reference did right that we did not, in order of effect**:
+  zero-mean init (fixed), x̂₀ clamp (fixed), data normalised to [−1,1]
+  (measured as not the cause; still a fidelity option), the schedule's
+  `1000/T` rescale (measured as not the cause; ours is a different linear
+  schedule — ISSUE-002), and the sinusoidal embedding injected as per-block
+  scale/shift rather than concatenated as 8 input columns (not the cause; a
+  model-quality question — H4).
+- **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
+  the reference's `sigma` and `c` term for term; reading the vendored file
+  confirmed the algebra rather than changing it.
+- **Checker rules paid for here.** A pattern variable read twice needs the
+  plus *inside the pattern* (`case Con{+xv, xt} …`, as `drop64_go` does); a
+  record of `F32`s (`RC`) can be a `+` parameter and be reused; `F32.clamp`
+  exists in Base and takes the bounds as ordinary arguments.
+- **What ran:** the vendored import and a smoke train; the reference
+  comparison at 300 and 3000 steps; the 5-variant ablation; the 4-way clamp
+  probe; the Bend example before and after each fix (binary, build + 3000
+  steps); `--check-only` (only the accepted 315-defs message). **What did
+  not:** `make check` and the digits test after the clamp (running now), the
+  2d example's sampler (its cloud is already in range; left as a fidelity
+  item), and any GPU lane.
+
 ## 2026-10-27
 
 - **The DDIM sampler, and the two sampling bugs it exposed (issues #12, #14,

@@ -67,7 +67,15 @@ two sequences are `List<&2, F32>` (the values may be read twice) and
    every claim.
 2. **NumPy and scikit-learn**, for the numbers. `reference/test_metrics.py`
    compares the metrics with them; the comparison is within a relative `1e-5`,
-   because `F32` is not a real number and the two round differently.
+   because `F32` is not a real number and the two round differently. The
+   diffusion twins are a mirror of the *whole* training loop, and their first
+   loss is the only number gated: that gate runs one step and no update, so it
+   cannot see a wrong backward pass. It could not, in fact — both twins
+   evaluated the SiLU derivative at the activated value instead of the
+   pre-activation, and no gate noticed until the Bend arm learned and the
+   twins did not (`issues-hit.md`, ISSUE-006). The digits twins are now also
+   compared with the vendored lucidrains reference, which is an outside
+   implementation rather than a mirror of our own code.
 3. **The published packages this repository imports.** `mlbend-metrics`
    imports `bend-ml-nat-lemmas@0.1.1.0` for the arithmetic lemmas (its
    `add_zero` is what the `count_length` proof leans on). That package is

@@ -7,6 +7,69 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
+## 2026-10-27 (later) — the reference, and the digits denoiser, fixed
+
+**Where things stand.** Uncommitted work on `main` (this section is written
+before the commit): the vendored lucidrains reference, the digits denoiser's
+initialiser and x̂₀ clamp, both NumPy twins' SiLU backward, and
+`issues-hit.md`. `mlbend-generative@0.1.1.0` is published and unchanged by
+this work. The last gate is `make check` after the re-runs (see below).
+
+**Why the reference.** The NumPy twins agree with the examples by
+construction — they are mirrors I wrote — so they cannot say whether an
+example is right, only whether the two agree. `lucidrains/denoising-diffusion-pytorch`
+is what the field runs: vendored verbatim at `c8155b1dc0` (MIT, sha256
+manifest, `reference/lucidrains/VENDORED.md`), in its own torch venv
+(`reference/.venv-lucidrains`, gitignored), run by
+`reference/lucidrains_compare.py` on the same 1024 optdigits rows, T = 64,
+noise prediction, linear schedule.
+
+**What it found, in order of effect.**
+
+1. **The digits initialiser** (ISSUE-001). `[-0.2, +0.5]` with mean +0.15 over
+   a 72-wide first layer started every unit near +10; the first loss was 8062.7
+   against the reference's 0.963, and 3000 steps could not undo it. Our exact
+   MLP in torch, one factor at a time (`reference/digits_ablation.py`): the
+   init ends at 1.38, PyTorch's zero-mean init at 0.1455, while input range and
+   schedule move it only to 0.176–0.179. Fixed: a 97-value hash on [−1,1),
+   scaled by `1/sqrt(fan_in)`; first loss **0.868**, final **0.0417**.
+2. **The missing x̂₀ clamp** (ISSUE-005). A learned model still gave a cloud of
+   std 35.8; the reference clamps the predicted start to its data range and
+   re-derives ε̂ for DDIM. Isolated on one trained MLP
+   (`reference/digits_sample_probe.py`): DDPM 32.79 → **0.3005**, DDIM 17.77 →
+   **0.3614**, pixels in [0,1] 123/4096 → **4096/4096**. Bend's clouds are now
+   **0.3846/0.3549** (ancestral) and **0.4153/0.4059** (DDIM) against the
+   data's 0.3076/0.3767.
+3. **Both twins' backward pass** (ISSUE-006). The SiLU derivative was taken at
+   the activated value instead of the pre-activation. Invisible while both arms
+   sat at the mean; it showed up as *identical first loss* and finals of
+   0.044 (Bend) vs 1.031 (twin). Fixed; the mirror is now much better measured
+   than before: 2d final loss **1.4e-08** apart over 4000 steps, clouds ~1e-6;
+   digits final loss **1 %** apart.
+
+**What is still fidelity, not a bug.** ISSUE-002: our linear schedule
+(`1e-4 + 0.2799·t/T`) is not the reference's (`linspace(1000/T·1e-4,
+1000/T·0.02, T)`), worst per-step gap 65%, ᾱ₆₄ 4.09e-5 vs 1.22e-5. The
+ablation says it is not why the digits failed (0.1755 vs 0.1455), so this is a
+decision: adopt the rescale or document ours. Same for the data range ([0,1]
+here, [−1,1] there) and for the time embedding (8 concatenated input values
+here, per-block scale/shift there). The 2d example has no clamp yet; its cloud
+is already in the data's range, but the fidelity item stands.
+
+**What ran.** The reference compare at 300 and 3000 steps; the 5-variant
+ablation; the 4-way clamp probe; the digits example before/after each fix
+(build + 3000 steps); `reference/test_diffusion.py` and
+`reference/test_diffusion_digits.py` after each change (all gates green:
+frozen step 3.6e-07, clouds 1.8e-05 / 1.2e-04, η = 0 bit-identical); the two
+`make experiment` tasks; `make plots`; `make results`; then `make check`.
+**Did not run:** the GPU lane, the CIFAR work, and CI (this section is written
+before the push).
+
+**Next.** Commit this as one body of work with `issues-hit.md` kept current;
+then decide ISSUE-002's schedule question; then the parked work (#11 CIFAR-10
+and bend-ml #23). The reference venv must be built explicitly
+(`reference/lucidrains/README.md`); `make check` does not need it.
+
 ## 2026-10-27 — DDIM ships, and the two sampling bugs it exposed
 
 **Where things stand.** `make check` is **91/91** on this machine (Bend

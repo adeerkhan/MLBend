@@ -169,23 +169,23 @@ now:
   a sampling loop cannot reuse them — `Layer.fwd` returns them in
   `Fwd{p, y, s}` and the loop threads them through a record, the pattern
   bendtorch's own eval loop uses.
-- `diffusion-digits`: the same skeleton over real data — the first
+- `diffusion-digits`: the same task over real data — the first
   1024 rows of mstz/optdigits (8×8 digits, pinned revision, read through
-  `csv_of`), a 64-output denoiser, 64 sampled digits printed as a grid, and
-  now the same two samplers as the 2d task (ancestral and DDIM at every 4th
-  rung, issue #12). The exact gate caught four real bugs (σ_t, the per-row
-  noise-index reset, the `drop` semantics, the 65th-pixel consumption), a
-  fifth in the staged input build (a pixel skipped per row, rows newest-first,
-  fixed in `2f2631b`), and the sampler work added two more (issues #13 and
-  #14); the test is `reference/test_diffusion_digits.py`, the task passes
-  (first loss 8062.69, delta 4.7e-05) and a frozen-weights probe checks both
-  samplers element by element against the twin (step 3.8e-06, clouds 5.0e-04
-  and 3.9e-04 relative). The denoiser still needs a residual head
-  (`T.Residual`) before the samples stop diverging — an underfit ε̂ at high
-  noise makes the ancestral chain expand geometrically, deterministically to
-  a cloud of 1.08e20 (`sample_mean` 1.2e17 against the data's 0.31, and the
-  statistics are factored so the variance stays finite at that magnitude;
-  report-mode).
+  `csv_of`), a 64-wide SiLU body over a digit's 64 pixels plus 8 time-embedding
+  values, 3000 full-batch AdamW steps, then 64 fresh digits two ways (the
+  ancestral loop and DDIM at every 4th rung, issue #12). The exact gate caught
+  four real bugs (σ_t, the per-row noise-index reset, the `drop` semantics, the
+  65th-pixel consumption), a fifth in the staged input build (a pixel skipped
+  per row, fixed in `2f2631b`), and the sampler work added two more (issues
+  #13 and #14). The denoiser's own failure — it sat at the "predict nothing"
+  loss of 1.0 — was the initialiser: a positive-mean `[-0.2, +0.5]` started
+  every unit of the 72-wide first layer saturated (first loss **8062.7**
+  against the vendored reference's 0.96), and the 95× cloud expansion was the
+  missing clamp of the predicted start. Both are fixed and measured against
+  `lucidrains/denoising-diffusion-pytorch` (`issues-hit.md`, ISSUE-001 and
+  ISSUE-005): first loss **0.868**, final **0.0417**, ancestral cloud
+  **0.385/0.355**, DDIM **0.415/0.406**, against the data's 0.308/0.377, and
+  both clouds' statistics are report-mode.
 
 **The foundation correction (2026-10-24).** The earlier "missing softmax" was
 true only of the old `bendtorch-core@0.1.0.0` line; the maintained
