@@ -23,9 +23,11 @@ relevant entry before changing performance-sensitive code or a law.
   the example's init `[-0.2, +0.5]` ends at **1.3766/1.1827**, PyTorch's
   zero-mean init at **0.1455** — while [0,1] vs [−1,1] input range and our
   schedule vs the reference's move it only between 0.1455 and 0.1787. The
-  positive mean (+0.15) summed over a 72-wide first layer starts every unit
-  near +10 and SiLU carries it forward; the first loss was **8062.7** against
-  the reference's 0.963. Fixed: a 97-value hash on [−1, 1), scaled by
+  positive mean (+0.100, not zero) adds `72 × 0.100 × 0.329 ≈ +2.4` to every
+  pre-activation of the 72-wide first layer, and each following layer multiplies
+  that common mode by `fan_in × 0.100 = 6.4`: measured z1 +2.36 → z2 +13.8 →
+  output +88.4 rms, against a target of rms 1.0. That is the first loss,
+  **8062.6895**, against the reference's 0.963. Fixed: a 97-value hash on [−1, 1), scaled by
   `1/sqrt(fan_in)` at the row builder — the first loss became **1.0039**
   (against the twin's 1.003894329, a delta of 2.9e-08) and the final **0.0417**.
 - **Learning was half of it; the sampler was the other half.** After the fix

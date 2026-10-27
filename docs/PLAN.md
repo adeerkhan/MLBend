@@ -179,8 +179,9 @@ now:
   per row, fixed in `2f2631b`), and the sampler work added two more (issues
   #13 and #14). The denoiser's own failure — it sat at the "predict nothing"
   loss of 1.0 — was the initialiser: a positive-mean `[-0.2, +0.5]` started
-  every unit of the 72-wide first layer saturated (first loss **8062.7**
-  against the vendored reference's 0.96), and the 95× cloud expansion was the
+  every unit of the 72-wide first layer carried a +2.4 common mode that each
+  later layer multiplied by 6.4, so the output started 88× the target (first
+  loss **8062.7** against the vendored reference's 0.96), and the 95× cloud expansion was the
   missing clamp of the predicted start. Both are fixed and measured against
   `lucidrains/denoising-diffusion-pytorch` (`issues-hit.md`, ISSUE-001 and
   ISSUE-005): first loss **1.0039**, final **0.0417**, ancestral cloud

@@ -26,8 +26,10 @@ noise prediction, linear schedule.
 
 **What it found, in order of effect.**
 
-1. **The digits initialiser** (ISSUE-001). `[-0.2, +0.5]` with mean +0.15 over
-   a 72-wide first layer started every unit near +10; the first loss was 8062.7
+1. **The digits initialiser** (ISSUE-001). `[-0.2, +0.5]` with mean +0.100 over
+   a 72-wide first layer adds +2.4 to every pre-activation, and each later
+   layer multiplies that by 6.4, so the output started at rms 88 against a
+   target of 1.0; the first loss was 8062.7
    against the reference's 0.963, and 3000 steps could not undo it. Our exact
    MLP in torch, one factor at a time (`reference/digits_ablation.py`): the
    init ends at 1.38, PyTorch's zero-mean init at 0.1455, while input range and
@@ -65,9 +67,13 @@ frozen step 3.6e-07, clouds 1.8e-05 / 1.2e-04, η = 0 bit-identical); the two
 **Did not run:** the GPU lane, the CIFAR work, and CI (this section is written
 before the push).
 
-**Next.** Commit this as one body of work with `issues-hit.md` kept current;
-then decide ISSUE-002's schedule question; then the parked work (#11 CIFAR-10
-and bend-ml #23). The reference venv must be built explicitly
+**Next.** ISSUE-002's schedule question; the legibility metric and the
+ViT-style denoiser (ISSUE-008's interim route); then the parked work (#11
+CIFAR-10 with the CUDA lane, and bend-ml #23). Two upstream issues are open
+from this work: [bendlang/bend#1894](https://github.com/bendlang/bend/issues/1894)
+(the run path's stack, ISSUE-007) and
+[nuxyel/BendTorch#15](https://github.com/nuxyel/BendTorch/issues/15)
+(Conv2d/GroupNorm, ISSUE-008). The reference venv must be built explicitly
 (`reference/lucidrains/README.md`); `make check` does not need it.
 
 ## 2026-10-27 — DDIM ships, and the two sampling bugs it exposed

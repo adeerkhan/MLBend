@@ -27,10 +27,13 @@ T = 64 and the same noise-prediction task as the Bend example.
 exactly **1.0**: both arms were at or worse than the mean.
 
 **Why.** `value(i, j, seed)` returned `k*0.1 - 0.2` for `k ∈ 0..6`, i.e. a
-uniform init on **[−0.2, +0.5]** with mean **+0.15**. The first layer is 72
-wide, so every pre-activation started near `72 × 0.15 ≈ +10`; SiLU is roughly
-linear for positive inputs, the next two layers multiplied that further, and
-the first loss was **8062.7** against the reference's **0.963**. Adam then had
+uniform init on **[−0.2, +0.5]** with mean **+0.100**. The first layer is 72
+wide, so the layer adds `72 × 0.100 × 0.329 ≈ +2.4` to every pre-activation
+(measured: z1 mean **+2.36**, rms 2.43); SiLU is roughly linear there
+(h1 mean +2.16), and each following layer multiplies that common mode by
+`fan_in × 0.100 = 6.4` — z2 **+13.8**, the output **+88.4** rms. Against a
+target of rms 1.0 that is the measured first loss, **8062.6895** (the
+reference's is 0.963). Adam then had
 to undo a 10⁴× scale with lr 0.01, and 3000 steps were not enough — it landed
 on the mean predictor and stayed.
 
@@ -223,6 +226,46 @@ invisible to `make check`.
   these fixes) were bit-identical: final loss 1.0258427, same sample line. The
   old report card's different numbers came from a pre-`2f2631b` code state.
 
+## ISSUE-007 — `bend file.bend` overflows its stack on a 32k-element list (bendlang/bend, high) — UPSTREAM
+
+**What.** The plain run path dies with `bend: memory fault (machine stack
+overflow?)`, exit 1, no source location, on a twelve-line program:
+
+```bend
+import Base
+import mlbend-generative@0.1.1.0/main.bend as G
+
+def main() -> IO(Unit):
+  xs = G.noise_of(7n, 32768n)
+  do IO<Unit>:
+    IO.print(Nat.show(List.length(&2, F32, xs)))
+    return Unit{}
+```
+
+**Where the line is.** 4096, 8192 and **16384** run and print their count;
+**32768** and 65536 crash. Same on Bend **2.0.38 and 2.0.39**. The same file
+built with `bend … -o prog` and then run prints 65536 on both versions.
+
+**Why.** The run path's stack is fixed, and each list element is built by a
+Box–Muller call whose frame is large enough that ~32k of them do not fit; the
+native build has no such limit (the guide: the compiled model has no C stack;
+each def is a segment of a flat state machine). It is frame size, not depth
+alone: a 65536-element **Nat** list summed by recursion on the same path is
+fine.
+
+**How it showed up.** Running `examples/diffusion_digits/main.bend` the
+documented way. `--check-only` passes and `-o` runs the full 3000-step
+training, so it looked like a fault in the program; it is not — it is the run
+path, and the message names no file and no line.
+
+**Component.** `bendlang/bend`, the `bend <file.bend>` (check, then run) path.
+
+**Verified by.** The program above on both versions, the 16384/32768
+threshold, the `-o` contrast at 65536, and the Nat-list contrast. Filed as
+[bendlang/bend#1894](https://github.com/bendlang/bend/issues/1894).
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said
@@ -230,3 +273,40 @@ invisible to `make check`.
   metadata says `requires_python >=3.10.0`, and a retry installed
   `accelerate 1.15.0` on 3.14 unchanged — the failure was a transient index
   interruption, not the library.
+- **The forward dot product's four partial sums (7 ulps from NumPy).** I
+  measured Bend's `eps` 5.34e-05 (7 ulps at magnitude 95) from the twin's,
+  traced it to `dotr` in `bend-ml-tensor-array`, and intended to file it. On
+  inspection it is not a defect: the four accumulators are documented at the
+  top of `dotr` as the design, and `Mat.matmul_precise` — the "precise product
+  for long dots" — only re-blocks sums **longer than 1024**, so a 72-term dot
+  is four-accumulator in both variants. A few ulps is what any two summation
+  orders give; it is a measurement to set tolerances with (it is why the
+  sampler gate shares the model output), not a bug. Not filed.
+
+---
+
+## ISSUE-008 — no convolution and no group norm, so no UNet (BendTorch, high) — UPSTREAM
+
+**What.** BendTorch exports no `Conv2d`, no `GroupNorm` and no `BatchNorm`
+(constructor list in the issue). A UNet — Conv2d + GroupNorm + attention, the
+reference's denoiser — cannot be expressed, so image diffusion has no natural
+model.
+
+**Why it matters, measured.** Same data, task, schedule and 3000 steps; the
+samples are scored by the best absolute correlation with any training digit
+(random images: 0.326):
+
+| denoiser | params | nearest-digit \|corr\| |
+|---|---|---|
+| the reference's UNet | 825k | **0.926** (min 0.813) |
+| our dense 72→64→64→64 MLP | 13k | **0.408** (min 0.239) |
+
+The MLP has the *lower* training loss (0.042 against 0.078) and still
+generates mush: dense layers over a flattened digit carry no spatial
+structure. That is the gap.
+
+**Component.** `BendTorch` (layers). Not a defect — an absent capability.
+
+**Status.** Filed as [nuxyel/BendTorch#15](https://github.com/nuxyel/BendTorch/issues/15).
+Interim route: a ViT-style denoiser from `Attention` + `LayerNorm`, which do
+exist; `Conv2d` later.
