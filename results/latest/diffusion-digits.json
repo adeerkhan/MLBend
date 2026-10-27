@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-25T20:16:21.969855+00:00",
+  "created_at": "2026-10-27T13:46:42.456830+00:00",
   "task": {
     "name": "diffusion-digits",
     "description": "a DDPM denoiser over the first 1024 optdigits digits, BendTorch against NumPy",
@@ -16,7 +16,7 @@
       "expected_sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd",
       "bytes": 563639,
       "sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd",
-      "fetch_seconds": 0.002,
+      "fetch_seconds": 0.003,
       "cache": "/home/adeerkhan/github/bend/MLBend/reference/.cache/datasets"
     },
     "seed": 0
@@ -26,7 +26,7 @@
   ],
   "trainer": "bend",
   "git": {
-    "commit": "196db4d",
+    "commit": "3a80a19",
     "branch": "main",
     "dirty": true
   },
@@ -86,8 +86,8 @@
     },
     {
       "name": "mlbend-generative",
-      "version": "0.1.0.0",
-      "hash": "0xa51d4d9fa3661462984f336054bbc146"
+      "version": "0.1.1.0",
+      "hash": "0xd48e7ce018b6fa7dc613b629e4260a23"
     },
     {
       "name": "mlbend-huggingface",
@@ -134,16 +134,16 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 124.454,
-    "seconds_min": 298.387,
+    "build_seconds": 63.863,
+    "seconds_min": 143.533,
     "seconds_all": [
-      298.387
+      143.533
     ],
     "repeat": 1,
-    "fetch_seconds": 0.002,
-    "compute_seconds": 298.385,
-    "reference_seconds": 34.667,
-    "speed_ratio": 0.116
+    "fetch_seconds": 0.003,
+    "compute_seconds": 143.53,
+    "reference_seconds": 11.764,
+    "speed_ratio": 0.082
   },
   "seed_runs": [
     {
@@ -172,20 +172,20 @@
           "note": "different folds; reported, not compared"
         },
         "sample_mean": {
-          "bend": 50256.918,
-          "reference": 96.70661163330078,
+          "bend": 1.2049499e+17,
+          "reference": 84.02626037597656,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_std": {
-          "bend": 748808.2,
-          "reference": 753.8903198242188,
+          "bend": 1.0751823e+19,
+          "reference": 640.4992065429688,
           "pass": true,
           "note": "different folds; reported, not compared"
         }
       },
-      "run_seconds": 298.387,
-      "reference_seconds": 34.667
+      "run_seconds": 143.533,
+      "reference_seconds": 11.764
     }
   ],
   "metrics": {
@@ -225,8 +225,8 @@
       "n_seeds": 1
     },
     "sample_mean": {
-      "bend": 50256.918,
-      "reference": 96.70661163330078,
+      "bend": 1.2049499e+17,
+      "reference": 84.02626037597656,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -236,8 +236,8 @@
       "n_seeds": 1
     },
     "sample_std": {
-      "bend": 748808.2,
-      "reference": 753.8903198242188,
+      "bend": 1.0751823e+19,
+      "reference": 640.4992065429688,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,

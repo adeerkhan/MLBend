@@ -1,6 +1,6 @@
 {
   "schema": "mlbend.experiment/1",
-  "created_at": "2026-10-25T14:01:45.524435+00:00",
+  "created_at": "2026-10-27T13:43:03.073332+00:00",
   "task": {
     "name": "diffusion-2d",
     "description": "a DDPM denoiser trained and sampled on two moons, BendTorch against NumPy",
@@ -24,7 +24,7 @@
   ],
   "trainer": "bend",
   "git": {
-    "commit": "e25ebad",
+    "commit": "3a80a19",
     "branch": "main",
     "dirty": true
   },
@@ -84,8 +84,8 @@
     },
     {
       "name": "mlbend-generative",
-      "version": "0.1.0.0",
-      "hash": "0xa51d4d9fa3661462984f336054bbc146"
+      "version": "0.1.1.0",
+      "hash": "0xd48e7ce018b6fa7dc613b629e4260a23"
     },
     {
       "name": "mlbend-huggingface",
@@ -132,16 +132,16 @@
     "numpy": "2.5.4"
   },
   "run": {
-    "build_seconds": 4.469,
-    "seconds_min": 30.848,
+    "build_seconds": 4.59,
+    "seconds_min": 31.862,
     "seconds_all": [
-      30.848
+      31.862
     ],
     "repeat": 1,
     "fetch_seconds": 0.0,
-    "compute_seconds": 30.848,
-    "reference_seconds": 35.959,
-    "speed_ratio": 1.166
+    "compute_seconds": 31.862,
+    "reference_seconds": 35.782,
+    "speed_ratio": 1.123
   },
   "seed_runs": [
     {
@@ -162,20 +162,20 @@
           "note": "different folds; reported, not compared"
         },
         "sample_mean": {
-          "bend": 0.3414564,
-          "reference": 0.459400475025177,
+          "bend": 0.3850035,
+          "reference": 0.4467509984970093,
           "pass": true,
           "note": "different folds; reported, not compared"
         },
         "sample_std": {
-          "bend": 0.3627671,
-          "reference": 0.6300413608551025,
+          "bend": 0.59922546,
+          "reference": 0.5584088563919067,
           "pass": true,
           "note": "different folds; reported, not compared"
         }
       },
-      "run_seconds": 30.848,
-      "reference_seconds": 35.959
+      "run_seconds": 31.862,
+      "reference_seconds": 35.782
     }
   ],
   "metrics": {
@@ -203,8 +203,8 @@
       "n_seeds": 1
     },
     "sample_mean": {
-      "bend": 0.3414564,
-      "reference": 0.459400475025177,
+      "bend": 0.3850035,
+      "reference": 0.4467509984970093,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
@@ -214,8 +214,8 @@
       "n_seeds": 1
     },
     "sample_std": {
-      "bend": 0.3627671,
-      "reference": 0.6300413608551025,
+      "bend": 0.59922546,
+      "reference": 0.5584088563919067,
       "pass": true,
       "note": "different folds; reported, not compared",
       "bend_sd": null,
