@@ -4,8 +4,9 @@
 
 `examples/diffusion/main.bend` trains a three-linear-layer denoiser with
 SiLU, by AdamW, to predict the noise of a DDPM forward process over a
-two-moons dataset of 128 points, then samples by the ancestral loop. Every
-"random" number is a pure function of a counter (murmur3's fmix32 over the
+two-moons dataset of 128 points, then samples two ways: the ancestral
+loop over all 64 rungs and DDIM over every 4th rung (issue #12).
+Every "random" number is a pure function of a counter (murmur3's fmix32 over the
 step salt and the index, Box-Muller for the Gaussians), so this twin draws
 the same numbers, computes in float32 with the same operation order, and
 compares the curves:
@@ -17,9 +18,12 @@ compares the curves:
                optimizers round differently and the gap grows with the
                steps
   data_*       the dataset's own statistics, gated
-  sample_*     the sampled cloud's statistics — printed: the sampling
+  sample_*     the DDPM cloud's statistics — printed: the sampling
                loop runs the model 32 times, and one ulp of exp/sin/cos
                drift amplified through it is a different cloud
+  ddim_*       the DDIM cloud's statistics (eta = 0, stride 4) — printed
+               for the same reason; the sampler's algebra is gated
+               instead by reference/test_ddim.py
 
 Writes results/diffusion/: loss.tsv, scatter.svg, run.json.
 """
@@ -151,12 +155,17 @@ def input_of(s, t, a, b, x0):
     return np.concatenate([xt, te], axis=1).astype(F)
 
 
-def train(x0):
-    params = {
+def init_params():
+    """The starting weights — the example's params(), frozen (no training)."""
+    return {
         "w1": init(1, H, 10), "b1": np.zeros(H, dtype=F),
         "w2": init(2, H, H), "b2": np.zeros(H, dtype=F),
         "w3": init(3, 2, H), "b3": np.zeros(2, dtype=F),
     }
+
+
+def train(x0):
+    params = init_params()
     moment = {k: np.zeros_like(v) for k, v in params.items()}
     velocity = {k: np.zeros_like(v) for k, v in params.items()}
     curve = []
@@ -200,20 +209,72 @@ def train(x0):
 
 
 def sample(params):
+    """The ancestral loop: the DDPM mean, the posterior's sigma (issue #14).
+
+    sigma^2 = beta_t·(1-ᾱ_{t-1})/(1-ᾱ_t) is the exact posterior's, which
+    at t=1 is 0 (ᾱ_0 = 1), so the last step adds nothing and the example
+    needs no `last` flag. This is the sigma DDIM with eta = 1 reproduces.
+    """
     x = noise_of(2000000).copy()
     for t in range(T, 0, -1):
         beta = lin_beta_at(t)
         abar = ALPHAS[t - 1]
+        prev = ALPHAS[t - 2] if t > 1 else F(1.0)
         coef = F(beta / np.sqrt(F(1.0 - abar)).astype(F))
         scale = F(1.0 / np.sqrt(F(1.0 - beta)).astype(F))
-        sig = np.sqrt(beta).astype(F)
+        sig = np.sqrt(F(beta * F(F(F(1.0) - prev) / F(F(1.0) - abar)))).astype(F)
         inp = input_of(1000000 + t, t, F(1.0), F(0.0), x)
         eps = forward(params, inp).reshape(2 * N)
         z = noise_of(1000000 + t)
-        if t == 1:
-            x = F(scale * F(x - F(coef * eps)))
-        else:
-            x = F(scale * F(F(x - F(coef * eps)) + F(sig * z)))
+        # the draw rides outside `scale`: Algorithm 2 adds sigma_t*z to
+        # the already-scaled mean (issue #14)
+        x = F(F(scale * F(x - F(coef * eps))) + F(sig * z))
+    return x
+
+
+# ---- the DDIM sampler, mirrored (issue #12): mlbend-generative's
+# sigma_of / step_of / ddim over the example's rung lists ----
+
+def sigma_of(abar, abar_prev, eta):
+    above = np.maximum(F(0.0), F(F(1.0) - abar_prev))
+    below = np.maximum(F(0.0), F(F(1.0) - F(abar / abar_prev)))
+    return F(eta * F(np.sqrt(F(above / F(F(1.0) - abar))) * np.sqrt(below)))
+
+
+def step_of(abar, abar_prev, eta):
+    """The five coefficients, in the order step_of computes them."""
+    sig = sigma_of(abar, abar_prev, eta)
+    c0 = F(F(1.0) / np.sqrt(abar))
+    c1 = np.sqrt(np.maximum(F(0.0), F(F(1.0) - abar)))
+    c2 = np.sqrt(np.maximum(F(0.0), abar_prev))
+    c3 = np.sqrt(np.maximum(F(0.0), F(F(1.0) - F(abar_prev + F(sig * sig)))))
+    return c0, c1, c2, c3, sig
+
+
+def ddim(co, x, eps, z):
+    """One step over the sample: x0 folded into x_prev, elementwise."""
+    c0, c1, c2, c3, sig = co
+    x0 = F(F(x - F(c1 * eps)) * c0)
+    return F(F(F(x0 * c2) + F(c3 * eps)) + F(sig * z))
+
+
+def rungs(k):
+    """The example's rung positions: skip = (T-1) mod k anchors the top at ᾱ_T."""
+    return list(range((T - 1) % k, T, k))[::-1]
+
+
+def ddim_sample(params, eta, k, draw=True, salt=0):
+    """The example's DDIM loop: every k-th rung, top first, in lockstep."""
+    pos = rungs(k)
+    x = noise_of(2000000).copy()
+    for i, idx in enumerate(pos):
+        abar = ALPHAS[idx]
+        prev = ALPHAS[pos[i + 1]] if i + 1 < len(pos) else F(1.0)
+        t = idx + 1
+        z = noise_of(1000000 + salt + t) if draw else np.zeros(2 * N, dtype=F)
+        inp = input_of(1000000 + t, t, F(1.0), F(0.0), x)
+        eps = forward(params, inp).reshape(2 * N)
+        x = ddim(step_of(abar, prev, eta), x, eps, z)
     return x
 
 
@@ -241,21 +302,25 @@ def run_bend():
 def parse(out):
     losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out, re.M)]
     pairs = {k: [float(v) for v in re.findall(rf"^{k}: ([0-9.eE+-]+) ([0-9.eE+-]+)$", out, re.M)[0]]
-             for k in ("data_mean", "data_std", "sample_mean", "sample_std")}
+             for k in ("data_mean", "data_std", "sample_mean", "sample_std",
+                       "ddim_mean", "ddim_std")}
     final = float(re.search(r"^final_loss: ([0-9.eE+-]+)$", out, re.M).group(1))
     samples = np.array([float(v) for v in
                         re.search(r"^samples: (.+)$", out, re.M).group(1).split()], dtype=F)
-    return losses, final, pairs, samples
+    ddim_samples = np.array([float(v) for v in
+                             re.search(r"^ddim_samples: (.+)$", out, re.M).group(1).split()],
+                            dtype=F)
+    return losses, final, pairs, samples, ddim_samples
 
 
 # ---- the plot ----
 
-def scatter_svg(path, data, bend_pts, numpy_pts):
+def scatter_svg(path, data, bend_pts, numpy_pts, ddim_pts):
     W, Hh = 640, 400
     parts = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{Hh}" viewBox="0 0 {W} {Hh}">',
              '<rect width="100%" height="100%" fill="#ffffff"/>',
              f'<text x="16" y="22" font-family="sans-serif" font-size="14">'
-             f'two moons: data (grey), Bend samples (red), NumPy samples (blue)</text>']
+             f'two moons: data (grey), Bend DDPM (red), NumPy DDPM (blue), Bend DDIM (green)</text>']
     def dot(p, color):
         x = 160 + p[0] * 100
         y = 250 - p[1] * 100
@@ -266,6 +331,8 @@ def scatter_svg(path, data, bend_pts, numpy_pts):
         dot(p, "#c0392b")
     for p in numpy_pts.reshape(N, 2):
         dot(p, "#2471a3")
+    for p in ddim_pts.reshape(N, 2):
+        dot(p, "#1e8449")
     parts.append("</svg>")
     open(path, "w").write("\n".join(parts))
 
@@ -304,12 +371,16 @@ def numpy_answer():
 
 def main():
     out, seconds = run_bend()
-    losses, final, pairs, bend_samples = parse(out)
-    print("\n".join(out.strip().split("\n")[:-1]))  # the samples line is long
+    losses, final, pairs, bend_samples, bend_ddim = parse(out)
+    # the two sample lines carry 256 numbers each: everything but them
+    print("\n".join(l for l in out.strip().split("\n")
+                    if not l.startswith(("samples:", "ddim_samples:"))))
 
     x0 = moons()
     params, curve = train(x0)
     xs = sample(params)
+    # the example's report settings: eta() = 0, stride() = 4, no draw
+    xd = ddim_sample(params, 0.0, 4, draw=False)
 
     # the printed steps: the Bend loop prints at i = 1, then every 40th
     # step boundary, then the last
@@ -337,6 +408,9 @@ def main():
     ss = stats(xs)
     print(f"     sample_mean (report): {pairs['sample_mean']} vs [{ss[0]:.6}, {ss[1]:.6}]")
     print(f"     sample_std  (report): {pairs['sample_std']} vs [{ss[2]:.6}, {ss[3]:.6}]")
+    sd = stats(xd)
+    print(f"     ddim_mean   (report): {pairs['ddim_mean']} vs [{sd[0]:.6}, {sd[1]:.6}]")
+    print(f"     ddim_std    (report): {pairs['ddim_std']} vs [{sd[2]:.6}, {sd[3]:.6}]")
 
     res = os.path.join(ROOT, "results/diffusion")
     os.makedirs(res, exist_ok=True)
@@ -344,19 +418,21 @@ def main():
         f.write("step\tbend\tnumpy\n")
         for i, s in enumerate(idx):
             f.write(f"{s}\t{losses[i]}\t{want[i]}\n")
-    scatter_svg(os.path.join(res, "scatter.svg"), x0, bend_samples, xs)
+    scatter_svg(os.path.join(res, "scatter.svg"), x0, bend_samples, xs, bend_ddim)
     loss_svg(os.path.join(res, "loss.svg"), idx, losses, want)
     json.dump({"created_at": datetime.now(timezone.utc).isoformat(),
                "example": "examples/diffusion/main.bend",
                "architecture": "linear(10,32), SiLU, linear(32,32), SiLU, linear(32,2)",
-               "process": f"DDPM, T={T}, linear beta 0.0001..0.3, eps-prediction",
+               "process": f"DDPM, T={T}, linear beta 0.0001..0.3, eps-prediction; "
+                          "DDIM eta=0, every 4th rung (16 model calls)",
                "machine": platform.platform(), "seconds": seconds,
                "bend": {"first_loss": losses[0], "final_loss": final,
                         "data_mean": pairs["data_mean"], "data_std": pairs["data_std"],
                         "sample_mean": pairs["sample_mean"], "sample_std": pairs["sample_std"],
+                        "ddim_mean": pairs["ddim_mean"], "ddim_std": pairs["ddim_std"],
                         "samples": [float(v) for v in bend_samples[:8]] + ["..."]},
                "numpy": {"first_loss": curve[0], "final_loss": curve[-1],
-                         "data_stats": dm, "sample_stats": ss}},
+                         "data_stats": dm, "sample_stats": ss, "ddim_stats": sd}},
               open(os.path.join(res, "run.json"), "w"), indent=2)
     print(f"wrote {res}/loss.tsv, loss.svg, scatter.svg, run.json")
 

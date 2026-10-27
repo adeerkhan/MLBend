@@ -5,11 +5,13 @@
 #
 # The model is a small denoiser — three linear layers with SiLU — trained
 # by `T.Train.step` with AdamW to predict the noise ε of a DDPM forward
-# process over a two-moons dataset of 128 points, then sampled by the
-# ancestral DDPM loop. Everything that looks random is a pure function of
-# counters: the Gaussian noise is Box-Muller over `mix32`-hashed uniforms
-# (murmur3's finaliser, over U32 arithmetic that wraps), so a NumPy twin
-# can draw the same numbers bit for bit (reference/test_diffusion.py).
+# process over a two-moons dataset of 128 points, then sampled two ways:
+# the ancestral DDPM loop over all 64 rungs, and DDIM over every 4th
+# rung (16 model calls instead of 64, deterministic at η = 0). Everything
+# that looks random is a pure function of counters: the Gaussian noise
+# is Box-Muller over `mix32`-hashed uniforms (murmur3's finaliser, over
+# U32 arithmetic that wraps), so a NumPy twin can draw the same numbers
+# bit for bit (reference/test_diffusion.py, reference/test_ddim.py).
 #
 # The forward process is x_t = sqrt(ᾱ_t)·x0 + sqrt(1-ᾱ_t)·ε over 32 steps
 # of a linear β schedule; the model input concatenates x_t (2 features)
@@ -20,7 +22,7 @@
 import Base
 import bendtorch@1.0.1.0/main.bend as T
 import bend-ml-tensor-array@0.1.14.0/main.bend as TA
-import mlbend-generative@0.1.0.0/main.bend as G
+import mlbend-generative@0.1.1.0/main.bend as G
 
 # The shape: 128 points of 2 features, a time embedding of 8, a hidden
 # width of 32, 32 diffusion steps, 400 training steps.
@@ -227,6 +229,11 @@ def params() -> B4P():
 def abar(+t: Nat) -> F32:
   at(G.lin_alphas(64n), Nat.sub(t, 1n))
 
+# ᾱ_{t-1}, the rung below: ᾱ_0 = 1 at the bottom (the schedule has no
+# entry before the first), the entry before otherwise
+def abar_below(+t: Nat) -> F32:
+  Bool.pick(F32, Nat.is_eq(t, 1n), 1.0, at(G.lin_alphas(64n), Nat.sub(t, 2n)))
+
 # sqrt(ᾱ_t) and sqrt(1-ᾱ_t), the forward process's two coefficients, over
 # the linear schedule of mlbend-generative (gentle at the top: a 64-step
 # sampler needs every reverse scale small, see the package's note)
@@ -305,49 +312,53 @@ def predict(p: B4P(), +t: Nat, +x: List<&2, F32>) -> PE:
   fwd_eps_of(T.Layer.fwd(B4P(), X(), Y(), B4S(), Model(), p,
     TA.Mat.from_list(n(), inwidth(), input_of((1000000n + t : Nat), t, 1.0, 0.0, x))))
 
-def rev_elem(+coef: F32, +scale: F32, +sig: F32, +xv: F32, +eps: F32, +z: F32,
-  last: Bool) -> F32:
-  match last:
-    case True{}:
-      (scale * (xv - (coef * eps : F32) : F32) : F32)
-    case False{}:
-      (scale * ((xv - (coef * eps : F32) : F32) + (sig * z : F32) : F32) : F32)
+# One element of the new sample. The mean is scaled by 1/sqrt(1-beta_t)
+# and the draw is added after it, outside the scale (issue #14): Ho et
+# al.'s Algorithm 2 adds sigma_t·z to the already-scaled mean, and this
+# is exactly what makes DDIM with eta = 1 reproduce the step.
+def rev_elem(+coef: F32, +scale: F32, +sig: F32, +xv: F32, +eps: F32, +z: F32) -> F32:
+  ((scale * (xv - (coef * eps : F32) : F32) : F32) + (sig * z : F32) : F32)
 
 def rev_go(+coef: F32, +scale: F32, +sig: F32, +x: List<&2, F32>, +eps: List<&2, F32>,
-  +z: List<&2, F32>, +last: Bool, +left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  +z: List<&2, F32>, +left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
   match left:
     case 0n:
       acc
     case 1n+rest:
       +j = Nat.sub(256n, left)
-      rev_go(coef, scale, sig, x, eps, z, last, rest,
+      rev_go(coef, scale, sig, x, eps, z, rest,
         List.append(&2, F32, acc,
-          Con{rev_elem(coef, scale, sig, at(x, j), at(eps, j), at(z, j), last), Nil{}}))
+          Con{rev_elem(coef, scale, sig, at(x, j), at(eps, j), at(z, j)), Nil{}}))
 
 # one reverse step, over the denoise's answer: the new parameters beside
 # the new sample
-def rev_pe(pe: PE, +coef: F32, +scale: F32, +sig: F32, +z: List<&2, F32>, +last: Bool,
+def rev_pe(pe: PE, +coef: F32, +scale: F32, +sig: F32, +z: List<&2, F32>,
   +x: List<&2, F32>) -> PS:
   match pe:
     case PE{p2, eps}:
-      PS{p2, rev_go(coef, scale, sig, x, eps, z, last, 256n, Nil{})}
+      PS{p2, rev_go(coef, scale, sig, x, eps, z, 256n, Nil{})}
 
-def reverse_step(+t: Nat, last: Bool, st: PS) -> PS:
+# One reverse step of the ancestral loop. The mean is the DDPM step,
+# x0-substituted (its two forms are the same expression); the noise is
+# the exact posterior's sigma = sqrt(beta_tilde_t), issue #14 — the one
+# DDIM with eta = 1 reproduces exactly, which is the equivalence
+# reference/test_ddim.py checks.
+def reverse_step(+t: Nat, st: PS) -> PS:
   match st:
     case PS{p, +x}:
       +beta = G.lin_beta_at(t, 64n)
-      +coef = (beta / F32.sqrt((1.0 - G.alpha_at(t, 64n) : F32)) : F32)
+      +abar_t = abar(t)
+      +coef = (beta / F32.sqrt((1.0 - abar_t : F32)) : F32)
       +scale = (1.0 / F32.sqrt((1.0 - beta : F32)) : F32)
-      +sig = F32.sqrt(beta)
-      rev_pe(predict(p, t, x), coef, scale, sig, G.noise_of((1000000n + t : Nat), 256n), last, x)
+      +sig = F32.sqrt((beta * ((1.0 - abar_below(t) : F32) / (1.0 - abar_t : F32)) : F32))
+      rev_pe(predict(p, t, x), coef, scale, sig, G.noise_of((1000000n + t : Nat), 256n), x)
 
 def sample_go(t: Nat, st: PS) -> PS:
   match t:
     case 0n:
       st
     case 1n++rest:
-      last = Nat.is_eq(t, 1n)
-      sample_go(rest, reverse_step(t, last, st))
+      sample_go(rest, reverse_step(t, st))
 
 
 
@@ -359,6 +370,91 @@ def sample_x(st: PS) -> List<&2, F32>:
   match st:
     case PS{p, x}:
       x
+
+# ---- the DDIM sampler (Song et al., 2020): the same model, every k-th rung ----
+#
+# DDIM walks a subsequence of the schedule: of the 64 rungs it takes
+# every k-th one (k = 4 below), so the model runs 16 times instead of
+# 64. The two rung lists — the ᾱ of each rung and its index — are built
+# by the package's strided walk (which emits ascending; List.reverse
+# turns it around into reverse time) and walked in lockstep. eta (η)
+# picks the stochasticity: at η = 0 a step reads no noise at all — the
+# z list is empty and σ·0.0 = 0 — so the sample is a pure function of
+# the model and the starting noise; at η = 1 over every rung a step IS
+# the ancestral one above, because that σ² is exactly the posterior's
+# β̃_t (issue #14, checked in reference/test_ddim.py).
+
+# the rung count the report uses: 16 of 64
+def stride() -> Nat:
+  4n
+
+# the noise level the report uses: deterministic
+def eta() -> F32:
+  0.0
+
+# The rungs' ᾱ, top first. skip = (T-1) mod k lands the last emission
+# on the last entry, so the top rung is ᾱ_T for every k.
+def rung_abars(+k: Nat) -> List<&2, F32>:
+  List.reverse(&2, F32, G.strided_from(F32, G.lin_alphas(64n), k, Nat.mod(63n, k)))
+
+# the rungs' index: the same walk over List.range(64), so the two lists
+# have the same length (strided_length) and run in lockstep
+def rung_ts(+k: Nat) -> List<&2, Nat>:
+  List.reverse(&2, Nat, G.strided_from(Nat, List.range(64n), k, Nat.mod(63n, k)))
+
+# the ᾱ below a rung: the next entry down, or ᾱ_0 = 1 when the rungs
+# are spent — the step that reaches x_0 falls back to ᾱ_0
+def head_or_one(xs: List<&2, F32>) -> F32:
+  match xs:
+    case Nil{}:
+      1.0
+    case Con{h, t}:
+      h
+
+# the z of one step: a draw from a counter past the training ones and
+# the ancestral loop's own (salt 0 lands on it exactly), or nothing at
+# all when the step reads no noise (η = 0)
+def ddim_z(+t: Nat, +salt: Nat, draw: Bool) -> List<&2, F32>:
+  match draw:
+    case True{}:
+      G.noise_of((1000000n + (salt + t : Nat) : Nat), 256n)
+    case False{}:
+      Nil{}
+
+# one rung: the model's noise there, folded with the rung below into
+# the sample (the package's ddim does the folding and keeps the shape)
+def ddim_pe(pe: PE, +abar_now: F32, +abar_prev: F32, +eta_now: F32, +z: List<&2, F32>,
+  +x: List<&2, F32>) -> PS:
+  match pe:
+    case PE{p2, eps}:
+      PS{p2, G.ddim(G.step_of(abar_now, abar_prev, eta_now), x, eps, z)}
+
+# the walk down the rungs: each rung's ᾱ beside its index, the rung
+# below as the head of what is left (or ᾱ_0 when nothing is left). The
+# two lists come first because the checker reads a self-call left to
+# right and wants the shrinking argument before the state that changes.
+def ddim_go(abars: List<&2, F32>, ts: List<&2, Nat>, st: PS, +eta_now: F32,
+  +salt: Nat, +draw: Bool) -> PS:
+  match abars:
+    case Nil{}:
+      st
+    case Con{a, +ar}:
+      match ts:
+        case Nil{}:
+          st
+        case Con{t, tr}:
+          match st:
+            case PS{p, +x}:
+              +now = (1n + t : Nat)
+              z = ddim_z(now, salt, draw)
+              ddim_go(ar, tr,
+                ddim_pe(predict(p, now, x), a, head_or_one(ar), eta_now, z, x),
+                eta_now, salt, draw)
+
+# the DDIM sample: pure noise, then down every k-th rung to x_0
+def ddim_sample(p: B4P(), +eta_now: F32, +k: Nat, draw: Bool, +salt: Nat) -> PS:
+  ddim_go(rung_abars(k), rung_ts(k), PS{p, G.noise_of(2000000n, 256n)},
+    eta_now, salt, draw)
 
 # ---- the statistics, printed ----
 
@@ -429,12 +525,26 @@ def print_points_go(+x: List<&2, F32>, +k: Nat, +acc: String) -> String:
       String.append(rest_txt, String.append(" ",
         String.append(F32.show(at(x, i)), String.append(" ", F32.show(at(x, (1n + i : Nat)))))))
 
-def print_sample_x(+x: List<&2, F32>) -> IO(Unit):
+def print_ddim(p: B4P()) -> IO(Unit):
+  +dx = sample_x(ddim_sample(p, eta(), stride(), False{}, 0n))
   do IO<Unit>:
-    IO.print(show_pair("sample_mean:", means(x)))
-    IO.print(show_pair("sample_std:", stds(x)))
-    IO.print(String.append("samples:", print_points_go(x, 128n, "")))
+    IO.print(show_pair("ddim_mean:", means(dx)))
+    IO.print(show_pair("ddim_std:", stds(dx)))
+    IO.print(String.append("ddim_samples:", print_points_go(dx, 128n, "")))
     return Unit{}
+
+# the ancestral cloud's statistics, then the DDIM one's (the DDIM loop
+# takes the parameters back out of the ancestral one's state: they are
+# affine, so one sampler hands them to the next)
+def report_sample(st: PS) -> IO(Unit):
+  match st:
+    case PS{p, +x}:
+      do IO<Unit>:
+        IO.print(show_pair("sample_mean:", means(x)))
+        IO.print(show_pair("sample_std:", stds(x)))
+        IO.print(String.append("samples:", print_points_go(x, 128n, "")))
+        Unit <- print_ddim(p)
+        return Unit{}
 
 def main() -> IO(Unit):
   do IO<Unit>:
@@ -443,5 +553,5 @@ def main() -> IO(Unit):
       T.Train.new(~B4P(), ~X(), ~Y(), ~B4S(), ~Model(), cfg(), params()))
     IO.print(show_pair("data_mean:", means(moons())))
     IO.print(show_pair("data_std:", stds(moons())))
-    Unit <- print_sample_x(sample_x(sample(params_of(tr))))
+    Unit <- report_sample(sample(params_of(tr)))
     return Unit{}
