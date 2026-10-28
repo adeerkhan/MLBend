@@ -30,12 +30,12 @@ sys.path.insert(0, os.path.join(ROOT, "reference"))
 from digits_ablation import bend_betas, temb
 from test_diffusion_digits import D, N, T, load
 
-STEPS = 3000
-BATCH = 128
+STEPS = int(os.environ.get("STEPS", 3000))
+BATCH = int(os.environ.get("BATCH", 128))
 DIM = 64
 HEADS = int(os.environ.get("HEADS", 4))
 BLOCKS = 3
-LR = 3e-3
+LR = float(os.environ.get("LR", 3e-3))
 PATCH = 2                      # 8x8 pixels -> 4x4 = 16 tokens
 TOKENS = (8 // PATCH) ** 2
 PIX = PATCH * PATCH
