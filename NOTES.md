@@ -89,6 +89,22 @@ relevant entry before changing performance-sensitive code or a law.
 
   Same order, different recipes; neither sampler is the limiter. The quality
   ceiling is the denoiser: ViT **0.809**, the reference's UNet **0.926**.
+- **M1 starts: the token staging and the attention block (2026-10-28).** The
+  ViT needs the digit as 16 tokens of 2x2 pixels. `reference/probe_patch.bend`
+  is the staging and its inverse; the permutation matches the NumPy side
+  exactly (the printed patch is the expected one up to the last printed
+  digit) and the round trip returns the original at both ends. The checker
+  taught two things worth keeping: a self-call must put its shrinking
+  argument *first* (a growing counter before it is refused), and a
+  `List<&2, F32>` read several times in one frame needs `+` on the
+  parameter. The model then compiles as `LayerNorm -> Residual(Att())` over
+  1024 token rows of width 64 with single-head attention
+  (`Attention(1024, 64, 64, 64, 16, 1, 1, 64, 0.125, {==}, {==}, {==})`), and
+  the two type facts that cost the iterations are: `LayerNorm`'s parameter is
+  `T.LN<d>` (not `Mat<1,d>`; `RMSNorm` is the one that takes a row), and
+  `Residual` nests its types as `Two<Two<Unit, P>, Unit>`. A single head is
+  enough to clear the gate: 0.778 legibility against 0.809 for four heads in
+  the torch probe, so the port starts single-head.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
