@@ -3,6 +3,72 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-28 — the ViT denoiser: the residual, causality, and the gates
+
+- **The twin disagreed with Bend at O(1), and the ladder named the operation.**
+  With Bend's own `Layer.dump` fed to the twin, `eps` differed by maxabs 0.343
+  (1.41 relative). One probe printed five checkpoints and the twin printed the
+  same: the staging row, `emb0`, `ln0` (block 1's norm) and `att0` (block 1's
+  attention output) were **identical to the last float32**, and `blk0` (the
+  block's output) was not. So the staging, the weights, the traversal, the first
+  linear, the norm, the scores, the causal mask and the output projection were
+  all already right, and the disagreement began in the block's residual
+  (ISSUE-010).
+- **What it was.** `AttBlk` was `Seq(LayerNorm, Residual(Att))`. `Seq` runs left
+  then right, so that computes `ln(x) + att(ln(x))` — the residual taken on the
+  *normalized* value. The intended block is `x + att(ln(x))`, which is what the
+  twin and the torch probe implement. Four probe outputs were spent ruling out
+  the attention (six Q/K/V permutations, all six `wo` positions, causal and
+  not, three scales); the answer was in the wiring, not the arithmetic.
+  Feeding the dump through Bend's own wiring reproduces `blk0` to **7.5e-08**;
+  the pre-LN wiring is 0.64 away. The block is now `Residual(x, Seq(ln, f))` on
+  both halves, parameter order unchanged, count still 100,736.
+- **Why it mattered beyond the gate.** The stream was re-normalized twice per
+  block and kept no identity path: every half threw away the incoming residual
+  and passed on only its norm. That is not the architecture the torch probe
+  measured, and it is what "trains to a plateau" looks like from the inside.
+- **BendTorch's only attention is causal** (ISSUE-011). `qrow` builds `i + 1`
+  scores for query `i`, `prow` softmaxes exactly those, and the layer takes no
+  mask — the three trailing arguments are erased shape facts. A causal twin
+  reproduces Bend's `att0` exactly; a bidirectional one cannot. So the 16 patch
+  tokens are attended as a sequence (token 0 sees only itself, token 15 sees
+  all), the torch arm of the comparison runs the same mask to be the same
+  architecture, and every earlier ViT number in this file (0.809, 0.798, 0.778)
+  is **bidirectional** and not comparable: the causal numbers are 0.782 (lr
+  3e-3, batch 64), 0.779 ancestral, and 0.721 at the MLP's lr 1e-2.
+- **The twin's cloud was one image wide.** `frozen_eps` reshaped the flat 4096
+  into (64, 64) before patching, but `ddim_cloud` and the gate's `start` called
+  `patch()` on the flat list, which reads the first 64 numbers as one image. The
+  DDIM gate would have compared 64 values with 4096 and "passed" only because
+  the shapes never met. Both now reshape first. Same class as the moons
+  interleaving (2026-10-27): row 0 agrees, the rest does not.
+- **The gates, measured** (`reference/vit_gate.py`, float32, different
+  summation orders over 64 terms): frozen `eps` **maxabs 1.19e-07**, one
+  ancestral step **4.77e-07**, the 16-step DDIM cloud **6.38e-06**, eta = 0
+  moves the cloud by exactly **0** (the sampler's draw is inert). The M2 gate
+  file is `reference/test_diffusion_vit.py` — the twin's first loss against the
+  run's, those three, the eta invariance and legibility >= 0.75 from the
+  recorded run.
+- **The learning rate is not shared with the MLP** (ISSUE-012). Same architecture,
+  same 3000 steps, torch: 1e-2 with batch 64 → 0.721, 3e-3 with batch 64 →
+  **0.782**, 3e-3 with batch 128 → 0.774. The example runs 3e-3.
+- **The three arms, on the same 1024 digits, the same starting cloud
+  (`noise_of(2000000, 4096)`) and the same step counts**, nearest-digit
+  correlation and nearest-digit MSE:
+
+  | arm | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
+  |---|---|---|---|---|
+  | torch-ViT (causal, 1 head) | 0.782 | 0.779 | 0.0611 | 0.0612 |
+  | lucidrains UNet | 0.926 | 0.938 | 0.0226 | 0.0189 |
+
+  The Bend arm's row is added by the run below; `reference/compare_vit.py`
+  writes all three to `results/compare/`.
+- **The 0.809/0.798/0.778 numbers, re-read.** They were measured with a
+  bidirectional mask, four (or one) heads and a learned position table. The
+  causal, one-head, fixed-position model that Bend can express is the 0.782
+  row above — a 0.03 difference, not a 0.4 one, and the gap to the reference
+  UNet (0.926) is the architecture (convolutions) rather than the training.
+
 ## 2026-10-27 (later) — the digits denoiser, rebuilt against the reference
 
 - **Why a reference at all.** The NumPy twin agrees with the Bend example *by
