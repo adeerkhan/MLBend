@@ -52,9 +52,22 @@ def dump(p: M.ModelP()) -> IO(Unit):
   show_pl(T.Layer.dump(M.ModelP(), TA.Mat<M.RW(), M.FE()>(), TA.Mat<M.RW(), M.PX()>(),
     M.ModelS(), M.Model(), p))
 
+def head20(xs: List<&2, F32>, left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match xs left:
+    case Con{h, t} 1n+rest:
+      head20(t, rest, List.append(&2, F32, acc, Con{h, Nil{}}))
+    case _ _:
+      acc
+
+def row20() -> List<&2, F32>:
+  head20(M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}), 20n, Nil{})
+
 def main() -> IO(Unit):
   do IO<Unit>:
     Unit <- dump(M.init_params())
+    do IO<Unit>:
+      IO.print(show("row:", row20()))
+      return Unit{}
     Unit <- show_ve(M.predict(M.init_params(), 64n, start()))
     Unit <- show_vs(M.rev_step(64n, M.VS{M.init_params(), start()}), "step:")
     Unit <- show_vs(M.ddim_sample(M.init_params()), "ddim:")
