@@ -137,6 +137,31 @@ def count(blocks=3):
     return W * FE + blocks * (2 * W + 4 * W * W + 2 * W + 2 * HI * W) + 2 * W + PX * W
 
 
+def clip_eps(x, eps, abar):
+    """The reference's rederive: clamp the start, then the noise it implies."""
+    sa = F(np.sqrt(abar).astype(F))
+    sm = F(np.sqrt(F(F(1.0) - abar)).astype(F))
+    x0 = F(F(x - F(sm * eps)) / sa)
+    xc = np.clip(x0, F(0.0), F(1.0)).astype(F)
+    return F(F(x - F(sa * xc)) / sm)
+
+
+def ddim_cloud(w, k=4):
+    """The 16-step DDIM cloud, eta = 0, in token order (mirrors the example)."""
+    from test_diffusion_digits import ALPHAS, noise_of
+    from test_diffusion import ddim, rungs, step_of
+    pos = rungs(k)
+    x = patch(noise_of(2000000, 4096)).astype(F)          # pixel -> token order
+    for i, idx in enumerate(pos):
+        abar = ALPHAS[idx]
+        prev = ALPHAS[pos[i + 1]] if i + 1 < len(pos) else F(1.0)
+        t = idx + 1
+        eps = forward(w, tokens_from_token(x.reshape(1, 64), t)).reshape(64)
+        eps = clip_eps(x, eps, abar)
+        x = ddim(step_of(abar, prev, 0.0), x, eps, np.zeros(64, dtype=F))
+    return x
+
+
 def legibility(samples, data, d=64):
     s = np.asarray(samples).reshape(-1, d).astype(np.float64)
     t = np.asarray(data).reshape(-1, d).astype(np.float64)
@@ -253,6 +278,9 @@ def main():
     print(f"parameter count from the structure: {count()} (Bend reports 100736)")
     loss, out, tgt, w = first_loss()
     print(f"twin step-0 loss: {loss:.6f}   (Bend prints its own on the same window)")
+    c = ddim_cloud(bend_init())
+    print(f"twin ddim cloud: mean {float(c.mean()):+.4f}  std {float(c.std()):.4f}  "
+          f"in [0,1] {int(((c >= 0) & (c <= 1)).sum())}/4096")
     e = frozen_eps()
     print(f"twin frozen eps: {e.shape}, first {float(e[0]):.6f}, rms {float(np.sqrt((e**2).mean())):.4f}")
 
