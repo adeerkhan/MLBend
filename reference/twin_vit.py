@@ -185,6 +185,23 @@ def target_of(pixels):
     return patch(pixels).reshape(b, TK, PX)
 
 
+def tokens_from_token(x_tok, t):
+    """(B, 64) already in token order -> (B, 16, 20) model input."""
+    b = x_tok.shape[0]
+    tok = x_tok.reshape(b, TK, PX)
+    te = np.tile(temb(t), (b, TK, 1))
+    po = np.tile(np.stack([pos(k) for k in range(TK)]), (b, 1, 1))
+    return F(np.concatenate([tok, te, po], axis=-1))
+
+
+def frozen_eps(t=64, seed=1):
+    """The forward the frozen probe prints: t = 64 on the starting cloud."""
+    from test_diffusion_digits import noise_of
+    cloud = noise_of(2000000, 4096).reshape(64, 64)     # pixel order
+    tok = patch(cloud)                                   # token order
+    return forward(bend_init(seed), tokens_from_token(tok, t)).reshape(4096)
+
+
 def bend_init(seed=1):
     """Bend's `init_params`: noise_of(seed, count) * 0.1, in loader order."""
     from test_diffusion_digits import noise_of
@@ -236,6 +253,8 @@ def main():
     print(f"parameter count from the structure: {count()} (Bend reports 100736)")
     loss, out, tgt, w = first_loss()
     print(f"twin step-0 loss: {loss:.6f}   (Bend prints its own on the same window)")
+    e = frozen_eps()
+    print(f"twin frozen eps: {e.shape}, first {float(e[0]):.6f}, rms {float(np.sqrt((e**2).mean())):.4f}")
 
 
 if __name__ == "__main__":
