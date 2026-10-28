@@ -550,12 +550,75 @@ def show_vs(st: VS) -> IO(Unit):
 def sample_report(p: ModelP()) -> IO(Unit):
   show_vs(sample(p))
 
+
+# ---- DDIM: every 4th rung, eta = 0, the start clamped and eps re-derived ----
+
+def clip_eps_go(left: Nat, x: List<&2, F32>, eps: List<&2, F32>, +sa: F32, +sm: F32,
+  +acc: List<&2, F32>) -> List<&2, F32>:
+  match left x eps:
+    case 1n+rest Con{+xv, xt} Con{ev, et}:
+      x0 = ((xv - (sm * ev : F32) : F32) / sa : F32)
+      xc = F32.clamp(x0, 0.0, 1.0)
+      clip_eps_go(rest, xt, et, sa, sm,
+        Con{((xv - (sa * xc : F32) : F32) / sm : F32), acc})
+    case _ _ _:
+      acc
+
+def clip_eps(+abar_now: F32, +x: List<&2, F32>, +eps: List<&2, F32>) -> List<&2, F32>:
+  +sa = F32.sqrt(abar_now)
+  +sm = F32.sqrt((1.0 - abar_now : F32))
+  List.reverse(&2, F32, clip_eps_go(4096n, x, eps, sa, sm, Nil{}))
+
+def rung_abars(+k: Nat) -> List<&2, F32>:
+  List.reverse(&2, F32, G.strided_from(F32, G.lin_alphas(64n), k, Nat.mod(63n, k)))
+
+def rung_ts(+k: Nat) -> List<&2, Nat>:
+  List.reverse(&2, Nat, G.strided_from(Nat, List.range(64n), k, Nat.mod(63n, k)))
+
+def head_or_one(xs: List<&2, F32>) -> F32:
+  match xs:
+    case Nil{}:
+      1.0
+    case Con{h, t}:
+      h
+
+def ddim_pe(ve: VE, +a: F32, +ar: List<&2, F32>, +x: List<&2, F32>) -> VS:
+  match ve:
+    case VE{p2, eps}:
+      VS{p2, G.ddim(G.step_of(a, head_or_one(ar), 0.0), x, clip_eps(a, x, eps), Nil{})}
+
+def ddim_go(abars: List<&2, F32>, ts: List<&2, Nat>, st: VS) -> VS:
+  match abars:
+    case Nil{}:
+      st
+    case Con{a, +ar}:
+      match ts:
+        case Nil{}:
+          st
+        case Con{t, tr}:
+          match st:
+            case VS{p, +x}:
+              +now = (1n + t : Nat)
+              ddim_go(ar, tr, ddim_pe(predict(p, now, x), a, ar, x))
+
+def ddim_sample(p: ModelP()) -> VS:
+  ddim_go(rung_abars(4n), rung_ts(4n), VS{p,
+    patch_all(64n, take_go(4096n, G.noise_of(2000000n, 65536n), Nil{}), Nil{})})
+
+def show_vs2(st: VS, tag: String) -> IO(Unit):
+  match st:
+    case VS{p2, x}:
+      +px = unpatch_all(64n, x, Nil{})
+      do IO<Unit>:
+        IO.print(String.append(tag, show_cloud(px)))
+        return Unit{}
+
 def run(x0: List<&2, F32>, +n: Nat) -> IO(Unit):
   do IO<Unit>:
     p : ModelP() <- train_go(n, 0n, x0,
       T.Train.new(~ModelP(), ~TA.Mat<RW(), FE()>, ~TA.Mat<RW(), PX()>(), ~ModelS(),
         ~Model(), cfg(), init_params()))
-    Unit <- sample_report(p)
+    Unit <- show_vs2(ddim_sample(p), "samples:")
     return Unit{}
 
 def Body() -> IO(Unit):
