@@ -412,6 +412,36 @@ sparsely, so a `Bool` "causal or not" flag is a small change plus the
 `causal` law's sibling) or a second pass over the reversed token order. The
 second is ours to do and costs 2x compute; the first is the right fix.
 
+## ISSUE-012 — the ViT inherited the digits MLP's learning rate (ours, medium) — FIXED
+
+**What.** `examples/diffusion_vit/main.bend` started from the digits MLP's
+optimizer, `CAdam` with lr 1e-2. On a transformer that is too high: measured
+in torch on the *same* architecture (causal, one head, fixed position
+features, 3000 steps), keeping everything else equal:
+
+| lr | batch | legibility (mean nearest-digit |corr|) |
+|---|---|---|
+| 1e-2 | 64 | **0.721** |
+| 3e-3 | 64 | **0.782** |
+| 3e-3 | 128 | 0.774 |
+
+0.721 is under the M2 gate of 0.75, and the only difference from a passing
+configuration is the step size. Found 2026-10-28, 20:55.
+
+**Why it happened.** The MLP task's rule of thumb (1e-2, full batch, one way
+per step) came along with the copy. A 6-half-layer net with pre-LN needs a
+smaller step; there is no shared constant that is right for both.
+
+**Fix.** The example's `cfg()` is `CAdam{0.003, ...}` with the three measured
+numbers in the comment, so the next reader sees why.
+
+**Component.** Ours: `examples/diffusion_vit/main.bend` (the hyperparameter).
+
+**Verified by.** `reference/digits_vit_probe.py` with `LR`/`BATCH` from the
+environment, three runs, and the same probe's earlier 0.774 at 3e-3/128.
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said

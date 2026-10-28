@@ -378,8 +378,12 @@ def mix_go(xs: List<&2, F32>, ys: List<&2, F32>, +a: F32, +b: F32,
 def mse(y: TA.Mat<RW(), PX()>, tgt: TA.Mat<RW(), PX()>) -> T.LossOut<TA.Mat<RW(), PX()>>:
   T.MSE(RW(), PX(), y, tgt)
 
+# lr 3e-3, not the digits MLP's 1e-2: the ViT is deeper and the higher rate
+# costs it legibility. Measured in torch on the same architecture (causal,
+# one head, fixed position features, 3000 steps, batch 64): 1e-2 -> 0.721,
+# 3e-3 -> 0.782, and 3e-3 with batch 128 -> 0.774. (ISSUE-012.)
 def cfg() -> T.OptCfg:
-  T.CAdam{0.01, 0.9, 0.999, 0.00000001, 0.0, 0.1, 0.001}
+  T.CAdam{0.003, 0.9, 0.999, 0.00000001, 0.0, 0.1, 0.001}
 
 # the model input for one step: the noised pixels, patched, plus time and position
 def step_in(+s: Nat, +t: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
@@ -634,20 +638,27 @@ def ddim_sample(p: ModelP()) -> VS:
   ddim_go(rung_abars(4n), rung_ts(4n), VS{p,
     patch_all(64n, take_go(4096n, G.noise_of(2000000n, 65536n), Nil{}), Nil{})})
 
-def show_vs2(st: VS, tag: String) -> IO(Unit):
+def print_cloud(st: VS, tag: String) -> IO(ModelP()):
   match st:
-    case VS{p2, x}:
+    case VS{p, x}:
       +px = unpatch_all(64n, x, Nil{})
-      do IO<Unit>:
+      do IO<ModelP()>:
+        IO.print(String.append("sample_mean: ", F32.show(D.mean_of(px, 4096n))))
+        IO.print(String.append("sample_std: ", F32.show(D.std_of(px, 4096n))))
         IO.print(String.append(tag, show_cloud(px)))
-        return Unit{}
+        return p
 
-def run(x0: List<&2, F32>, +n: Nat) -> IO(Unit):
+# Both walks from the one trained model, on the one starting cloud: the
+# 16-step DDIM cloud and the 64-step ancestral one, so a comparison holds
+# the model and the noise fixed and varies only the sampler.
+def run(+x0: List<&2, F32>, +n: Nat) -> IO(Unit):
   do IO<Unit>:
     p : ModelP() <- train_go(n, 0n, x0,
-      T.Train.new(~ModelP(), ~TA.Mat<RW(), FE()>, ~TA.Mat<RW(), PX()>(), ~ModelS(),
+      T.Train.new(~ModelP(), ~TA.Mat<RW(), FE()>(), ~TA.Mat<RW(), PX()>(), ~ModelS(),
         ~Model(), cfg(), init_params()))
-    Unit <- show_vs2(ddim_sample(p), "samples:")
+    Unit <- IO.print(String.append("data_mean: ", F32.show(D.mean_of(x0, 65536n))))
+    p1 : ModelP() <- print_cloud(ddim_sample(p), "samples:")
+    p2 : ModelP() <- print_cloud(sample(p1), "samples_ddpm:")
     return Unit{}
 
 def Body() -> IO(Unit):

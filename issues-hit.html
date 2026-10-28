@@ -62,7 +62,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>Each entry says what happened, why it happened, how it showed up, and which library or component carries the cause. <code>ours</code> means MLBend (this repository); a package name means the published Bend package; <code>lucidrains</code> means the vendored reference in <code>reference/lucidrains/</code>.</p>
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
-  <span><b>6</b> fixed</span>
+  <span><b>7</b> fixed</span>
   <span><b>0</b> open</span>
   <span><b>3</b> upstream</span>
   <span><b>4</b> other</span>
@@ -218,7 +218,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-011</span>
     <span class="badge vio">upstream</span>
-    
+    <span class="when" title="2026-10-28T20:43:31+05:00">logged 2026-10-28 20:43 UTC</span>
   </header>
   <h2>BendTorch's only attention is causal, so the ViT attends one way (BendTorch, high)</h2>
   <p><strong>What.</strong> <code>bendtorch@1.0.1.0</code>'s <code>Attention</code> has no mask argument, and its forward is causal by construction: for query position <code>i</code>, <code>qrow</code> builds <code>scores</code> against keys <code>0..i</code> only (<code>drow(i, ...)</code>, <code>i + 1</code> dots) and <code>prow</code> softmaxes exactly those <code>i + 1</code>, leaving the rest of the <code>t x t</code> block at zero. The three trailing arguments of the layer are erased *shape* facts (<code>n == b*t</code>, <code>w == kv*g*hd</code>, <code>kvw == kv*hd</code>), not masks. Found 2026-10-28, 20:05.</p>
@@ -226,6 +226,20 @@ def main() -&gt; IO(Unit):
 <p><strong>Why it matters.</strong> For a language model a causal mask is the point. For a denoiser it is a handicap with no reason: the 16 patch tokens are exchangeable, and token 0 can see only itself, token 15 sees all. It also means the ViT measured in torch (0.809 legibility, bidirectional) is *not* the architecture Bend can express, so the three-arm harness must run its torch arm with the same causal mask to be "the same architecture", and the numbers in <code>docs/AUDIT.md</code> from the bidirectional model are labelled as such.</p>
 <p><strong>Component.</strong> BendTorch (upstream); MLBend works around it.</p>
 <p><strong>Next.</strong> Measure the frozen gate and then M1's legibility with the causal model. If causality costs the 0.75 gate, the options are a mask argument upstream (the natural PR: <code>Attention</code> already builds the <code>t x t</code> block sparsely, so a <code>Bool</code> "causal or not" flag is a small change plus the <code>causal</code> law's sibling) or a second pass over the reversed token order. The second is ours to do and costs 2x compute; the first is the right fix.</p>
+</section><section class="issue" id="issue-012">
+  <header class="ihead">
+    <span class="id">ISSUE-012</span>
+    <span class="badge grn">fixed</span>
+    
+  </header>
+  <h2>the ViT inherited the digits MLP's learning rate (ours, medium)</h2>
+  <p><strong>What.</strong> <code>examples/diffusion_vit/main.bend</code> started from the digits MLP's optimizer, <code>CAdam</code> with lr 1e-2. On a transformer that is too high: measured in torch on the *same* architecture (causal, one head, fixed position features, 3000 steps), keeping everything else equal:</p>
+<div class="tablewrap"><table><thead><tr><th>lr</th><th>batch</th><th>legibility (mean nearest-digit</th><th>corr</th><th>)</th></tr></thead><tbody><tr><td>1e-2</td><td>64</td><td><strong>0.721</strong></td></tr><tr><td>3e-3</td><td>64</td><td><strong>0.782</strong></td></tr><tr><td>3e-3</td><td>128</td><td>0.774</td></tr></tbody></table></div>
+<p>0.721 is under the M2 gate of 0.75, and the only difference from a passing configuration is the step size. Found 2026-10-28, 20:55.</p>
+<p><strong>Why it happened.</strong> The MLP task's rule of thumb (1e-2, full batch, one way per step) came along with the copy. A 6-half-layer net with pre-LN needs a smaller step; there is no shared constant that is right for both.</p>
+<p><strong>Fix.</strong> The example's <code>cfg()</code> is <code>CAdam{0.003, ...}</code> with the three measured numbers in the comment, so the next reader sees why.</p>
+<p><strong>Component.</strong> Ours: <code>examples/diffusion_vit/main.bend</code> (the hyperparameter).</p>
+<p><strong>Verified by.</strong> <code>reference/digits_vit_probe.py</code> with <code>LR</code>/<code>BATCH</code> from the environment, three runs, and the same probe's earlier 0.774 at 3e-3/128.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -249,7 +263,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-28 15:43 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-28 15:50 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>
