@@ -115,6 +115,19 @@ relevant entry before changing performance-sensitive code or a law.
   facts, learned the hard way: `Mat` is a Type, so a bound matrix cannot take
   `+`; `IO(Unit)` is the signature but `IO<Unit>` is the `do` heading; and
   `Mat.to_list` returns the `ML` wrapper, not a list.
+- **M1: the ViT trains in Bend (2026-10-28).** The probe now stages the token
+  input (`20480` values = 1024 rows x 20: 4 patched pixels, 8 time, 8
+  position), builds the target the same way (`patch(noise)`, so input and
+  target share the permutation), initialises through the layer's own loader
+  (`Layer.count` -> random `Array` -> `Layer.load`), and steps `T.Train`.
+  Two runs, 400 steps each, one fixed window of 64 digits per step: with
+  N(0,1) weights the loss falls **5803 -> 11.0**; with the weights scaled by
+  0.1 (a 64-wide layer wants ~1/sqrt(64)) it starts at 0.93 and sits at the
+  mean predictor. Neither is a surprise: 400 x 64 = 25.6k samples against the
+  torch probe's 3000 x 128 = 384k, and 0.75 s a step means the full 3000
+  steps is ~37 minutes. The next run is that long one, then the sampler.
+  A step is 0.75 s, so the groundwork (staging, init, step, loss) is real;
+  what is not yet shown is a loss below 1.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
