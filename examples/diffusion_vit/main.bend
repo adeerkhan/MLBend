@@ -1,23 +1,36 @@
-# The ViT denoiser's type plumbing (issue #16, milestone M1): the attention
-# block and the MLP block, composed from BendTorch's own layers over 1024
-# token rows (64 digits x 16 tokens) of width 64, single head.
+# A ViT denoiser for the digits, trained and sampled in Bend (issue #16, M1).
 #
-#   AttBlk : LayerNorm -> Residual( Attention )            : Mat<1024,64> -> itself
-#   Mlp    : LayerNorm -> Residual( 64 -> 128 -> 64 GELU ) : Mat<1024,64> -> itself
+#   bendenv run -- bend examples/diffusion_vit/main.bend
 #
-# The facts that cost the iterations, for the next reader: `LinearNB(n, i, o)`
-# takes its parameter as `Mat<o, i>` (out by in); `Seq` chains exactly two
-# layers, so a three-layer chain is nested; `LayerNorm`'s parameter is
-# `T.LN<d>`, not a row (that is `RMSNorm`); and a self-call must put its
-# shrinking argument first. Forward, training and sampling are the next step;
-# this file proves the types.
+# 64 digits a step, each 8x8 image cut into 16 tokens of 2x2 patches, 20
+# features per token (4 pixels, 8 of time, 8 of position), width 64, one
+# head, three blocks, one 4-value head per patch. Every layer is BendTorch's:
+# `LinearNB`, `LayerNorm`, `Attention`, `GELU`, `Residual`, `Seq` — no tensor,
+# no autodiff and no optimizer of ours. The task is the examples' usual one:
+# predict the noise of the linear schedule of mlbend-generative, then sample
+# by the 16-step DDIM walk with the clamped start.
+#
+# Two facts cost the most iterations, and both are real:
+#
+#   ISSUE-010  the pre-LN block is `Residual(x, Seq(ln, att))`, i.e.
+#              x + att(ln(x)). Written `Seq(ln, Residual(att))` the residual
+#              is taken on the *normalized* value — ln(x) + att(ln(x)) — and
+#              the stream loses its identity path; the model then trains to a
+#              plateau. The twin disagreed with Bend at O(1) until this was
+#              found, and the probe's ladder (blk0) named it: 7.5e-08 with the
+#              pre-LN wiring against 0.64 without.
+#   ISSUE-011  BendTorch's `Attention` is causal by construction: query i
+#              reads keys 0..i (`qrow` builds i+1 scores, `prow` softmaxes
+#              exactly those) and the layer takes no mask. The 16 tokens are
+#              therefore attended as a causal sequence; a bidirectional mask
+#              is not expressible in this package today.
 import Base
 import bendtorch@1.0.1.0/main.bend as T
 import bend-ml-tensor-array@0.1.14.0/main.bend as TA
 import mlbend-generative@0.1.1.0/main.bend as G
 import mlbend-datasets@0.1.6.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
-import ../examples/diffusion_digits/main.bend as D
+import ../diffusion_digits/main.bend as D
 
 def at_go(xs: List<&2, F32>, +k: Nat, +i: Nat) -> F32:
   match xs:
@@ -407,7 +420,7 @@ def train_go(left: Nat, +i: Nat, +x0: List<&2, F32>,
   match left tr:
     case 0n T.Train{p, g, st, p1, p2, +l}:
       do IO<ModelP()>:
-        IO.print(String.append("final:", F32.show(l)))
+        IO.print(String.append("final_loss: ", F32.show(l)))
         return p
     case 1n+rest T.Train{p, g, st, p1, p2, +l}:
       do IO<ModelP()>:

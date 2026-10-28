@@ -43,7 +43,7 @@ def main():
         raise SystemExit(__doc__.strip().splitlines()[2].strip())
     text = open(sys.argv[1]).read()
     losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", text, re.M)]
-    final = re.search(r"^final:([0-9.eE+-]+)$", text, re.M)
+    final = re.search(r"^final(?:_loss)?: ([0-9.eE+-]+)$", text, re.M)
     cloud = re.search(r"^samples: (.+)$", text, re.M)
     if not losses and not final:
         raise SystemExit("no loss lines: is the run finished? (its stdout is buffered)")

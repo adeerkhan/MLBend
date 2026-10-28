@@ -18,7 +18,6 @@ Nothing here is in `make check` yet.
 import os
 import subprocess
 import sys
-import tempfile
 
 import numpy as np
 
@@ -38,12 +37,29 @@ TOL_STEP = 1e-5
 TOL_DDIM = 1e-4
 
 
-def run_probe():
-    binary = os.path.join(tempfile.mkdtemp(), "mlbend-vit-frozen")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "reference/probe_vit_frozen.bend")],
+PROBE_BIN = "/tmp/mlbend-vit-frozen"
+PROBE_SRC = ("reference/probe_vit_frozen.bend", "reference/probe_vit_model.bend")
+
+
+def probe_binary():
+    """The frozen probe's binary, rebuilt only when its sources are newer.
+
+    The build is about six minutes here, so a cached binary is what makes
+    the gate cheap enough to run in `make check`.
+    """
+    srcs = [os.path.join(ROOT, p) for p in PROBE_SRC]
+    if os.path.exists(PROBE_BIN) and all(os.path.getmtime(PROBE_BIN) >= os.path.getmtime(p)
+                                         for p in srcs):
+        return PROBE_BIN
+    build = subprocess.run([BEND, "-o", PROBE_BIN, os.path.join(ROOT, "reference/probe_vit_frozen.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the frozen probe did not build:\n" + build.stdout[-2000:] + build.stderr[-2000:])
+    return PROBE_BIN
+
+
+def run_probe():
+    binary = probe_binary()
     out = subprocess.run([binary], capture_output=True, text=True, env=ENV, cwd=ROOT)
     if out.returncode != 0:
         raise SystemExit("the frozen probe did not run:\n" + out.stdout[-2000:] + out.stderr[-2000:])
