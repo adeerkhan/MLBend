@@ -9,6 +9,8 @@
 # `init_params` is deterministic (noise_of(1) scaled by 0.1, in the loader's
 # order), so each output can consume its own copy of the weights.
 import Base
+import bendtorch@1.0.1.0/main.bend as T
+import bend-ml-tensor-array@0.1.14.0/main.bend as TA
 import mlbend-generative@0.1.1.0/main.bend as G
 import ./probe_vit_model.bend as M
 
@@ -39,8 +41,20 @@ def show_vs(st: M.VS, tag: String) -> IO(Unit):
         IO.print(show(tag, x))
         return Unit{}
 
+def show_pl(pl: T.PL<M.ModelP()>) -> IO(Unit):
+  match pl:
+    case T.PL{p, xs}:
+      do IO<Unit>:
+        IO.print(show("weights:", xs))
+        return Unit{}
+
+def dump(p: M.ModelP()) -> IO(Unit):
+  show_pl(T.Layer.dump(M.ModelP(), TA.Mat<M.RW(), M.FE()>(), TA.Mat<M.RW(), M.PX()>(),
+    M.ModelS(), M.Model(), p))
+
 def main() -> IO(Unit):
   do IO<Unit>:
+    Unit <- dump(M.init_params())
     Unit <- show_ve(M.predict(M.init_params(), 64n, start()))
     Unit <- show_vs(M.rev_step(64n, M.VS{M.init_params(), start()}), "step:")
     Unit <- show_vs(M.ddim_sample(M.init_params()), "ddim:")

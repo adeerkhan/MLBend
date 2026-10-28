@@ -63,7 +63,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
   <span><b>5</b> fixed</span>
-  <span><b>0</b> open</span>
+  <span><b>1</b> open</span>
   <span><b>2</b> upstream</span>
   <span><b>4</b> other</span>
 </div>
@@ -193,6 +193,19 @@ def main() -&gt; IO(Unit):
 <p><strong>Component.</strong> Ours: <code>reference/probe_vit_model.bend</code>.</p>
 <p><strong>Verified by.</strong> The torch probe's <code>forward</code> (<code>self.ln = nn.LayerNorm(DIM)</code> then <code>self.head(...)</code>) against the Bend <code>Head</code>, and the parameter count.</p>
 <p><strong>Fix.</strong> <code>HeadN()</code> is <code>LayerNorm -&gt; Head</code>, and <code>Model()</code> chains it. The 3,000-step run that was in flight when this was found reflects the *old* model; the next run measures the corrected one.</p>
+</section><section class="issue" id="issue-010">
+  <header class="ihead">
+    <span class="id">ISSUE-010</span>
+    <span class="badge ora">open</span>
+    
+  </header>
+  <h2>the Bend ViT's forward disagrees with its twin at O(1) (ours, high)</h2>
+  <p><strong>What.</strong> With <strong>identical weights</strong> (Bend's own <code>Layer.dump</code> fed to the twin), the frozen forward at t = 64 gives Bend <code>eps[0] = 0.106497</code> and the twin <code>0.031502</code>; the element-wise gap is <code>maxabs 0.343</code>, i.e. 1.41 relative to the vector's maximum. That is not rounding — one of the two computes a different function.</p>
+<p><strong>What is ruled out.</strong> The weights: the dump is 100,736 values, the count matches the structure, and re-loading it row-major reproduces the twin's initialisation to the last bit (<code>first +0.031502</code> either way), so neither the loader order nor the reshape is wrong. The staging: <code>patch</code> round-trips exactly and the 20-feature rows are 1,024 of them, position features included. Both matrix layouts (row-major and transposed) were tried and neither matches.</p>
+<p><strong>Prime suspect.</strong> <code>Attention</code>'s internals: the scale <code>sc</code> (<code>0.125</code> here, the transformer example passes <code>0.25</code> for its width), the head slicing (<code>fslices</code>/<code>qrow</code> with strides), and the softmax's exact form (whether the max is subtracted). The twin's version is the textbook one — <code>softmax(sc·qkᵀ)v</code> — and it is the side that is probably wrong, not Bend: the Bend layers are what the transformer example trains.</p>
+<p><strong>Component.</strong> Ours: <code>reference/twin_vit.py</code> (most likely), or the way the Bend model wires <code>Attention</code>/<code>Core</code>.</p>
+<p><strong>Verified by.</strong> <code>reference/vit_gate.py</code> and the dump diagnostic: same weights, same input, two outputs, 1.4 relative apart.</p>
+<p><strong>Next.</strong> Bisect the forward layer by layer (embed → LN → scores → softmax → out projection), printing one row from each side, and fix whichever side is wrong. Until then the M2 forward gate cannot pass, and the sampler gate inherits the gap.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -216,7 +229,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-28 14:44 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-28 14:50 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

@@ -309,6 +309,42 @@ then `self.head(...)`) against the Bend `Head`, and the parameter count.
 3,000-step run that was in flight when this was found reflects the *old*
 model; the next run measures the corrected one.
 
+---
+
+## ISSUE-010 — the Bend ViT's forward disagrees with its twin at O(1) (ours, high) — OPEN
+
+**What.** With **identical weights** (Bend's own `Layer.dump` fed to the
+twin), the frozen forward at t = 64 gives Bend `eps[0] = 0.106497` and the
+twin `0.031502`; the element-wise gap is `maxabs 0.343`, i.e. 1.41 relative
+to the vector's maximum. That is not rounding — one of the two computes a
+different function.
+
+**What is ruled out.** The weights: the dump is 100,736 values, the count
+matches the structure, and re-loading it row-major reproduces the twin's
+initialisation to the last bit (`first +0.031502` either way), so neither the
+loader order nor the reshape is wrong. The staging: `patch` round-trips
+exactly and the 20-feature rows are 1,024 of them, position features
+included. Both matrix layouts (row-major and transposed) were tried and
+neither matches.
+
+**Prime suspect.** `Attention`'s internals: the scale `sc` (`0.125` here, the
+transformer example passes `0.25` for its width), the head slicing
+(`fslices`/`qrow` with strides), and the softmax's exact form (whether the
+max is subtracted). The twin's version is the textbook one — `softmax(sc·qkᵀ)v`
+— and it is the side that is probably wrong, not Bend: the Bend layers are
+what the transformer example trains.
+
+**Component.** Ours: `reference/twin_vit.py` (most likely), or the way the
+Bend model wires `Attention`/`Core`.
+
+**Verified by.** `reference/vit_gate.py` and the dump diagnostic: same
+weights, same input, two outputs, 1.4 relative apart.
+
+**Next.** Bisect the forward layer by layer (embed → LN → scores → softmax →
+out projection), printing one row from each side, and fix whichever side is
+wrong. Until then the M2 forward gate cannot pass, and the sampler gate
+inherits the gap.
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said
