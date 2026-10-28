@@ -58,11 +58,15 @@ relevant entry before changing performance-sensitive code or a law.
 
   | arm | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
   |---|---|---|---|---|
-  | torch-ViT (causal, 1 head) | 0.782 | 0.779 | 0.0611 | 0.0612 |
-  | lucidrains UNet | 0.926 | 0.938 | 0.0226 | 0.0189 |
+  | torch-ViT (causal, 1 head) | 0.786 | 0.779 | 0.0602 | 0.0633 |
+  | lucidrains UNet | 0.932 | 0.940 | 0.0202 | 0.0183 |
 
   The Bend arm's row is added by the run below; `reference/compare_vit.py`
-  writes all three to `results/compare/`.
+  writes all three to `results/compare/`. (With the arms' own starting
+  draws the two rows were 0.782/0.779 and 0.926/0.938; on the one cloud above
+  they are these.) **PyTorch on a 64-wide model wants few threads:** the same
+  run took 21 minutes and 5 GB of thread-time at 16 threads and 4 minutes at
+  3 — the matmuls are too small to pay for the synchronisation.
 - **The 0.809/0.798/0.778 numbers, re-read.** They were measured with a
   bidirectional mask, four (or one) heads and a learned position table. The
   causal, one-head, fixed-position model that Bend can express is the 0.782
