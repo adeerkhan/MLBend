@@ -97,6 +97,46 @@ def forward(weights, tokens):
     return F(y @ weights["head"].T)
 
 
+def from_flat(flat, blocks=3):
+    """The flat list a Bend `Layer.dump` writes, in the loader's order.
+
+    Seq loads left then right; Residual is Seq(Fork(Id, f), Add2), so the
+    norm's (g, b) come before the layer it wraps; the attention is
+    Fork(q, Fork(k, v)) then its output projection; the MLP is 64->128 then
+    128->64. LayerNorm is LN{g, b}. The counts add up to the model's
+    100,736: 1,280 + 3 * (128 + 4*4096 + 128 + 2*8192) + 384.
+    """
+    v = np.asarray(flat, dtype=F)
+    i = 0
+    def take(n):
+        nonlocal i
+        out = v[i:i + n]
+        i += n
+        return out
+    w = {"embed": take(W * FE).reshape(W, FE)}
+    for b in range(blocks):
+        d = {}
+        d["ln1g"] = take(W); d["ln1b"] = take(W)
+        d["wq"] = take(W * W).reshape(W, W)
+        d["wk"] = take(W * W).reshape(W, W)
+        d["wv"] = take(W * W).reshape(W, W)
+        d["wo"] = take(W * W).reshape(W, W)
+        d["ln2g"] = take(W); d["ln2b"] = take(W)
+        d["w1"] = take(HI * W).reshape(HI, W)
+        d["w2"] = take(W * HI).reshape(W, HI)
+        w[f"b{b}"] = d
+    w["head_ln_g"] = take(W); w["head_ln_b"] = take(W)
+    w["head"] = take(PX * W).reshape(PX, W)
+    if i != len(v):
+        raise ValueError(f"from_flat: consumed {i} of {len(v)}")
+    return w
+
+
+def count(blocks=3):
+    """The model's parameter count, from the same structure."""
+    return W * FE + blocks * (2 * W + 4 * W * W + 2 * W + 2 * HI * W) + 2 * W + PX * W
+
+
 def legibility(samples, data, d=64):
     s = np.asarray(samples).reshape(-1, d).astype(np.float64)
     t = np.asarray(data).reshape(-1, d).astype(np.float64)
@@ -106,6 +146,67 @@ def legibility(samples, data, d=64):
     t = t / (np.linalg.norm(t, axis=1, keepdims=True) + 1e-12)
     c = np.abs(s @ t.T).max(1)
     return float(c.mean()), float(c.min()), float(c.max())
+
+
+FREQS = (F(0.001), F(0.01), F(0.1), F(1.0))
+
+
+def temb(t, steps=64):
+    """mlbend-generative's temb_of(t, steps, 4): sin/cos of (t/steps) * f."""
+    tau = F(F(t) / F(steps))
+    out = []
+    for f in FREQS:
+        out += [F(np.sin(F(tau * f))), F(np.cos(F(tau * f)))]
+    return np.array(out, dtype=F)
+
+
+def pos(k):
+    """The position feature of token k: sin/cos of k * f (not k/steps)."""
+    kk = F(k)
+    out = []
+    for f in FREQS:
+        out += [F(np.sin(F(kk * f))), F(np.cos(F(kk * f)))]
+    return np.array(out, dtype=F)
+
+
+def tokens_of(pixels, t):
+    """(B, 64) pixel-ordered digits -> (B, 16, 20) token features."""
+    b = pixels.shape[0]
+    pat = patch(pixels)                       # (B, 64) token order
+    tok = pat.reshape(b, TK, PX)
+    te = np.tile(temb(t), (b, TK, 1))
+    po = np.tile(np.stack([pos(k) for k in range(TK)]), (b, 1, 1))
+    return F(np.concatenate([tok, te, po], axis=-1))
+
+
+def target_of(pixels):
+    """The noise target in the same token order: (B, 16, 4)."""
+    b = pixels.shape[0]
+    return patch(pixels).reshape(b, TK, PX)
+
+
+def bend_init(seed=1):
+    """Bend's `init_params`: noise_of(seed, count) * 0.1, in loader order."""
+    from test_diffusion_digits import noise_of
+    flat = F(noise_of(seed, count()) * F(0.1))
+    return from_flat(flat)
+
+
+def first_loss(seed=1):
+    """The loss of step 0, on Bend's exact window: t = 1, the first 64 digits,
+    and noise_of(0)'s first 4096 values."""
+    from test_diffusion_digits import noise_of, load, ALPHAS
+    x0 = load()
+    batch = x0[:64]                                   # first 4096 pixels
+    nz = noise_of(0, 4096).reshape(64, 64)
+    a = F(np.sqrt(ALPHAS[0]).astype(F))               # t = 1
+    b = F(np.sqrt(F(1.0) - ALPHAS[0]).astype(F))
+    mixed = F(F(a * batch) + F(b * nz))
+    w = bend_init(seed)
+    out = forward(w, tokens_of(mixed, 1))
+    tgt = target_of(nz)
+    loss = float(np.mean(F(out - tgt) ** 2))
+    return loss, out, tgt, w
 
 
 def main():
@@ -132,6 +233,9 @@ def main():
           f"rms {float(np.sqrt((out ** 2).mean())):.4f}")
     x = F(rng.standard_normal(64))
     print(f"patch roundtrip exact: {np.array_equal(unpatch(patch(x)), x)}")
+    print(f"parameter count from the structure: {count()} (Bend reports 100736)")
+    loss, out, tgt, w = first_loss()
+    print(f"twin step-0 loss: {loss:.6f}   (Bend prints its own on the same window)")
 
 
 if __name__ == "__main__":
