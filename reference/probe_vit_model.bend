@@ -322,6 +322,9 @@ def tinput(digits: List<&2, F32>, +t: Nat) -> List<&2, F32>:
 def abar(+t: Nat) -> F32:
   at(G.lin_alphas(64n), Nat.sub(t, 1n))
 
+def abar_below(+t: Nat) -> F32:
+  Bool.pick(F32, Nat.is_eq(t, 1n), 1.0, at(G.lin_alphas(64n), Nat.sub(t, 2n)))
+
 
 def take_go(left: Nat, xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
   match left:
@@ -384,20 +387,20 @@ def print_or(sp: Bool, +l: F32) -> IO(Unit):
         return Unit{}
 
 def train_go(left: Nat, +i: Nat, +x0: List<&2, F32>,
-  tr: T.Train<ModelP()>) -> IO(Unit):
+  tr: T.Train<ModelP()>) -> IO(ModelP()):
   match left tr:
     case 0n T.Train{p, g, st, p1, p2, +l}:
-      do IO<Unit>:
+      do IO<ModelP()>:
         IO.print(String.append("final:", F32.show(l)))
-        return Unit{}
+        return p
     case 1n+rest T.Train{p, g, st, p1, p2, +l}:
-      do IO<Unit>:
+      do IO<ModelP()>:
         Unit <- print_or(should_print(i), l)
         train_go(rest, (1n + i : Nat), x0,
           do_step(i, T.Train{p, g, st, p1, p2, l}, x0))
     case _ T.Train{p, g, st, p1, p2, l}:
-      do IO<Unit>:
-        return Unit{}
+      do IO<ModelP()>:
+        return p
 
 
 # ---- the starting weights: random, loaded through the layer's own loader ----
@@ -434,11 +437,125 @@ def init_params() -> ModelP():
   load_p(T.Layer.zeros(ModelP(), TA.Mat<RW(), FE()>, TA.Mat<RW(), PX()>(), ModelS(),
     Model()), arr)
 
+
+# ---- the sampler: the same token-ordered cloud, the clamped start ----
+
+type VS is Type:
+  VS{p: ModelP(), x: List<&2, F32>}
+
+type VE is Type:
+  VE{p: ModelP(), eps: List<&2, F32>}
+
+def flat_m2(m: TA.ML<RW(), PX()>) -> List<&2, F32>:
+  match m:
+    case TA.ML{mat, l}:
+      l
+
+def eps_of(f: T.Fwd<ModelP, TA.Mat<RW(), PX()>, ModelS>) -> VE:
+  match f:
+    case T.Fwd{p, y, s}:
+      VE{p, flat_m2(TA.Mat.to_list(RW(), PX(), y))}
+
+def predict(p: ModelP(), +t: Nat, +x: List<&2, F32>) -> VE:
+  eps_of(T.Layer.fwd(ModelP(), TA.Mat<RW(), FE()>, TA.Mat<RW(), PX()>(), ModelS(),
+    Model(), p,
+    TA.Mat.from_list(RW(), FE(), rows_go(x, G.temb_of(t, 64n, 4n), 0n, Nil{}))))
+
+# the clamped start, then the posterior mean; sigma outside the scale
+def rev_elem(+c1: F32, +c2: F32, +sa: F32, +sm: F32, +sig: F32,
+  +xv: F32, +eps: F32, +z: F32) -> F32:
+  x0 = ((xv - (sm * eps : F32) : F32) / sa : F32)
+  xc = F32.clamp(x0, 0.0, 1.0)
+  (((c1 * xc : F32) + (c2 * xv : F32) : F32) + (sig * z : F32) : F32)
+
+def rev_go(+c1: F32, +c2: F32, +sa: F32, +sm: F32, +sig: F32,
+  x: List<&2, F32>, eps: List<&2, F32>, z: List<&2, F32>, left: Nat,
+  +acc: List<&2, F32>) -> List<&2, F32>:
+  match x eps z left:
+    case Con{xv, xt} Con{ev, et} Con{zv, zt} 1n+rest:
+      rev_go(c1, c2, sa, sm, sig, xt, et, zt, rest,
+        Con{rev_elem(c1, c2, sa, sm, sig, xv, ev, zv), acc})
+    case _ _ _ _:
+      acc
+
+def rev_pe(ve: VE, +c1: F32, +c2: F32, +sa: F32, +sm: F32, +sig: F32,
+  +z: List<&2, F32>, +x: List<&2, F32>) -> VS:
+  match ve:
+    case VE{p2, eps}:
+      VS{p2, List.reverse(&2, F32, rev_go(c1, c2, sa, sm, sig, x, eps, z, 4096n, Nil{}))}
+
+def rev_step(+t: Nat, st: VS) -> VS:
+  match st:
+    case VS{p, +x}:
+      +beta = G.lin_beta_at(t, 64n)
+      +abar_t = abar(t)
+      +bar_prev = abar_below(t)
+      +c1 = (beta * (F32.sqrt(bar_prev) / (1.0 - abar_t) : F32) : F32)
+      +c2 = (F32.sqrt((1.0 - beta : F32)) * ((1.0 - bar_prev : F32) / (1.0 - abar_t : F32)) : F32)
+      +sa = F32.sqrt(abar_t)
+      +sm = F32.sqrt((1.0 - abar_t : F32))
+      +sig = F32.sqrt((beta * ((1.0 - bar_prev : F32) / (1.0 - abar_t : F32)) : F32))
+      rev_pe(predict(p, t, x), c1, c2, sa, sm, sig,
+        G.noise_of((1000000n + t : Nat), 4096n), x)
+
+def sample_go(t: Nat, st: VS) -> VS:
+  match t:
+    case 0n:
+      st
+    case 1n++rest:
+      sample_go(rest, rev_step(t, st))
+
+# the cloud starts in token order and stays there
+def sample(p: ModelP()) -> VS:
+  sample_go(64n, VS{p, patch_all(64n, take_go(4096n, G.noise_of(2000000n, 65536n), Nil{}), Nil{})})
+
+# pixel order for the grid and the legibility statistic
+def unpatch1(left: Nat, +t: List<&2, F32>, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match left:
+    case 0n:
+      acc
+    case 1n+rest:
+      +k = (Nat.add(Nat.mul(4n, Nat.div(Nat.div(i, 8n), 2n)),
+        Nat.div(Nat.mod(i, 8n), 2n)) : Nat)
+      +d = (Nat.add(Nat.mul(2n, Nat.mod(Nat.div(i, 8n), 2n)), Nat.mod(i, 2n)) : Nat)
+      unpatch1(rest, t, (1n + i : Nat),
+        List.append(&2, F32, acc, Con{at(t, Nat.add(Nat.mul(4n, k), d)), Nil{}}))
+    case _:
+      acc
+
+def unpatch_all(left: Nat, +t: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+  match left:
+    case 0n:
+      acc
+    case 1n+rest:
+      unpatch_all(rest, drop64(t), List.append(&2, F32, acc, unpatch1(64n, t, 0n, Nil{})))
+    case _:
+      acc
+
+def show_cloud(xs: List<&2, F32>) -> String:
+  match xs:
+    case Nil{}:
+      ""
+    case Con{h, t}:
+      String.append(F32.show(h), String.append(" ", show_cloud(t)))
+
+def show_vs(st: VS) -> IO(Unit):
+  match st:
+    case VS{p2, x}:
+      +px = unpatch_all(64n, x, Nil{})
+      do IO<Unit>:
+        IO.print(String.append("samples: ", show_cloud(px)))
+        return Unit{}
+
+def sample_report(p: ModelP()) -> IO(Unit):
+  show_vs(sample(p))
+
 def run(x0: List<&2, F32>, +n: Nat) -> IO(Unit):
   do IO<Unit>:
-    Unit <- train_go(n, 0n, x0,
+    p : ModelP() <- train_go(n, 0n, x0,
       T.Train.new(~ModelP(), ~TA.Mat<RW(), FE()>, ~TA.Mat<RW(), PX()>(), ~ModelS(),
         ~Model(), cfg(), init_params()))
+    Unit <- sample_report(p)
     return Unit{}
 
 def Body() -> IO(Unit):
@@ -446,7 +563,7 @@ def Body() -> IO(Unit):
     t : Result<&1, &1, Hf.Err, Datasets.Table> <- Datasets.csv_of(
       "mstz/optdigits", "4f20cc827b763fb69e2a80e18e892e4e11498aec", "optdigits.data", False{}, 0n)
     x0 : List<&2, F32> <- D.digits_of(t)
-    Unit <- run(x0, 400n)
+    Unit <- run(x0, 3000n)
     return Unit{}
 
 def main() -> IO(Unit):

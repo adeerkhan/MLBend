@@ -128,6 +128,16 @@ relevant entry before changing performance-sensitive code or a law.
   steps is ~37 minutes. The next run is that long one, then the sampler.
   A step is 0.75 s, so the groundwork (staging, init, step, loss) is real;
   what is not yet shown is a loss below 1.
+- **M1: the sampler path is written (2026-10-28).** The probe now carries the
+  token-ordered cloud through the reverse loop — the start is
+  `patch(noise)`, the model is fed the same 20-feature rows, each step forms
+  the clamped start and the posterior mean (`c1`, `c2`, `sa`, `sm`, `sig`),
+  and the result is unpatched only for the grid and the legibility
+  statistic. It compiles; it has not been run against trained weights yet —
+  the 3000-step training run was still going when this was written. The
+  sampler needed the same three borrowing rules as the training path (a
+  `match` on a computed `VS`/`PA`, `+` on a `Type`, `U32.from_nat`), all
+  already in `AGENTS.md`.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
