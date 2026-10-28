@@ -62,9 +62,31 @@ def head20(xs: List<&2, F32>, left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
 def row20() -> List<&2, F32>:
   head20(M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}), 20n, Nil{})
 
+def flat_w(m: TA.ML<M.RW(), M.W()>) -> List<&2, F32>:
+  match m:
+    case TA.ML{mat, l}:
+      l
+
+def show_fwd64(f: T.Fwd<M.EmbP, M.A(M.W()), TA.Mat<M.RW(), M.FE()>>) -> IO(Unit):
+  match f:
+    case T.Fwd{p, y, s}:
+      +ys = flat_w(TA.Mat.to_list(M.RW(), M.W(), y))
+      do IO<Unit>:
+        IO.print(show("emb0:", head20(ys, 64n, Nil{})))
+        return Unit{}
+
+def emb_out(p: M.ModelP()) -> IO(Unit):
+  match p:
+    case T.Two{T.Two{emb, body}, hd}:
+      inp = TA.Mat.from_list(M.RW(), M.FE(),
+        M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
+      show_fwd64(T.Layer.fwd(M.EmbP, TA.Mat<M.RW(), M.FE()>(), M.A(M.W()),
+        TA.Mat<M.RW(), M.FE()>(), M.Embed(), emb, inp))
+
 def main() -> IO(Unit):
   do IO<Unit>:
     Unit <- dump(M.init_params())
+    Unit <- emb_out(M.init_params())
     do IO<Unit>:
       IO.print(show("row:", row20()))
       return Unit{}
