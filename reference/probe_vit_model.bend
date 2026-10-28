@@ -112,17 +112,22 @@ def Att() -> T.Layer<AttP, A(W()), A(W()), AttS>:
 # ---- one transformer block: norm -> attention -> residual, then
 # norm -> MLP -> residual ----
 
+# The pre-LN block: the norm goes INSIDE the residual, so the path x is kept:
+# x + att(ln(x)). Written the other way round -- Seq(ln, Residual(att)) -- the
+# residual is taken on the normalized value, ln(x) + att(ln(x)), and the stream
+# loses its identity path (ISSUE-010 in issues-hit.md).
 def AttBlkP() -> Type:
-  T.Two<T.LN<W()>, T.Two<T.Two<Unit, AttP>, Unit>>
+  T.Two<T.Two<Unit, T.Two<T.LN<W()>, AttP>>, Unit>
 
 def AttBlkS() -> Type:
-  T.Two<A(W()), T.Two<T.Two<Unit, AttS>, Unit>>
+  T.Two<T.Two<Unit, T.Two<A(W()), AttS>>, Unit>
+
+def AttIn() -> T.Layer<T.Two<T.LN<W()>, AttP>, A(W()), A(W()), T.Two<A(W()), AttS>>:
+  T.Seq(~T.LN<W()>, ~AttP, ~A(W()), ~A(W()), ~A(W()), ~A(W()), ~AttS,
+    ~T.LayerNorm(RW(), W(), 0.00001), ~Att())
 
 def AttBlk() -> T.Layer<AttBlkP, A(W()), A(W()), AttBlkS>:
-  T.Seq(~T.LN<W()>, ~T.Two<T.Two<Unit, AttP>, Unit>, ~A(W()), ~A(W()), ~A(W()),
-    ~A(W()), ~T.Two<T.Two<Unit, AttS>, Unit>,
-    ~T.LayerNorm(RW(), W(), 0.00001),
-    ~T.Residual(RW(), W(), AttP(), AttS(), Att()))
+  T.Residual(RW(), W(), T.Two<T.LN<W()>, AttP>, T.Two<A(W()), AttS>, AttIn())
 
 # ---- the MLP half of a block: norm -> 64->128->64 -> residual ----
 
@@ -133,10 +138,10 @@ def MIS() -> Type:
   T.Two<T.Two<A(W()), A(HI())>, A(HI())>
 
 def MlpP() -> Type:
-  T.Two<T.LN<W()>, T.Two<T.Two<Unit, MIP>, Unit>>
+  T.Two<T.Two<Unit, T.Two<T.LN<W()>, MIP>>, Unit>
 
 def MlpS() -> Type:
-  T.Two<A(W()), T.Two<T.Two<Unit, MIS>, Unit>>
+  T.Two<T.Two<Unit, T.Two<A(W()), MIS>>, Unit>
 
 def MlpHalf() -> T.Layer<T.Two<M(HI(), W()), Unit>, A(W()), A(HI()), T.Two<A(W()), A(HI())>>:
   T.Seq(~M(HI(), W()), ~Unit, ~A(W()), ~A(HI()), ~A(HI()), ~A(W()), ~A(HI()),
@@ -146,11 +151,12 @@ def MlpInner() -> T.Layer<MIP, A(W()), A(W()), MIS>:
   T.Seq(~T.Two<M(HI(), W()), Unit>, ~M(W(), HI()), ~A(W()), ~A(HI()), ~A(W()),
     ~T.Two<A(W()), A(HI())>, ~A(HI()), ~MlpHalf(), ~T.LinearNB(RW(), HI(), W(), 0n))
 
+def MlpIn() -> T.Layer<T.Two<T.LN<W()>, MIP>, A(W()), A(W()), T.Two<A(W()), MIS>>:
+  T.Seq(~T.LN<W()>, ~MIP, ~A(W()), ~A(W()), ~A(W()), ~A(W()), ~MIS,
+    ~T.LayerNorm(RW(), W(), 0.00001), ~MlpInner())
+
 def Mlp() -> T.Layer<MlpP, A(W()), A(W()), MlpS>:
-  T.Seq(~T.LN<W()>, ~T.Two<T.Two<Unit, MIP>, Unit>, ~A(W()), ~A(W()), ~A(W()),
-    ~A(W()), ~T.Two<T.Two<Unit, MIS>, Unit>,
-    ~T.LayerNorm(RW(), W(), 0.00001),
-    ~T.Residual(RW(), W(), MIP, MIS, MlpInner()))
+  T.Residual(RW(), W(), T.Two<T.LN<W()>, MIP>, T.Two<A(W()), MIS>, MlpIn())
 
 # ---- a block is the two halves in sequence; three of them make the body ----
 

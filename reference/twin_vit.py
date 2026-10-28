@@ -9,9 +9,10 @@ operation order:
   embed      LinearNB 20 -> 64          y = x @ W.T          (no bias)
   block x 3  LayerNorm -> attention -> residual
              LayerNorm -> 64 -> 128 -> 64 GELU -> residual
-  attention  q, k, v each x @ W.T, one head,
-             scores = (q @ k.T) * 0.125, softmax, out = scores @ v,
-             then x @ Wo.T
+  attention  q, k, v each x @ W.T, one head, CAUSAL (BendTorch's
+             `Attention` masks the future: query i reads keys 0..i),
+             scores = (q @ k.T) * 0.125, softmax over the visible keys,
+             out = scores @ v, then x @ Wo.T
   LayerNorm  y = ((x - mean) * rstd) * g + b, rstd = 1/sqrt(var + eps)
   GELU       0.5x (1 + tanh(0.7978845608 (x + 0.044715 x^3)))
   head       LinearNB 64 -> 4
@@ -67,11 +68,25 @@ def gelu(x):
     return F(F(F(0.5) * x) * F(F(1.0) + np.tanh(F(F(0.7978845608028654) * F(x + F(F(0.044715) * x ** 3))))))
 
 
+def causal_mask(t=TK):
+    """BendTorch's `Attention` is causal: query i reads keys 0..i only.
+
+    `qrow` builds i + 1 scores and `prow` softmaxes exactly those, leaving
+    the rest of the row as zeros, so masking the upper triangle with -inf
+    is the same mathematics (and the same float32 result: exp(-inf) = 0).
+    """
+    return np.triu(np.ones((t, t), dtype=bool), 1)
+
+
+_MASK = causal_mask()
+
+
 def attention(x, wq, wk, wv, wo):
     q = F(x @ wq.T)
     k = F(x @ wk.T)
     v = F(x @ wv.T)
     s = F(F(q @ k.swapaxes(-1, -2)) * SCALE)
+    s = np.where(_MASK[: s.shape[-1], : s.shape[-1]], F(-np.inf), s).astype(F)
     s = s - s.max(-1, keepdims=True)
     e = np.exp(s)
     a = F(e / e.sum(-1, keepdims=True))

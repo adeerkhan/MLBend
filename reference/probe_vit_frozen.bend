@@ -107,11 +107,169 @@ def body_out(p: M.ModelP()) -> IO(Unit):
         M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
       show_body(then_body(body, emb_f(emb, inp)))
 
+def emb_y(f: T.Fwd<M.EmbP, M.A(M.W()), TA.Mat<M.RW(), M.FE()>>) -> TA.Mat<M.RW(), M.W()>:
+  match f:
+    case T.Fwd{p, y, s}:
+      y
+
+def ln_f(ln: T.LN<M.W()>, y: TA.Mat<M.RW(), M.W()>) -> T.Fwd<T.LN<M.W()>, M.A(M.W()), M.A(M.W())>:
+  T.Layer.fwd(T.LN<M.W()>, M.A(M.W()), M.A(M.W()), M.A(M.W()),
+    T.LayerNorm(M.RW(), M.W(), 0.00001), ln, y)
+
+def show_ln(f: T.Fwd<T.LN<M.W()>, M.A(M.W()), M.A(M.W())>) -> IO(Unit):
+  match f:
+    case T.Fwd{p, y, s}:
+      +ys = flat_w(TA.Mat.to_list(M.RW(), M.W(), y))
+      do IO<Unit>:
+        IO.print(show("ln0:", head20(ys, 64n, Nil{})))
+        return Unit{}
+
+def ln_out(p: M.ModelP()) -> IO(Unit):
+  match p:
+    case T.Two{T.Two{emb, body}, hd}:
+      match body:
+        case T.Two{T.Two{b1, b2}, b3}:
+          match b1:
+            case T.Two{att, mlp}:
+              match att:
+                case T.Two{r2, u3}:
+                  match r2:
+                    case T.Two{u, r}:
+                      match r:
+                        case T.Two{ln, ap}:
+                          inp = TA.Mat.from_list(M.RW(), M.FE(),
+                            M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
+                          show_ln(ln_f(ln, emb_y(emb_f(emb, inp))))
+
+def ln_y(f: T.Fwd<T.LN<M.W()>, M.A(M.W()), M.A(M.W())>) -> TA.Mat<M.RW(), M.W()>:
+  match f:
+    case T.Fwd{p, y, s}:
+      y
+
+def att_p(att: M.AttBlkP) -> M.AttP:
+  match att:
+    case T.Two{r2, u3}:
+      match r2:
+        case T.Two{u, r}:
+          match r:
+            case T.Two{ln, ap}:
+              ap
+
+def att_f(ap: M.AttP, x: TA.Mat<M.RW(), M.W()>) -> T.Fwd<M.AttP, M.A(M.W()), M.AttS>:
+  T.Layer.fwd(M.AttP, M.A(M.W()), M.A(M.W()), M.AttS(), M.Att(), ap, x)
+
+def show_att(f: T.Fwd<M.AttP, M.A(M.W()), M.AttS>) -> IO(Unit):
+  match f:
+    case T.Fwd{p, y, s}:
+      +ys = flat_w(TA.Mat.to_list(M.RW(), M.W(), y))
+      do IO<Unit>:
+        IO.print(show("att0:", head20(ys, 64n, Nil{})))
+        return Unit{}
+
+def blk_f(b12: M.B12P, x: TA.Mat<M.RW(), M.W()>) -> T.Fwd<M.B12P, M.A(M.W()), M.B12S>:
+  T.Layer.fwd(M.B12P, M.A(M.W()), M.A(M.W()), M.B12S(), M.B12(), b12, x)
+
+def blk_y(f: T.Fwd<M.B12P, M.A(M.W()), M.B12S>) -> TA.Mat<M.RW(), M.W()>:
+  match f:
+    case T.Fwd{p, y, s}:
+      y
+
+def show_blk(f: T.Fwd<M.B12P, M.A(M.W()), M.B12S>) -> IO(Unit):
+  match f:
+    case T.Fwd{p, y, s}:
+      +ys = flat_w(TA.Mat.to_list(M.RW(), M.W(), y))
+      do IO<Unit>:
+        IO.print(show("blk0:", head20(ys, 64n, Nil{})))
+        return Unit{}
+
+def att_out(p: M.ModelP()) -> IO(Unit):
+  match p:
+    case T.Two{T.Two{emb, body}, hd}:
+      match body:
+        case T.Two{T.Two{b1, b2}, b3}:
+          match b1:
+            case T.Two{att, mlp}:
+              match att:
+                case T.Two{r2, u3}:
+                  match r2:
+                    case T.Two{u, r}:
+                      match r:
+                        case T.Two{ln, ap}:
+                          inp = TA.Mat.from_list(M.RW(), M.FE(),
+                            M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
+                          e = emb_y(emb_f(emb, inp))
+                          l = ln_f(ln, e)
+                          show_att(att_f(ap, ln_y(l)))
+
+def blk_out(p: M.ModelP()) -> IO(Unit):
+  match p:
+    case T.Two{T.Two{emb, body}, hd}:
+      match body:
+        case T.Two{T.Two{b1, b2}, b3}:
+          inp = TA.Mat.from_list(M.RW(), M.FE(),
+            M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
+          show_blk(blk_f(b1, emb_y(emb_f(emb, inp))))
+
+def attblk_f(att: M.AttBlkP, x: TA.Mat<M.RW(), M.W()>) -> T.Fwd<M.AttBlkP, M.A(M.W()), M.AttBlkS>:
+  T.Layer.fwd(M.AttBlkP, M.A(M.W()), M.A(M.W()), M.AttBlkS(), M.AttBlk(), att, x)
+
+def show_mat(f: T.Fwd<M.AttBlkP, M.A(M.W()), M.AttBlkS>, tag: String) -> IO(Unit):
+  match f:
+    case T.Fwd{p, y, s}:
+      +ys = flat_w(TA.Mat.to_list(M.RW(), M.W(), y))
+      do IO<Unit>:
+        IO.print(show(tag, head20(ys, 64n, Nil{})))
+        return Unit{}
+
+def attblk_y(f: T.Fwd<M.AttBlkP, M.A(M.W()), M.AttBlkS>) -> TA.Mat<M.RW(), M.W()>:
+  match f:
+    case T.Fwd{p, y, s}:
+      y
+
+def mlp_f(mlp: M.MlpP, x: TA.Mat<M.RW(), M.W()>) -> T.Fwd<M.MlpP, M.A(M.W()), M.MlpS>:
+  T.Layer.fwd(M.MlpP, M.A(M.W()), M.A(M.W()), M.MlpS(), M.Mlp(), mlp, x)
+
+def show_mlp(f: T.Fwd<M.MlpP, M.A(M.W()), M.MlpS>) -> IO(Unit):
+  match f:
+    case T.Fwd{p, y, s}:
+      +ys = flat_w(TA.Mat.to_list(M.RW(), M.W(), y))
+      do IO<Unit>:
+        IO.print(show("mlp0:", head20(ys, 64n, Nil{})))
+        return Unit{}
+
+def res_out(p: M.ModelP()) -> IO(Unit):
+  match p:
+    case T.Two{T.Two{emb, body}, hd}:
+      match body:
+        case T.Two{T.Two{b1, b2}, b3}:
+          match b1:
+            case T.Two{att, mlp}:
+              inp = TA.Mat.from_list(M.RW(), M.FE(),
+                M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
+              show_mat(attblk_f(att, emb_y(emb_f(emb, inp))), "res0:")
+
+def mlp_out(p: M.ModelP()) -> IO(Unit):
+  match p:
+    case T.Two{T.Two{emb, body}, hd}:
+      match body:
+        case T.Two{T.Two{b1, b2}, b3}:
+          match b1:
+            case T.Two{att, mlp}:
+              inp = TA.Mat.from_list(M.RW(), M.FE(),
+                M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
+              e = emb_y(emb_f(emb, inp))
+              show_mlp(mlp_f(mlp, attblk_y(attblk_f(att, e))))
+
 def main() -> IO(Unit):
   do IO<Unit>:
     Unit <- dump(M.init_params())
     Unit <- emb_out(M.init_params())
     Unit <- body_out(M.init_params())
+    Unit <- ln_out(M.init_params())
+    Unit <- att_out(M.init_params())
+    Unit <- blk_out(M.init_params())
+    Unit <- res_out(M.init_params())
+    Unit <- mlp_out(M.init_params())
     do IO<Unit>:
       IO.print(show("row:", row20()))
       return Unit{}
