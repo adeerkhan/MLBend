@@ -327,6 +327,13 @@ exactly and the 20-feature rows are 1,024 of them, position features
 included. Both matrix layouts (row-major and transposed) were tried and
 neither matches.
 
+**Ruled out by experiment.** With the dumped weights held fixed, the twin's
+forward was rerun with `sc` = 0.125, 0.25 and 0.0625, and with one global
+softmax over all 1024 rows instead of 16 per sequence. The first value moves
+from 0.0315 to 0.0330 and the gap stays at 0.343 in every case: the scale and
+the row grouping are not it. (`sc = 1/sqrt(hd)` is confirmed independently:
+the transformer example's width is 16 and it passes 0.25.)
+
 **Prime suspect.** `Attention`'s internals: the scale `sc` (`0.125` here, the
 transformer example passes `0.25` for its width), the head slicing
 (`fslices`/`qrow` with strides), and the softmax's exact form (whether the
@@ -340,10 +347,14 @@ Bend model wires `Attention`/`Core`.
 **Verified by.** `reference/vit_gate.py` and the dump diagnostic: same
 weights, same input, two outputs, 1.4 relative apart.
 
-**Next.** Bisect the forward layer by layer (embed → LN → scores → softmax →
-out projection), printing one row from each side, and fix whichever side is
-wrong. Until then the M2 forward gate cannot pass, and the sampler gate
-inherits the gap.
+**Next.** The twin's output is insensitive to the attention parameters here,
+so the difference is *upstream* of attention or in the parameter traversal
+itself: `dump` and the init array agree with each other through
+`twin.from_flat`, which does not prove the traversal is right (a consistently
+wrong traversal would also agree). The next probe prints one intermediate —
+the embed output, one LN, the first score row — so the first differing point
+is a number rather than a hypothesis. Until then the M2 forward gate cannot
+pass, and the sampler gate inherits the gap.
 
 ## Checked and dismissed
 
