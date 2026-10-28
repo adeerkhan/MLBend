@@ -60,6 +60,20 @@ relevant entry before changing performance-sensitive code or a law.
   meant to be: reproducible and covering every digit. The first loss is
   unchanged, because step 0 is chunk 0 — the 64 digits the twin's
   `first_loss` already used.
+- **The loss curve is a sawtooth, and that is the timestep, not the optimiser.**
+  The example draws **one t for the whole 64-digit batch** (`t = 1 + s mod 64`),
+  so the printed loss is the loss at *that* t: ~1.0 at low t, where x_t is
+  almost clean and the noise cannot be recovered from the input (the best
+  predictor of ε is 0, so the loss is E[ε²] = 1), falling to ~0.002 at high t.
+  Three runs at lr 1e-3, 2e-3 and 3e-3 spike at the *same* printed steps —
+  which is the tell: it is the data's timestep, not divergence. It also means
+  the per-step loss is not comparable between Bend (one t per batch) and the
+  torch arm (a t per image, so its printed loss is an average over t); the
+  legibility of the cloud is the comparison, not the loss.
+- **A 64-wide torch model wants few threads.** The same 3000-step run took
+  **21 minutes on 16 threads and 4 minutes on 3** — the matmuls are too small
+  to pay for the synchronisation. `THREADS` is an environment variable in both
+  torch arms now.
 - **The three arms, on the same 1024 digits, the same starting cloud
   (`noise_of(2000000, 4096)`) and the same step counts**, nearest-digit
   correlation and nearest-digit MSE:
