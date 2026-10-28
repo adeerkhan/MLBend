@@ -194,6 +194,31 @@ def parse_diffusion_digits(out):
             **vals}
 
 
+def parse_diffusion_vit(out):
+    losses = [float(v) for v in re.findall(r"^loss: ([0-9.eE+-]+)$", out, re.M)]
+    vals = {k: float(re.search(rf"^{k}: ([0-9.eE+-]+)$", out, re.M).group(1))
+            for k in ("data_mean", "sample_mean", "sample_std")}
+    final = re.search(r"^final_loss: ([0-9.eE+-]+)$", out, re.M)
+    return {"first_loss": losses[0],
+            "final_loss": float(final.group(1)) if final else losses[-1],
+            **vals}
+
+
+def reference_diffusion_vit(context=None):
+    """The twin's numbers for the ViT: the step-0 loss and the data's mean.
+
+    The twin does not train (it is the gate, not a second run), so the
+    loss curve and the cloud are reported, not compared.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "reference"))
+    import twin_vit as twin
+    from test_diffusion_digits import load
+
+    first = twin.first_loss()[0]
+    return {"first_loss": float(first), "data_mean": float(load().mean()),
+            "final_loss": None, "sample_mean": None, "sample_std": None}
+
+
 def reference_diffusion_digits(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_diffusion_digits import numpy_answer
@@ -314,6 +339,23 @@ TASKS = {
         "seed": 0,
         "parse": parse_diffusion_digits,
         "reference": reference_diffusion_digits,
+        "metrics": {
+            "first_loss": {"tolerance": 0.0001, "mode": "relative"},
+            "data_mean": {"tolerance": 0.00001, "mode": "absolute"},
+            "final_loss": {"tolerance": 0, "mode": "report"},
+            "sample_mean": {"tolerance": 0, "mode": "report"},
+            "sample_std": {"tolerance": 0, "mode": "report"},
+        },
+    },
+    "diffusion-vit": {
+        "description": "a ViT denoiser (2x2 patches, causal attention) over the first 1024 optdigits digits",
+        "program": "examples/diffusion_vit/main.bend",
+        "dataset": {"name": "optdigits", "rows": 1024, "features": 64,
+                    "source": "https://huggingface.co/datasets/mstz/optdigits",
+                    "files": ["https://huggingface.co/datasets/mstz/optdigits/resolve/4f20cc827b763fb69e2a80e18e892e4e11498aec/optdigits.data"], "expected_sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"},
+        "seed": 0,
+        "parse": parse_diffusion_vit,
+        "reference": reference_diffusion_vit,
         "metrics": {
             "first_loss": {"tolerance": 0.0001, "mode": "relative"},
             "data_mean": {"tolerance": 0.00001, "mode": "absolute"},

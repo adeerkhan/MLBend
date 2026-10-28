@@ -31,7 +31,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "reference"))
 
-from test_diffusion_digits import F, noise_of, rev_step_eps
+from test_diffusion_digits import F, load, noise_of, rev_step_eps
 
 import twin_vit as twin
 import vit_gate
@@ -39,7 +39,8 @@ import vit_gate
 RESULTS = os.path.join(ROOT, "results", "diffusion-vit", "run.json")
 TOL_FIRST = 1e-4          # float32, one forward, same weights
 GATE_LEGIBILITY = 0.75
-DATA_MEAN, DATA_STD = 0.3076, 0.3767
+_DATA = load()
+DATA_MEAN, DATA_STD = float(_DATA.mean()), float(_DATA.std())
 
 
 def check(name, ok, detail):
@@ -51,11 +52,17 @@ def main():
     ok = True
 
     # --- the recorded run, and the twin's first loss -------------------------
-    run = json.load(open(RESULTS))
-    twin_first, _, _ = twin.first_loss()
-    ok &= check("first loss", abs(twin_first - run["first_loss"]) <= TOL_FIRST,
-                f"twin {twin_first:.7f}  bend {run['first_loss']:.7f}  "
-                f"delta {abs(twin_first - run['first_loss']):.2e}  tol {TOL_FIRST:g}")
+    if not os.path.exists(RESULTS):
+        print(f"FAIL first loss: {os.path.relpath(RESULTS, ROOT)} is missing — "
+              f"run the example and `reference/vit_results.py` first")
+        ok = False
+        run = None
+    else:
+        run = json.load(open(RESULTS))
+        twin_first = twin.first_loss()[0]
+        ok &= check("first loss", abs(twin_first - run["first_loss"]) <= TOL_FIRST,
+                    f"twin {twin_first:.7f}  bend {run['first_loss']:.7f}  "
+                    f"delta {abs(twin_first - run['first_loss']):.2e}  tol {TOL_FIRST:g}")
 
     # --- the frozen forward and the sampler ---------------------------------
     bend = vit_gate.run_probe()
@@ -82,6 +89,10 @@ def main():
                 f"a random sampler draw moves the cloud by {d:.3g}")
 
     # --- legibility, the trained model's number -----------------------------
+    if run is None:
+        print("FAIL legibility: no recorded run")
+        print("\nFAIL: the ViT's gates")
+        return 1
     m = float(run["legibility"]["mean"])
     ok &= check("legibility", m >= GATE_LEGIBILITY,
                 f"mean |corr| {m:.3f}  gate {GATE_LEGIBILITY:.2f}  "
