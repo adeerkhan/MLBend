@@ -63,9 +63,9 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
   <span><b>5</b> fixed</span>
-  <span><b>1</b> open</span>
+  <span><b>0</b> open</span>
   <span><b>2</b> upstream</span>
-  <span><b>3</b> other</span>
+  <span><b>4</b> other</span>
 </div>
 <section class="issue" id="upstream-requests">
   <header class="ihead">
@@ -94,16 +94,16 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 </section><section class="issue" id="issue-002">
   <header class="ihead">
     <span class="id">ISSUE-002</span>
-    <span class="badge ora">open</span>
+    
     <span class="when" title="2026-10-27T22:17:44+05:00">logged 2026-10-27 22:17 UTC</span>
   </header>
-  <h2>the two "linear schedules" are not the same schedule (ours, medium)</h2>
+  <h2>the two "linear schedules" are not the same schedule (ours, medium) — DECIDED (documented)</h2>
   <p><strong>What.</strong> <code>mlbend-generative</code>'s <code>lin_beta_at(t, 64)</code> is <code>1e-4 + 0.2799·t/64</code>: β = <strong>0.0044734 … 0.28</strong>, ᾱ₆₄ = <strong>4.085385e-05</strong>. The reference's <code>linear_beta_schedule(64)</code> is <code>linspace(1000/T·1e-4, 1000/T·0.02, T)</code>: β = <strong>0.0015625 … 0.3125</strong>, ᾱ₆₄ = <strong>1.223548e-05</strong>. Worst per-step relative gap: <strong>65.07%</strong>.</p>
 <p><strong>Why.</strong> Two conventions both called "the linear schedule": DDPM's 1000-step schedule rescaled by <code>1000/T</code>, and a directly parameterised 0 → 0.28 ramp. Neither is wrong; they are not interchangeable.</p>
 <p><strong>How it showed up.</strong> Only when the two were printed side by side (<code>reference/lucidrains_compare.py</code>, "the schedules"). No gate could see it, because each arm was compared with its own mirror.</p>
 <p><strong>Component.</strong> Ours (<code>mlbend-generative</code>); the reference defines the other convention.</p>
 <p><strong>Verified by.</strong> The script above, and the library's own <code>diffusion.alphas_cumprod[-1]</code> printed in the same run.</p>
-<p><strong>Status.</strong> Open. The ablation says it does not explain ISSUE-001 (0.1755 vs 0.1455), so this is a fidelity decision, not a bug fix: adopt the reference's rescale, or document ours as a different schedule.</p>
+<p><strong>Status.</strong> Decided: <strong>documented, not changed.</strong> The ablation says it does not explain ISSUE-001 (0.1755 vs 0.1455), and the 3,000-step runs reach the same order either way. Our schedule is the <code>1e-4 + 0.2799·t/T</code> ramp, which is what <code>mlbend-generative</code> describes in <code>lin_beta_at</code>; the reference's is the 1000-step schedule rescaled by <code>1000/T</code>. They are different schedules, not two spellings of one, and the difference is now written down in NOTES (2026-10-28) rather than left as an unexplained divergence.</p>
 </section><section class="issue" id="issue-003">
   <header class="ihead">
     <span class="id">ISSUE-003</span>
@@ -184,7 +184,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-009</span>
     <span class="badge grn">fixed</span>
-    
+    <span class="when" title="2026-10-28T19:40:19+05:00">logged 2026-10-28 19:40 UTC</span>
   </header>
   <h2>the Bend ViT omitted the final LayerNorm before the head (ours, medium)</h2>
   <p><strong>What.</strong> The port's model was <code>embed -&gt; 3 blocks -&gt; Linear(64,4)</code>, while the torch spec that measured 0.809 is <code>embed -&gt; 3 blocks -&gt; LayerNorm -&gt; Linear(64,4)</code>. The omission was invisible in the type check and in a zero-parameter forward.</p>
@@ -216,7 +216,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-28 14:40 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-28 14:44 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

@@ -83,7 +83,7 @@ deterministic, which is what the reference uses. The NumPy twin mirrors it.
 
 ---
 
-## ISSUE-002 — the two "linear schedules" are not the same schedule (ours, medium) — OPEN
+## ISSUE-002 — the two "linear schedules" are not the same schedule (ours, medium) — DECIDED (documented)
 
 **What.** `mlbend-generative`'s `lin_beta_at(t, 64)` is
 `1e-4 + 0.2799·t/64`: β = **0.0044734 … 0.28**, ᾱ₆₄ = **4.085385e-05**.
@@ -105,9 +105,13 @@ convention.
 **Verified by.** The script above, and the library's own
 `diffusion.alphas_cumprod[-1]` printed in the same run.
 
-**Status.** Open. The ablation says it does not explain ISSUE-001 (0.1755 vs
-0.1455), so this is a fidelity decision, not a bug fix: adopt the reference's
-rescale, or document ours as a different schedule.
+**Status.** Decided: **documented, not changed.** The ablation says it does
+not explain ISSUE-001 (0.1755 vs 0.1455), and the 3,000-step runs reach the
+same order either way. Our schedule is the `1e-4 + 0.2799·t/T` ramp, which is
+what `mlbend-generative` describes in `lin_beta_at`; the reference's is the
+1000-step schedule rescaled by `1000/T`. They are different schedules, not two
+spellings of one, and the difference is now written down in NOTES (2026-10-28)
+rather than left as an unexplained divergence.
 
 ---
 

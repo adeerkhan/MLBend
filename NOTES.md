@@ -155,6 +155,21 @@ relevant entry before changing performance-sensitive code or a law.
   upstream repo's `torch/gpu.bend` is not in what we install), or a much
   smaller model/steps budget. This is the "compute decision" the milestone
   asks for, answered with the directory listing and the measured step time.
+- **The two DoD decisions, settled with what was measured (2026-10-28).**
+  (1) *The schedule.* Ours is `lin_beta_at(t, T) = 1e-4 + 0.2799·t/T`, the
+  reference's is `linspace(1000/T·1e-4, 1000/T·0.02, T)`: at T = 64 that is
+  β 0.00447..0.28 and ᾱ₆₄ 4.085e-05 against β 0.00156..0.3125 and
+  ᾱ₆₄ 1.224e-05, a 65% worst-step gap. It is a *different schedule*, not a
+  rescaling of ours, and both examples and their twins use ours consistently;
+  the ablation put it at 0.1787 against 0.1755 for the reference's, so it is
+  not what any of the failures turned on. Kept and named, not adopted.
+  (2) *The 2d clamp.* The reference clamps the predicted start in every
+  sampler; the digits example needs it (ISSUE-005: 32.8 → 0.30 std). The 2d
+  example does not have it and does not need it: its cloud is already inside
+  the data's range (std 0.599/0.424 against the data's 0.866/0.494, means
+  0.385/0.028 against 0.5/0.25), and adding it would move a task whose gates
+  are green without a measured reason. Recorded here; if the 2d model is ever
+  trained harder or the sampler is shared, the clamp comes with it.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
