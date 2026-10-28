@@ -182,11 +182,17 @@ def Body3() -> T.Layer<B3P, A(W()), A(W()), B3S>:
 def EmbP() -> Type:
   TA.Mat<W(), FE()>
 
+def HP() -> Type:
+  T.Two<T.LN<W()>, TA.Mat<PX(), W()>>
+
+def HS() -> Type:
+  T.Two<A(W()), A(W())>
+
 def ModelP() -> Type:
-  T.Two<T.Two<EmbP, B3P>, TA.Mat<PX(), W()>>
+  T.Two<T.Two<EmbP, B3P>, HP>
 
 def ModelS() -> Type:
-  T.Two<T.Two<TA.Mat<RW(), FE()>, B3S>, TA.Mat<RW(), W()>>
+  T.Two<T.Two<TA.Mat<RW(), FE()>, B3S>, HS>
 
 def HeadP() -> Type:
   TA.Mat<PX(), W()>
@@ -200,12 +206,16 @@ def Embed() -> T.Layer<EmbP, TA.Mat<RW(), FE()>, A(W()), TA.Mat<RW(), FE()>>:
 def Head() -> T.Layer<HeadP, A(W()), TA.Mat<RW(), PX()>, HeadS>:
   T.LinearNB(RW(), W(), PX(), 0n)
 
+def HeadN() -> T.Layer<HP, A(W()), TA.Mat<RW(), PX()>, HS>:
+  T.Seq(~T.LN<W()>, ~TA.Mat<PX(), W()>, ~A(W()), ~A(W()), ~TA.Mat<RW(), PX()>(),
+    ~A(W()), ~A(W()), ~T.LayerNorm(RW(), W(), 0.00001), ~Head())
+
 def Model() -> T.Layer<ModelP, TA.Mat<RW(), FE()>, TA.Mat<RW(), PX()>, ModelS>:
-  T.Seq(~T.Two<EmbP, B3P>, ~HeadP, ~TA.Mat<RW(), FE()>, ~A(W()), ~TA.Mat<RW(), PX()>,
-    ~T.Two<TA.Mat<RW(), FE()>, B3S>, ~HeadS,
+  T.Seq(~T.Two<EmbP, B3P>, ~HP, ~TA.Mat<RW(), FE()>, ~A(W()), ~TA.Mat<RW(), PX()>,
+    ~T.Two<TA.Mat<RW(), FE()>, B3S>, ~HS,
     ~T.Seq(~EmbP, ~B3P, ~TA.Mat<RW(), FE()>, ~A(W()), ~A(W()),
       ~TA.Mat<RW(), FE()>, ~B3S, ~Embed(), ~Body3()),
-    ~Head())
+    ~HeadN())
 
 def ones_of(+n: Nat, +i: Nat, acc: List<&2, F32>) -> List<&2, F32>:
   match i:

@@ -278,6 +278,33 @@ threshold, the `-o` contrast at 65536, and the Nat-list contrast. Filed as
 
 ---
 
+---
+
+## ISSUE-009 — the Bend ViT omitted the final LayerNorm before the head (ours, medium) — FIXED
+
+**What.** The port's model was `embed -> 3 blocks -> Linear(64,4)`, while the
+torch spec that measured 0.809 is `embed -> 3 blocks -> LayerNorm ->
+Linear(64,4)`. The omission was invisible in the type check and in a
+zero-parameter forward.
+
+**Why.** The head was written from the "one head per patch" line of the spec
+and the normaliser in front of it was dropped when the Bend `Head` layer was
+built as a bare `LinearNB`.
+
+**How it showed up.** Writing the NumPy twin
+(`reference/twin_vit.py`) forced the forward to be spelled out, and the
+spec's `self.head(self.ln(x))` had no counterpart in the Bend model. The
+parameter count says it plainly: 100,608 without the norm, 100,736 with it.
+
+**Component.** Ours: `reference/probe_vit_model.bend`.
+
+**Verified by.** The torch probe's `forward` (`self.ln = nn.LayerNorm(DIM)`
+then `self.head(...)`) against the Bend `Head`, and the parameter count.
+
+**Fix.** `HeadN()` is `LayerNorm -> Head`, and `Model()` chains it. The
+3,000-step run that was in flight when this was found reflects the *old*
+model; the next run measures the corrected one.
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said

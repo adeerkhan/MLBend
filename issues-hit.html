@@ -62,7 +62,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>Each entry says what happened, why it happened, how it showed up, and which library or component carries the cause. <code>ours</code> means MLBend (this repository); a package name means the published Bend package; <code>lucidrains</code> means the vendored reference in <code>reference/lucidrains/</code>.</p>
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
-  <span><b>4</b> fixed</span>
+  <span><b>5</b> fixed</span>
   <span><b>1</b> open</span>
   <span><b>2</b> upstream</span>
   <span><b>3</b> other</span>
@@ -71,7 +71,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
   <header class="ihead">
     <span class="id">Upstream requests</span>
     
-    
+    <span class="when" title="2026-10-27T23:55:33+05:00">logged 2026-10-27 23:55 UTC</span>
   </header>
   
   <p>Opened from this work, each with its reproduction and numbers in the issue:</p>
@@ -163,7 +163,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
   <header class="ihead">
     <span class="id">ISSUE-007</span>
     <span class="badge vio">upstream</span>
-    <span class="when" title="2026-10-27T23:11:25+05:00">logged 2026-10-27 23:11 UTC</span>
+    <span class="when" title="2026-10-27T23:55:33+05:00">logged 2026-10-27 23:55 UTC</span>
   </header>
   <h2><code>bend file.bend</code> overflows its stack on a 32k-element list (bendlang/bend, high)</h2>
   <p><strong>What.</strong> The plain run path dies with <code>bend: memory fault (machine stack overflow?)</code>, exit 1, no source location, on a twelve-line program:</p>
@@ -180,6 +180,19 @@ def main() -&gt; IO(Unit):
 <p><strong>How it showed up.</strong> Running <code>examples/diffusion_digits/main.bend</code> the documented way. <code>--check-only</code> passes and <code>-o</code> runs the full 3000-step training, so it looked like a fault in the program; it is not — it is the run path, and the message names no file and no line.</p>
 <p><strong>Component.</strong> <code>bendlang/bend</code>, the <code>bend &lt;file.bend&gt;</code> (check, then run) path.</p>
 <p><strong>Verified by.</strong> The program above on both versions, the 16384/32768 threshold, the <code>-o</code> contrast at 65536, and the Nat-list contrast. Filed as <a href="https://github.com/bendlang/bend/issues/1894">bendlang/bend#1894</a>.</p>
+</section><section class="issue" id="issue-009">
+  <header class="ihead">
+    <span class="id">ISSUE-009</span>
+    <span class="badge grn">fixed</span>
+    
+  </header>
+  <h2>the Bend ViT omitted the final LayerNorm before the head (ours, medium)</h2>
+  <p><strong>What.</strong> The port's model was <code>embed -&gt; 3 blocks -&gt; Linear(64,4)</code>, while the torch spec that measured 0.809 is <code>embed -&gt; 3 blocks -&gt; LayerNorm -&gt; Linear(64,4)</code>. The omission was invisible in the type check and in a zero-parameter forward.</p>
+<p><strong>Why.</strong> The head was written from the "one head per patch" line of the spec and the normaliser in front of it was dropped when the Bend <code>Head</code> layer was built as a bare <code>LinearNB</code>.</p>
+<p><strong>How it showed up.</strong> Writing the NumPy twin (<code>reference/twin_vit.py</code>) forced the forward to be spelled out, and the spec's <code>self.head(self.ln(x))</code> had no counterpart in the Bend model. The parameter count says it plainly: 100,608 without the norm, 100,736 with it.</p>
+<p><strong>Component.</strong> Ours: <code>reference/probe_vit_model.bend</code>.</p>
+<p><strong>Verified by.</strong> The torch probe's <code>forward</code> (<code>self.ln = nn.LayerNorm(DIM)</code> then <code>self.head(...)</code>) against the Bend <code>Head</code>, and the parameter count.</p>
+<p><strong>Fix.</strong> <code>HeadN()</code> is <code>LayerNorm -&gt; Head</code>, and <code>Model()</code> chains it. The 3,000-step run that was in flight when this was found reflects the *old* model; the next run measures the corrected one.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -192,7 +205,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-008</span>
     <span class="badge vio">upstream</span>
-    <span class="when" title="2026-10-27T23:11:25+05:00">logged 2026-10-27 23:11 UTC</span>
+    <span class="when" title="2026-10-27T23:55:33+05:00">logged 2026-10-27 23:55 UTC</span>
   </header>
   <h2>no convolution and no group norm, so no UNet (BendTorch, high)</h2>
   <p><strong>What.</strong> BendTorch exports no <code>Conv2d</code>, no <code>GroupNorm</code> and no <code>BatchNorm</code> (constructor list in the issue). A UNet — Conv2d + GroupNorm + attention, the reference's denoiser — cannot be expressed, so image diffusion has no natural model.</p>
@@ -203,7 +216,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-27 18:55 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-28 14:40 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>
