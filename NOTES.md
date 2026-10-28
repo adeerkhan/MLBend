@@ -144,6 +144,17 @@ relevant entry before changing performance-sensitive code or a law.
   0.809, UNet 0.926), with the M1 threshold (>= 0.70) stated as PASS or FAIL.
   It is read-only and writes nothing, so a run's numbers can be re-read
   without re-running it.
+- **M5's compute decision has evidence now (2026-10-28).** The installed
+  `bendtorch@1.0.1.0` carries only the CPU layers: `.bend/env/<hash>/` holds
+  `main.bend`, `tensor.bend`, `dtype.bend`, `spec.bend`, `LAWS.bend`,
+  `PROOF.bend`, `package.bend` — there is no `torch/gpu.bend`, so `Attention`
+  has no device mirror in the published package. A ViT step is already 0.75 s
+  at 1024 tokens of width 64; CIFAR (64 tokens, wider dim, more rows) would be
+  several times that, so a 10k-step run on the CPU is 10+ hours. CIFAR-10 on
+  the CUDA lane therefore needs a GPU-capable layer package first (the
+  upstream repo's `torch/gpu.bend` is not in what we install), or a much
+  smaller model/steps budget. This is the "compute decision" the milestone
+  asks for, answered with the directory listing and the measured step time.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
