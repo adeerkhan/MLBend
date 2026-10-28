@@ -17,6 +17,7 @@ next to the numbers already recorded for the MLP and the UNet.
 
 It is NOT a gate and NOT the Bend arm; it is the design decision, measured.
 """
+import json
 import os
 import sys
 
@@ -122,6 +123,30 @@ def legibility(samples, data):
 
 
 @torch.no_grad()
+def sample_ddpm(model, abar, tembs, n=64, seed=1000):
+    """The 64-step ancestral walk, Bend's rev_step arithmetic: clamp the
+    predicted start to [0,1], then the posterior mean c1*x0 + c2*x."""
+    model.eval()
+    torch.manual_seed(seed)
+    x = torch.randn(n, D)
+    beta = torch.from_numpy(bend_betas().astype(np.float32))
+    for t in range(T - 1, -1, -1):
+        tt = torch.full((n,), t, dtype=torch.long)
+        eps = unpatchify(model(patchify(x), tembs[tt]))
+        a = abar[t].reshape(1, 1)
+        ap = abar[t - 1].reshape(1, 1) if t > 0 else torch.ones(1, 1)
+        bt = beta[t].reshape(1, 1)
+        c1 = bt * torch.sqrt(ap) / (1 - a)
+        c2 = torch.sqrt(1 - bt) * (1 - ap) / (1 - a)
+        sa, sm = torch.sqrt(a), torch.sqrt(1 - a)
+        x0 = ((x - sm * eps) / sa).clamp(0, 1)
+        sig = torch.sqrt(bt * (1 - ap) / (1 - a))
+        z = torch.randn(n, D) if t > 0 else torch.zeros(n, D)
+        x = c1 * x0 + c2 * x + sig * z
+    return x.numpy()
+
+
+@torch.no_grad()
 def sample(model, abar, tembs, n=64):
     model.eval()
     torch.manual_seed(1000)
@@ -165,12 +190,32 @@ def main():
         opt.step()
         losses.append(float(loss))
     print(f"loss: first {losses[0]:.4f}  last100 {np.mean(losses[-100:]):.4f}")
-    smp = sample(model, abar, tembs)
-    m, lo, hi = legibility(smp, load())
-    unit = int(((smp >= 0) & (smp <= 1)).sum())
-    print(f"cloud: mean {smp.mean():+.4f}  std {smp.std():.4f}  in [0,1] {unit}/4096")
-    print(f"nearest-digit |corr|: mean {m:.3f}  min {lo:.3f}  max {hi:.3f}   "
-          f"(MLP 0.408, UNet 0.926, random 0.326)")
+    data = load()
+    clouds = {"ddim": sample(model, abar, tembs),
+              "ddpm": sample_ddpm(model, abar, tembs)}
+    from vit_report import nearest_mse
+    report = {}
+    for name, smp in clouds.items():
+        m, lo, hi = legibility(smp, data)
+        unit = int(((smp >= 0) & (smp <= 1)).sum())
+        report[name] = {"legibility": m, "legibility_min": lo, "legibility_max": hi,
+                        "cloud": {"mean": float(smp.mean()), "std": float(smp.std()),
+                                  "min": float(smp.min()), "max": float(smp.max()),
+                                  "in_unit": unit, "n": int(smp.size)},
+                        "nearest_mse": nearest_mse(smp, data),
+                        "samples": [float(z) for z in smp.reshape(-1)]}
+        print(f"{name}: cloud mean {smp.mean():+.4f}  std {smp.std():.4f}  "
+              f"in [0,1] {unit}/{smp.size}")
+        print(f"{name}: nearest-digit |corr| mean {m:.3f}  min {lo:.3f}  max {hi:.3f}  "
+              f"mse {report[name]['nearest_mse']:.4f}")
+    if len(sys.argv) > 1:
+        out = {"arm": "torch-vit", "params": n_params, "steps": STEPS, "batch": BATCH,
+               "lr": LR, "heads": HEADS, "pos": POS_MODE, "causal": CAUSAL,
+               "loss": {"first": losses[0], "final": losses[-1]},
+               "nearest_mse": None, "per_sampler": report}
+        os.makedirs(os.path.dirname(os.path.abspath(sys.argv[1])), exist_ok=True)
+        json.dump(out, open(sys.argv[1], "w"), indent=2)
+        print(f"wrote {sys.argv[1]}")
 
 
 if __name__ == "__main__":

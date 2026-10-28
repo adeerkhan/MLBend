@@ -38,6 +38,23 @@ def legibility(samples, data, d=64):
     return float(c.mean()), float(c.min()), float(c.max())
 
 
+def nearest_mse(samples, data, d=64):
+    """For each sample, the MSE to the training digit it correlates with most.
+
+    Legibility is a correlation and so blind to scale; this is the error in
+    pixel units, which is what a "does it look like a digit" claim should
+    survive. Both arms are scored against the same 1024 digits.
+    """
+    s = np.asarray(samples).reshape(-1, d).astype(np.float64)
+    t = np.asarray(data).reshape(-1, d).astype(np.float64)
+    sn = s - s.mean(1, keepdims=True)
+    sn = sn / (np.linalg.norm(sn, axis=1, keepdims=True) + 1e-12)
+    tn = t - t.mean(1, keepdims=True)
+    tn = tn / (np.linalg.norm(tn, axis=1, keepdims=True) + 1e-12)
+    idx = np.abs(sn @ tn.T).argmax(1)
+    return float(np.mean(((s - t[idx]) ** 2).mean(1)))
+
+
 def main():
     if len(sys.argv) < 2:
         raise SystemExit(__doc__.strip().splitlines()[2].strip())

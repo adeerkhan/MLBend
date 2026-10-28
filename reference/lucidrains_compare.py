@@ -150,16 +150,25 @@ def main():
         ddim = diffusion.sample(batch_size=64).squeeze(1).numpy().reshape(-1, D)
         ancestral = ddpm.sample(batch_size=64).squeeze(1).numpy().reshape(-1, D)
 
+    from vit_report import legibility as leg_stat, nearest_mse
+
+    data = load()
     def stats(a):
+        m, lo, hi = leg_stat(a, data)
         return {"mean": float(a.mean()), "std": float(a.std()),
                 "min": float(a.min()), "max": float(a.max()),
-                "in_unit": int(((a >= 0) & (a <= 1)).sum())}
+                "in_unit": int(((a >= 0) & (a <= 1)).sum()),
+                "n": int(a.size), "legibility": m, "legibility_min": lo,
+                "legibility_max": hi, "nearest_mse": nearest_mse(a, data),
+                "samples": [float(z) for z in np.asarray(a).reshape(-1)]}
 
     sd, sa = stats(ddim), stats(ancestral)
     print("\nthe clouds (lucidrains, 64 digits x 64 pixels)")
     for name, s in (("ddim", sd), ("ancestral", sa)):
         print(f"  {name:10s} mean {s['mean']:+.4f}  std {s['std']:.4f}  "
               f"min {s['min']:+.4f}  max {s['max']:+.4f}  in [0,1]: {s['in_unit']}/4096")
+        print(f"  {name:10s} legibility {s['legibility']:.3f}  "
+              f"nearest-digit mse {s['nearest_mse']:.4f}")
 
     print("\nthe same statistics, Bend's digits run (results/diffusion-digits/run.json)")
     bend = json.load(open(os.path.join(ROOT, "results", "diffusion-digits", "run.json")))["bend"]
@@ -185,6 +194,8 @@ def main():
                             "bend_beta_last": float(bend_betas()[-1]),
                             "bend_abar_T": float(np.cumprod(1.0 - bend_betas())[-1])},
                "loss": {"first": losses[0], "final": losses[-1]},
+               "starting_noise": "the library's own draw (sample() takes no image); "
+                                 "the Bend and torch arms share noise_of(2000000, 4096)",
                "lucidrains": {"ddim": sd, "ancestral": sa},
                "bend": bend},
               open(os.path.join(res, "run.json"), "w"), indent=2)

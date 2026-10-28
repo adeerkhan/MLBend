@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "reference"))
 
 from test_diffusion_digits import load
-from vit_report import legibility
+from vit_report import legibility, nearest_mse
 
 OUT = os.path.join(ROOT, "results", "diffusion-vit")
 
@@ -39,11 +39,14 @@ def parse(text):
         m = re.search(rf"^{k}: ([0-9.eE+-]+)$", text, re.M)
         if m:
             vals[k] = float(m.group(1))
-    cloud = re.search(r"^samples: (.+)$", text, re.M)
-    if not losses or not cloud:
+    clouds = {}
+    for key, tag in (("ddim", "samples"), ("ddpm", "samples_ddpm")):
+        m = re.search(rf"^{tag}: (.+)$", text, re.M)
+        if m:
+            clouds[key] = np.array([float(v) for v in m.group(1).split()], dtype=np.float32)
+    if not losses or not clouds:
         raise SystemExit("no loss lines or no samples: is the run finished? (stdout is buffered)")
-    return losses, float(final.group(1)) if final else losses[-1], vals, \
-        np.array([float(v) for v in cloud.group(1).split()], dtype=np.float32)
+    return losses, float(final.group(1)) if final else losses[-1], vals, clouds
 
 
 def loss_svg(path, losses):
@@ -93,11 +96,11 @@ def main():
     if len(sys.argv) < 2:
         raise SystemExit(__doc__.strip().splitlines()[2].strip())
     text = open(sys.argv[1]).read()
-    losses, final, vals, cloud = parse(text)
+    losses, final, vals, clouds = parse(text)
     data = load()
     DATA_MEAN, DATA_STD = float(data.mean()), float(data.std())
-    m, lo, hi = legibility(cloud, data)
-    unit = int(((cloud >= 0) & (cloud <= 1)).sum())
+    m, lo, hi = legibility(clouds["ddim"], data)
+    unit = int(((clouds["ddim"] >= 0) & (clouds["ddim"] <= 1)).sum())
     run = {
         "task": "diffusion-vit",
         "program": "examples/diffusion_vit/main.bend",
@@ -106,9 +109,16 @@ def main():
         "final_loss": final,
         "loss_min": min(losses),
         "legibility": {"mean": m, "min": lo, "max": hi},
-        "cloud": {"n": int(len(cloud)), "mean": float(cloud.mean()),
-                  "std": float(cloud.std()), "min": float(cloud.min()),
-                  "max": float(cloud.max()), "in_unit": unit},
+        "cloud": {"n": int(len(clouds["ddim"])), "mean": float(clouds["ddim"].mean()),
+                  "std": float(clouds["ddim"].std()), "min": float(clouds["ddim"].min()),
+                  "max": float(clouds["ddim"].max()), "in_unit": unit},
+        "nearest_mse": {k: nearest_mse(v, data) for k, v in clouds.items()},
+        "per_sampler": {k: {"mean": float(v.mean()), "std": float(v.std()),
+                            "in_unit": int(((v >= 0) & (v <= 1)).sum()),
+                            "legibility": legibility(v, data)[0],
+                            "nearest_mse": nearest_mse(v, data),
+                            "samples": [float(z) for z in v]}
+                        for k, v in clouds.items()},
         "data": {"mean": DATA_MEAN, "std": DATA_STD},
         "architecture": {"patches": "2x2", "tokens": 16, "features": 20,
                          "dim": 64, "heads": 1, "blocks": 3, "attention": "causal",
@@ -120,7 +130,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     json.dump(run, open(os.path.join(OUT, "run.json"), "w"), indent=2)
     loss_svg(os.path.join(OUT, "loss.svg"), losses)
-    grid_svg(os.path.join(OUT, "grid.svg"), cloud)
+    grid_svg(os.path.join(OUT, "grid.svg"), clouds["ddim"])
 
     card = f"""# diffusion-vit — report card
 
@@ -133,7 +143,8 @@ sampled by the 16-step DDIM walk with the clamped start.
 | final loss | {final:.6f} (minimum {min(losses):.6f}) |
 | legibility (mean, min, max) | **{m:.3f}**, {lo:.3f}, {hi:.3f} |
 | cloud mean / std | {run['cloud']['mean']:+.4f} / {run['cloud']['std']:.4f} (data {DATA_MEAN} / {DATA_STD}) |
-| pixels in [0,1] | {unit}/{len(cloud)} |
+| pixels in [0,1] | {unit}/{len(clouds["ddim"])} |
+| nearest-digit MSE | {run["nearest_mse"].get("ddim", float("nan")):.4f} (uniform noise 0.266) |
 
 Legibility is the best absolute correlation of each sample with any training
 digit, averaged. Random images score 0.326, the digits MLP 0.408, torch's
