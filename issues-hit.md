@@ -311,50 +311,106 @@ model; the next run measures the corrected one.
 
 ---
 
-## ISSUE-010 — the Bend ViT's forward disagrees with its twin at O(1) (ours, high) — OPEN
+## ISSUE-010 — the Bend ViT's forward disagrees with its twin at O(1) (ours, high) — FIXED
 
 **What.** With **identical weights** (Bend's own `Layer.dump` fed to the
-twin), the frozen forward at t = 64 gives Bend `eps[0] = 0.106497` and the
-twin `0.031502`; the element-wise gap is `maxabs 0.343`, i.e. 1.41 relative
-to the vector's maximum. That is not rounding — one of the two computes a
-different function.
+twin), the frozen forward at t = 64 gave Bend `eps[0] = 0.106497` and the
+twin `0.031502`; the element-wise gap was `maxabs 0.343`, 1.41 relative.
+Found and fixed on 2026-10-28, 20:25.
 
-**What is ruled out.** The weights: the dump is 100,736 values, the count
-matches the structure, and re-loading it row-major reproduces the twin's
-initialisation to the last bit (`first +0.031502` either way), so neither the
-loader order nor the reshape is wrong. The staging: `patch` round-trips
-exactly and the 20-feature rows are 1,024 of them, position features
-included. Both matrix layouts (row-major and transposed) were tried and
-neither matches.
+**How it was localized.** One probe printed the ladder with the dumped
+weights, and the twin printed the same ladder:
 
-**Ruled out by experiment.** With the dumped weights held fixed, the twin's
-forward was rerun with `sc` = 0.125, 0.25 and 0.0625, and with one global
-softmax over all 1024 rows instead of 16 per sequence. The first value moves
-from 0.0315 to 0.0330 and the gap stays at 0.343 in every case: the scale and
-the row grouping are not it. (`sc = 1/sqrt(hd)` is confirmed independently:
-the transformer example's width is 16 and it passes 0.25.)
+| point | Bend | twin | verdict |
+|---|---|---|---|
+| staging row 0 (20 features) | `1.5151465 -0.47618893 ...` | same | equal |
+| `emb0` (64) | `-0.4354682 -0.38745803 ...` | same | equal |
+| `ln0` (block 1 norm, 64) | `0.040882647 -0.039651513 ...` | same | equal |
+| `att0` (block 1 attention, 64) | `0.07157408 -0.09983167 ...` | same | equal |
+| `blk0` (block 1 out, 64) | `-0.06204252 -0.111143276 ...` | `-0.43706578 ...` | **differ** |
 
-**Prime suspect.** `Attention`'s internals: the scale `sc` (`0.125` here, the
-transformer example passes `0.25` for its width), the head slicing
-(`fslices`/`qrow` with strides), and the softmax's exact form (whether the
-max is subtracted). The twin's version is the textbook one — `softmax(sc·qkᵀ)v`
-— and it is the side that is probably wrong, not Bend: the Bend layers are
-what the transformer example trains.
+So the staging, the weights, the load order, the first linear, the norm, the
+attention's scores, the causal mask and the output projection were all
+already right, and the disagreement began in the block's *residual*.
 
-**Component.** Ours: `reference/twin_vit.py` (most likely), or the way the
-Bend model wires `Attention`/`Core`.
+**Why.** `AttBlk` was written `Seq(LayerNorm, Residual(Att))`. `Seq` applies
+left then right, so that computes
 
-**Verified by.** `reference/vit_gate.py` and the dump diagnostic: same
-weights, same input, two outputs, 1.4 relative apart.
+```
+ln(x) + att(ln(x))
+```
 
-**Next.** The twin's output is insensitive to the attention parameters here,
-so the difference is *upstream* of attention or in the parameter traversal
-itself: `dump` and the init array agree with each other through
-`twin.from_flat`, which does not prove the traversal is right (a consistently
-wrong traversal would also agree). The next probe prints one intermediate —
-the embed output, one LN, the first score row — so the first differing point
-is a number rather than a hypothesis. Until then the M2 forward gate cannot
-pass, and the sampler gate inherits the gap.
+— the residual is taken on the **normalized** value. A pre-LN transformer
+block is
+
+```
+x + att(ln(x))
+```
+
+and the twin implemented that. Both are correct for their own diagram; the
+model's diagram was the wrong one, and the twin had faithfully mirrored the
+intent instead of the code. The same held for the MLP half.
+
+**The proof.** Feeding the dumped weights through the block with Bend's own
+wiring — `h = ln(x); r = h + att(h); h2 = ln(r); y = h2 + mlp(h2)` — reproduces
+Bend's `blk0` to **7.5e-08** (`-0.0620425 -0.1111432 -0.0104476 -0.1073963
+0.0307670 0.0735757`). The pre-LN wiring is 0.64 away. That is the whole
+issue, measured.
+
+**Why it matters beyond the gate.** The stream was re-normalized twice per
+block, so the block had no identity path: every half threw away the incoming
+residual and kept only its norm. That is not the architecture the torch probe
+measured 0.809 with, and it is not trainable to the same standard. The
+3,000-step run in flight at the time of the fix is the old wiring; it is
+reported as the "normalized residual" baseline and not as M1.
+
+**Fix.** `AttBlk` is `Residual(x, Seq(ln, att))` (`AttIn`), and `Mlp` is
+`Residual(x, Seq(ln, mlp))` (`MlpIn`). The parameter order is unchanged — the
+norm's `g` and `b` still come before the layer's weights — so `Layer.count`
+stays 100,736, `Layer.dump` keeps its shape and `twin.from_flat` is untouched.
+
+**Component.** Ours: `reference/probe_vit_model.bend`.
+
+**Verified by.** `reference/probe_vit_frozen.bend`'s `ln0`/`att0`/`blk0`/`res0`
+lines against the twin, and `reference/vit_gate.py` after the fix: `eps`
+**maxabs 1.19e-07** (tol 1e-05), one ancestral step **4.77e-07** (tol 1e-05),
+the 16-step DDIM cloud **6.38e-06** (tol 1e-04), and eta = 0 exactly **0**.
+The forward gate went from 0.343 to one ulp of float32.
+
+---
+
+## ISSUE-011 — BendTorch's only attention is causal, so the ViT attends one way (BendTorch, high) — UPSTREAM
+
+**What.** `bendtorch@1.0.1.0`'s `Attention` has no mask argument, and its
+forward is causal by construction: for query position `i`, `qrow` builds
+`scores` against keys `0..i` only (`drow(i, ...)`, `i + 1` dots) and `prow`
+softmaxes exactly those `i + 1`, leaving the rest of the `t x t` block at
+zero. The three trailing arguments of the layer are erased *shape* facts
+(`n == b*t`, `w == kv*g*hd`, `kvw == kv*hd`), not masks. Found 2026-10-28,
+20:05.
+
+**How it showed up.** The twin's bidirectional attention missed Bend's `att0`;
+masking the upper triangle reproduces it exactly
+(`0.07157408 -0.09983167 0.03612092 ...` both sides). Causality is not a
+tolerance here: it is the same numbers or not.
+
+**Why it matters.** For a language model a causal mask is the point. For a
+denoiser it is a handicap with no reason: the 16 patch tokens are
+exchangeable, and token 0 can see only itself, token 15 sees all. It also
+means the ViT measured in torch (0.809 legibility, bidirectional) is *not*
+the architecture Bend can express, so the three-arm harness must run its
+torch arm with the same causal mask to be "the same architecture", and the
+numbers in `docs/AUDIT.md` from the bidirectional model are labelled as
+such.
+
+**Component.** BendTorch (upstream); MLBend works around it.
+
+**Next.** Measure the frozen gate and then M1's legibility with the causal
+model. If causality costs the 0.75 gate, the options are a mask argument
+upstream (the natural PR: `Attention` already builds the `t x t` block
+sparsely, so a `Bool` "causal or not" flag is a small change plus the
+`causal` law's sibling) or a second pass over the reversed token order. The
+second is ours to do and costs 2x compute; the first is the right fix.
 
 ## Checked and dismissed
 
