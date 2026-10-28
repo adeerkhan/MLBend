@@ -138,6 +138,12 @@ relevant entry before changing performance-sensitive code or a law.
   sampler needed the same three borrowing rules as the training path (a
   `match` on a computed `VS`/`PA`, `+` on a `Type`, `U32.from_nat`), all
   already in `AGENTS.md`.
+- **M1's measurement tool (2026-10-28).** `reference/vit_report.py` reads a
+  probe run and prints the loss curve, the cloud's statistics and the
+  legibility next to the four references (random 0.326, MLP 0.408, torch ViT
+  0.809, UNet 0.926), with the M1 threshold (>= 0.70) stated as PASS or FAIL.
+  It is read-only and writes nothing, so a run's numbers can be re-read
+  without re-running it.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
