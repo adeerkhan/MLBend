@@ -83,10 +83,35 @@ def emb_out(p: M.ModelP()) -> IO(Unit):
       show_fwd64(T.Layer.fwd(M.EmbP, TA.Mat<M.RW(), M.FE()>(), M.A(M.W()),
         TA.Mat<M.RW(), M.FE()>(), M.Embed(), emb, inp))
 
+def emb_f(emb: M.EmbP, inp: TA.Mat<M.RW(), M.FE()>) -> T.Fwd<M.EmbP, M.A(M.W()), TA.Mat<M.RW(), M.FE()>>:
+  T.Layer.fwd(M.EmbP, TA.Mat<M.RW(), M.FE()>(), M.A(M.W()), TA.Mat<M.RW(), M.FE()>(),
+    M.Embed(), emb, inp)
+
+def then_body(body: M.B3P, f: T.Fwd<M.EmbP, M.A(M.W()), TA.Mat<M.RW(), M.FE()>>) -> T.Fwd<M.B3P, M.A(M.W()), M.B3S>:
+  match f:
+    case T.Fwd{e2, y, s2}:
+      T.Layer.fwd(M.B3P, M.A(M.W()), M.A(M.W()), M.B3S(), M.Body3(), body, y)
+
+def show_body(f: T.Fwd<M.B3P, M.A(M.W()), M.B3S>) -> IO(Unit):
+  match f:
+    case T.Fwd{p, y, s}:
+      +ys = flat_w(TA.Mat.to_list(M.RW(), M.W(), y))
+      do IO<Unit>:
+        IO.print(show("body0:", head20(ys, 64n, Nil{})))
+        return Unit{}
+
+def body_out(p: M.ModelP()) -> IO(Unit):
+  match p:
+    case T.Two{T.Two{emb, body}, hd}:
+      inp = TA.Mat.from_list(M.RW(), M.FE(),
+        M.rows_go(start(), G.temb_of(64n, 64n, 4n), 0n, Nil{}))
+      show_body(then_body(body, emb_f(emb, inp)))
+
 def main() -> IO(Unit):
   do IO<Unit>:
     Unit <- dump(M.init_params())
     Unit <- emb_out(M.init_params())
+    Unit <- body_out(M.init_params())
     do IO<Unit>:
       IO.print(show("row:", row20()))
       return Unit{}
