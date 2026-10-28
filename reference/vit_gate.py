@@ -29,10 +29,13 @@ from test_diffusion_digits import BEND, ENV, F, noise_of, rev_step_eps
 
 import twin_vit as twin
 
-# measured first, then fixed (see the docstring)
-TOL_EPS = 5e-4
-TOL_STEP = 1e-4
-TOL_DDIM = 5e-2
+# measured first, then fixed: eps maxabs 1.19e-07, step 4.77e-07, ddim
+# 6.38e-06 (float32, different summation orders over 64 terms). The eps is
+# gated on maxabs, not on the element-wise relative gap: many of its numbers
+# are near zero, where a relative gap says nothing.
+TOL_EPS = 1e-5
+TOL_STEP = 1e-5
+TOL_DDIM = 1e-4
 
 
 def run_probe():
@@ -69,20 +72,24 @@ def main():
     p = twin.bend_init()
 
     twin_eps = twin.frozen_eps()
-    start = twin.patch(noise_of(2000000, 4096)).astype(F)
+    start = twin.patch(noise_of(2000000, 4096).reshape(64, 64)).reshape(-1).astype(F)
     twin_step = rev_step_eps(start, 64, bend["eps"])       # shared eps: the sampler only
     own_step = rev_step_eps(start, 64, twin_eps)           # each side's own eps
     twin_ddim = twin.ddim_cloud(p)
+    z = noise_of(7000000, 4096).reshape(64, 64).astype(F)
+    twin_eta = twin.ddim_cloud(p, z=z)
 
-    print(f"eps    bend vs twin        rel {rel(bend['eps'], twin_eps):.3g}  "
-          f"maxabs {maxabs(bend['eps'], twin_eps):.3g}   tol {TOL_EPS:g}  "
-          f"{'ok' if rel(bend['eps'], twin_eps) <= TOL_EPS else 'FAIL'}")
+    print(f"eps    bend vs twin        maxabs {maxabs(bend['eps'], twin_eps):.3g}  "
+          f"(rel {rel(bend['eps'], twin_eps):.3g})   tol {TOL_EPS:g}  "
+          f"{'ok' if maxabs(bend['eps'], twin_eps) <= TOL_EPS else 'FAIL'}")
     print(f"step   shared eps          maxabs {maxabs(bend['step'], twin_step):.3g}   "
           f"tol {TOL_STEP:g}  {'ok' if maxabs(bend['step'], twin_step) <= TOL_STEP else 'FAIL'}")
     print(f"step   each side's own eps maxabs {maxabs(bend['step'], own_step):.3g}   (report)")
-    print(f"ddim   bend vs twin        rel {rel(bend['ddim'], twin_ddim):.3g}  "
-          f"maxabs {maxabs(bend['ddim'], twin_ddim):.3g}   tol {TOL_DDIM:g}  "
-          f"{'ok' if rel(bend['ddim'], twin_ddim) <= TOL_DDIM else 'FAIL'}")
+    print(f"ddim   bend vs twin        maxabs {maxabs(bend['ddim'], twin_ddim):.3g}  "
+          f"(rel {rel(bend['ddim'], twin_ddim):.3g})   tol {TOL_DDIM:g}  "
+          f"{'ok' if maxabs(bend['ddim'], twin_ddim) <= TOL_DDIM else 'FAIL'}")
+    print(f"eta=0  sampler noise is inert  maxabs {maxabs(twin_eta, twin_ddim):.3g}   "
+          f"{'ok' if maxabs(twin_eta, twin_ddim) == 0 else 'FAIL'}")
     for name, v in (("bend", bend["ddim"]), ("twin", twin_ddim)):
         print(f"  {name} cloud: mean {float(v.mean()):+.4f}  std {float(v.std()):.4f}  "
               f"in [0,1] {int(((v >= 0) & (v <= 1)).sum())}/4096")

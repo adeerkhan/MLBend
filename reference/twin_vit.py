@@ -161,20 +161,25 @@ def clip_eps(x, eps, abar):
     return F(F(x - F(sa * xc)) / sm)
 
 
-def ddim_cloud(w, k=4):
-    """The 16-step DDIM cloud, eta = 0, in token order (mirrors the example)."""
+def ddim_cloud(w, k=4, z=None):
+    """The 16-step DDIM cloud, eta = 0, over all 64 images (token order).
+
+    `z` is the sampler noise: at eta = 0 its coefficient is zero, so any z
+    must give the same cloud (the invariance gate).
+    """
     from test_diffusion_digits import ALPHAS, noise_of
     from test_diffusion import ddim, rungs, step_of
     pos = rungs(k)
-    x = patch(noise_of(2000000, 4096)).astype(F)          # pixel -> token order
+    x = patch(noise_of(2000000, 4096).reshape(64, 64)).astype(F)   # pixel -> token order
     for i, idx in enumerate(pos):
         abar = ALPHAS[idx]
         prev = ALPHAS[pos[i + 1]] if i + 1 < len(pos) else F(1.0)
         t = idx + 1
-        eps = forward(w, tokens_from_token(x.reshape(1, 64), t)).reshape(64)
+        eps = forward(w, tokens_from_token(x, t)).reshape(64, 64)
         eps = clip_eps(x, eps, abar)
-        x = ddim(step_of(abar, prev, 0.0), x, eps, np.zeros(64, dtype=F))
-    return x
+        zz = np.zeros((64, 64), dtype=F) if z is None else z
+        x = ddim(step_of(abar, prev, 0.0), x, eps, zz)
+    return x.reshape(-1)
 
 
 def legibility(samples, data, d=64):

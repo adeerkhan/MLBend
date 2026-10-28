@@ -33,7 +33,7 @@ from test_diffusion_digits import D, N, T, load
 STEPS = 3000
 BATCH = 128
 DIM = 64
-HEADS = 4
+HEADS = int(os.environ.get("HEADS", 4))
 BLOCKS = 3
 LR = 3e-3
 PATCH = 2                      # 8x8 pixels -> 4x4 = 16 tokens
@@ -51,11 +51,18 @@ class Block(nn.Module):
 
     def forward(self, x):
         h = self.ln1(x)
-        x = x + self.attn(h, h, h, need_weights=False)[0]
+        mask = None
+        if CAUSAL:
+            mask = torch.triu(torch.ones(x.shape[1], x.shape[1], dtype=torch.bool,
+                                         device=x.device), 1)
+        x = x + self.attn(h, h, h, need_weights=False, attn_mask=mask)[0]
         return x + self.mlp(self.ln2(x))
 
 
 POS_MODE = os.environ.get("POS", "learned")
+# BendTorch's only attention is causal (ISSUE-011), so the arm that represents
+# the Bend model in the comparison runs with the same mask.
+CAUSAL = os.environ.get("CAUSAL") == "1"
 
 
 def pos_features():
@@ -142,7 +149,7 @@ def main():
     model = Vit()
     n_params = sum(p.numel() for p in model.parameters())
     print(f"ViT: dim {DIM}, {HEADS} heads, {BLOCKS} blocks, {TOKENS} tokens of {PIX} px "
-          f"-- {n_params} parameters")
+          f"-- {n_params} parameters; pos {POS_MODE}, causal {CAUSAL}")
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=0.01, betas=(0.9, 0.999))
     losses = []
     for s in range(STEPS):
