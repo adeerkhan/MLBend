@@ -105,6 +105,16 @@ relevant entry before changing performance-sensitive code or a law.
   `Residual` nests its types as `Two<Two<Unit, P>, Unit>`. A single head is
   enough to clear the gate: 0.778 legibility against 0.809 for four heads in
   the torch probe, so the port starts single-head.
+- **M1: the ViT compiles and runs (2026-10-28).** `reference/probe_vit_model.bend`
+  is the whole denoiser — embed 20->64, three blocks of
+  `LayerNorm -> Residual(Attention)` and `LayerNorm -> Residual(64->128->64)`,
+  head 64->4 per token — **100,608 parameters**, over 1024 token rows (64
+  digits x 16 tokens), single head (0.778 legibility in torch against 0.809
+  for four). A zero-parameter forward returns 4096 values (1024 tokens x 4),
+  so the shapes and the layer wiring are right end to end. Three borrowing
+  facts, learned the hard way: `Mat` is a Type, so a bound matrix cannot take
+  `+`; `IO(Unit)` is the signature but `IO<Unit>` is the `do` heading; and
+  `Mat.to_list` returns the `ML` wrapper, not a list.
 - **Its DDIM step was already right.** `sigma_of`/`step_of`/`ddim` expand to
   the reference's `sigma` and `c` term for term; reading the vendored file
   confirmed the algebra rather than changing it.
