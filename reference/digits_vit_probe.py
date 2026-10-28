@@ -122,13 +122,26 @@ def legibility(samples, data):
     return c.mean(), c.min(), c.max()
 
 
+def start_noise(n=64):
+    """The starting cloud every arm uses: noise_of(2000000, 4096), n x D.
+
+    The Bend example starts its samplers from exactly these numbers, so the
+    comparison holds the starting noise fixed instead of drawing its own.
+    """
+    from test_diffusion_digits import noise_of
+    v = noise_of(2000000, 4096).astype(np.float32)
+    if n * D > v.size:
+        v = np.tile(v, 1 + n * D // v.size)
+    return torch.from_numpy(v[: n * D].reshape(n, D).copy())
+
+
 @torch.no_grad()
 def sample_ddpm(model, abar, tembs, n=64, seed=1000):
     """The 64-step ancestral walk, Bend's rev_step arithmetic: clamp the
     predicted start to [0,1], then the posterior mean c1*x0 + c2*x."""
     model.eval()
     torch.manual_seed(seed)
-    x = torch.randn(n, D)
+    x = start_noise(n).clone()
     beta = torch.from_numpy(bend_betas().astype(np.float32))
     for t in range(T - 1, -1, -1):
         tt = torch.full((n,), t, dtype=torch.long)
@@ -150,7 +163,7 @@ def sample_ddpm(model, abar, tembs, n=64, seed=1000):
 def sample(model, abar, tembs, n=64):
     model.eval()
     torch.manual_seed(1000)
-    x = torch.randn(n, D)
+    x = start_noise(n).clone()
     pos = list(range(T - 1, -1, -1))[3::4] + [0]
     for i, p in enumerate(pos):
         below = pos[i + 1] if i + 1 < len(pos) else -1

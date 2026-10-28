@@ -146,9 +146,20 @@ def main():
     # over the same trained weights
     ddpm = GaussianDiffusion(model, image_size=8, timesteps=T, sampling_timesteps=T,
                              objective="pred_noise", beta_schedule="linear")
-    with torch.no_grad():
-        ddim = diffusion.sample(batch_size=64).squeeze(1).numpy().reshape(-1, D)
-        ancestral = ddpm.sample(batch_size=64).squeeze(1).numpy().reshape(-1, D)
+    # The library draws its own starting noise (`torch.randn(shape)` inside
+    # `p_sample_loop`/`ddim_sample`, neither takes an image), so the draw is
+    # replaced for the duration of the two calls: every arm then starts from
+    # the same cloud, `noise_of(2000000, 4096)`.
+    from test_diffusion_digits import noise_of
+    start = torch.from_numpy(noise_of(2000000, 4096).astype(np.float32).reshape(64, 1, 8, 8))
+    randn = torch.randn
+    torch.randn = lambda *a, **k: start.clone()
+    try:
+        with torch.no_grad():
+            ddim = diffusion.sample(batch_size=64).squeeze(1).numpy().reshape(-1, D)
+            ancestral = ddpm.sample(batch_size=64).squeeze(1).numpy().reshape(-1, D)
+    finally:
+        torch.randn = randn
 
     from vit_report import legibility as leg_stat, nearest_mse
 
@@ -194,8 +205,8 @@ def main():
                             "bend_beta_last": float(bend_betas()[-1]),
                             "bend_abar_T": float(np.cumprod(1.0 - bend_betas())[-1])},
                "loss": {"first": losses[0], "final": losses[-1]},
-               "starting_noise": "the library's own draw (sample() takes no image); "
-                                 "the Bend and torch arms share noise_of(2000000, 4096)",
+               "starting_noise": "noise_of(2000000, 4096) for every arm (the library's "
+                                 "own torch.randn draw is replaced for the two sampling calls)",
                "lucidrains": {"ddim": sd, "ancestral": sa},
                "bend": bend},
               open(os.path.join(res, "run.json"), "w"), indent=2)
