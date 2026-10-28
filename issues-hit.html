@@ -62,7 +62,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>Each entry says what happened, why it happened, how it showed up, and which library or component carries the cause. <code>ours</code> means MLBend (this repository); a package name means the published Bend package; <code>lucidrains</code> means the vendored reference in <code>reference/lucidrains/</code>.</p>
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
-  <span><b>7</b> fixed</span>
+  <span><b>8</b> fixed</span>
   <span><b>0</b> open</span>
   <span><b>3</b> upstream</span>
   <span><b>4</b> other</span>
@@ -230,7 +230,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-012</span>
     <span class="badge grn">fixed</span>
-    
+    <span class="when" title="2026-10-28T20:51:44+05:00">logged 2026-10-28 20:51 UTC</span>
   </header>
   <h2>the ViT inherited the digits MLP's learning rate (ours, medium)</h2>
   <p><strong>What.</strong> <code>examples/diffusion_vit/main.bend</code> started from the digits MLP's optimizer, <code>CAdam</code> with lr 1e-2. On a transformer that is too high: measured in torch on the *same* architecture (causal, one head, fixed position features, 3000 steps), keeping everything else equal:</p>
@@ -240,6 +240,19 @@ def main() -&gt; IO(Unit):
 <p><strong>Fix.</strong> The example's <code>cfg()</code> is <code>CAdam{0.003, ...}</code> with the three measured numbers in the comment, so the next reader sees why.</p>
 <p><strong>Component.</strong> Ours: <code>examples/diffusion_vit/main.bend</code> (the hyperparameter).</p>
 <p><strong>Verified by.</strong> <code>reference/digits_vit_probe.py</code> with <code>LR</code>/<code>BATCH</code> from the environment, three runs, and the same probe's earlier 0.774 at 3e-3/128.</p>
+</section><section class="issue" id="issue-013">
+  <header class="ihead">
+    <span class="id">ISSUE-013</span>
+    <span class="badge grn">fixed</span>
+    
+  </header>
+  <h2>the "deterministic minibatch" was the same 64 digits every step (ours, high)</h2>
+  <p><strong>What.</strong> <code>step_in</code> built each step's batch with <code>take_go(4096n, x0, Nil{})</code> — the <strong>first 64 of the 1024 digits</strong>, on every one of the 3000 steps. The torch arm of the comparison draws a fresh 64 from all 1024 per step, so the two arms were not training on the same task: Bend's was 16x smaller.</p>
+<p><strong>How it showed up.</strong> The loss curve, not the code: Bend reached <strong>0.00546 at step 275</strong>, where torch's arm — same architecture, same lr, same batch — sits at <strong>0.0608 after 3000 steps</strong>. A 100k-parameter model on 64 fixed images can memorize them; ten times lower loss than the arm that sees all 1024 is what memorizing looks like. Measured 2026-10-28, 22:35.</p>
+<p><strong>Why.</strong> The milestone asked for "a deterministic minibatch of 64 digits (the example is full-batch today, which is 16x the token cost)" — deterministic was carried out as *static*, which is a different thing. The rotation is what was meant: reproducible, and every digit seen.</p>
+<p><strong>Fix.</strong> <code>batch_of(s, x0)</code> takes chunk <code>s mod 16</code> of the sixteen 64-digit chunks (<code>drop_go</code> drops whole chunks, then <code>take_go 4096</code>), so the step's data is a function of the step and all 1024 digits are covered every 16 steps. The first loss is unchanged (step 0 is chunk 0, the same 64 digits the twin's <code>first_loss</code> uses), so the first-loss gate still compares like with like.</p>
+<p><strong>Component.</strong> Ours: <code>examples/diffusion_vit/main.bend</code>.</p>
+<p><strong>Verified by.</strong> The loss curve above, and the code path: <code>step_in</code> was called with the same <code>x0</code> and ignored <code>s</code> for the batch.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -263,7 +276,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-28 15:50 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-28 17:32 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

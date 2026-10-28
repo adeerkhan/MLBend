@@ -442,6 +442,38 @@ environment, three runs, and the same probe's earlier 0.774 at 3e-3/128.
 
 ---
 
+## ISSUE-013 — the "deterministic minibatch" was the same 64 digits every step (ours, high) — FIXED
+
+**What.** `step_in` built each step's batch with
+`take_go(4096n, x0, Nil{})` — the **first 64 of the 1024 digits**, on every
+one of the 3000 steps. The torch arm of the comparison draws a fresh 64 from
+all 1024 per step, so the two arms were not training on the same task: Bend's
+was 16x smaller.
+
+**How it showed up.** The loss curve, not the code: Bend reached **0.00546 at
+step 275**, where torch's arm — same architecture, same lr, same batch — sits
+at **0.0608 after 3000 steps**. A 100k-parameter model on 64 fixed images can
+memorize them; ten times lower loss than the arm that sees all 1024 is what
+memorizing looks like. Measured 2026-10-28, 22:35.
+
+**Why.** The milestone asked for "a deterministic minibatch of 64 digits (the
+example is full-batch today, which is 16x the token cost)" — deterministic was
+carried out as *static*, which is a different thing. The rotation is what was
+meant: reproducible, and every digit seen.
+
+**Fix.** `batch_of(s, x0)` takes chunk `s mod 16` of the sixteen 64-digit
+chunks (`drop_go` drops whole chunks, then `take_go 4096`), so the step's data
+is a function of the step and all 1024 digits are covered every 16 steps. The
+first loss is unchanged (step 0 is chunk 0, the same 64 digits the twin's
+`first_loss` uses), so the first-loss gate still compares like with like.
+
+**Component.** Ours: `examples/diffusion_vit/main.bend`.
+
+**Verified by.** The loss curve above, and the code path: `step_in` was called
+with the same `x0` and ignored `s` for the batch.
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said

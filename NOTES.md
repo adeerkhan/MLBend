@@ -52,6 +52,14 @@ relevant entry before changing performance-sensitive code or a law.
 - **The learning rate is not shared with the MLP** (ISSUE-012). Same architecture,
   same 3000 steps, torch: 1e-2 with batch 64 → 0.721, 3e-3 with batch 64 →
   **0.782**, 3e-3 with batch 128 → 0.774. The example runs 3e-3.
+- **The minibatch was static, not rotating** (ISSUE-013). `step_in` took the
+  first 64 digits every step, so Bend trained on 1/16 of the data while the
+  torch arm sampled all 1024 — and the loss said so: **0.00546 at step 275**
+  against torch's **0.0608 after 3000**. The batch is now chunk `s mod 16` of
+  the sixteen 64-digit chunks, which is what "deterministic minibatch" was
+  meant to be: reproducible and covering every digit. The first loss is
+  unchanged, because step 0 is chunk 0 — the 64 digits the twin's
+  `first_loss` already used.
 - **The three arms, on the same 1024 digits, the same starting cloud
   (`noise_of(2000000, 4096)`) and the same step counts**, nearest-digit
   correlation and nearest-digit MSE:

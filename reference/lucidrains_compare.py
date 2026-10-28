@@ -110,7 +110,7 @@ def main():
     batch = int(os.environ.get("BATCH", 128))
     torch.manual_seed(0)
     np.random.seed(0)
-    torch.set_num_threads(max(1, min(16, os.cpu_count() or 4)))
+    torch.set_num_threads(int(os.environ.get("THREADS", max(1, min(16, os.cpu_count() or 4)))))
 
     print_schedules()
 

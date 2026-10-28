@@ -386,10 +386,24 @@ def cfg() -> T.OptCfg:
   T.CAdam{0.003, 0.9, 0.999, 0.00000001, 0.0, 0.1, 0.001}
 
 # the model input for one step: the noised pixels, patched, plus time and position
+# the 16 chunks of 64 digits, one per step, in a fixed rotation: a
+# deterministic minibatch that still sees all 1024 digits (the first 64 for
+# every step would be a 16x smaller task, and it trains to a loss an order of
+# magnitude below the arm that samples from all of them)
+def drop_go(left: Nat, xs: List<&2, F32>) -> List<&2, F32>:
+  match left:
+    case 0n:
+      xs
+    case 1n+rest:
+      drop_go(rest, drop64(xs))
+
+def batch_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
+  take_go(4096n, drop_go(Nat.mul(Nat.mod(s, 16n), 64n), x0), Nil{})
+
 def step_in(+s: Nat, +t: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
   +a = F32.sqrt(abar(t))
   +b = F32.sqrt((1.0 - abar(t) : F32))
-  +batch = take_go(4096n, x0, Nil{})
+  +batch = batch_of(s, x0)
   +noise = take_go(4096n, G.noise_of(s, 65536n), Nil{})
   TA.Mat.from_list(RW(), FE(),
     rows_go(patch_all(64n, mix_go(batch, noise, a, b, Nil{}), Nil{}),

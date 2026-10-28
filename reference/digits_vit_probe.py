@@ -180,7 +180,7 @@ def sample(model, abar, tembs, n=64):
 def main():
     torch.manual_seed(0)
     np.random.seed(0)
-    torch.set_num_threads(max(1, min(16, os.cpu_count() or 4)))
+    torch.set_num_threads(int(os.environ.get("THREADS", max(1, min(16, os.cpu_count() or 4)))))
     x0 = torch.from_numpy(load().astype(np.float32))
     abar = torch.from_numpy(np.cumprod(1.0 - bend_betas()).astype(np.float32))
     tembs = torch.from_numpy(np.stack([temb(t) for t in range(1, T + 1)]))
