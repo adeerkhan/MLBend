@@ -37,6 +37,19 @@ ARMS = (
 )
 
 
+def norm(v):
+    """One sampler's record, whichever shape the arm wrote it in."""
+    if v is None:
+        return None
+    if "cloud" in v:
+        return v
+    return {"cloud": {k: v.get(k) for k in ("mean", "std", "min", "max", "in_unit", "n")},
+            "legibility": v.get("legibility"),
+            "legibility_min": v.get("legibility_min"),
+            "legibility_max": v.get("legibility_max"),
+            "nearest_mse": v.get("nearest_mse")}
+
+
 def per_sampler(raw, arm):
     """Each arm's own shape, to one shape: {ddim, ddpm} -> numbers."""
     if arm == "lucidrains-unet":
@@ -44,7 +57,7 @@ def per_sampler(raw, arm):
         for k, v in (("ddim", raw.get("lucidrains", {}).get("ddim")),
                      ("ddpm", raw.get("lucidrains", {}).get("ancestral"))):
             if v:
-                out[k] = v
+                out[k] = norm(v)
         return out
     if "per_sampler" in raw:
         return raw["per_sampler"]

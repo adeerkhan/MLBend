@@ -188,6 +188,20 @@ now:
   **0.385/0.355**, DDIM **0.415/0.406**, against the data's 0.308/0.377, and
   both clouds' statistics are report-mode.
 
+- `diffusion-vit` (2026-10-28): the same 1024 digits, but the denoiser is a
+  transformer — 2×2 patches, 16 tokens of 20 features (4 pixels, 8 of time, 8
+  of position), width 64, one head, three pre-LN blocks, one 4-value head per
+  patch, 100,736 parameters, all of them BendTorch's layers. Two facts came
+  out of building it: the residual must wrap the norm (`Residual(x,
+  Seq(ln, att))` = x + att(ln(x)); written the other way the residual is taken
+  on the normalized value and the block loses its identity path — ISSUE-010),
+  and BendTorch's `Attention` is **causal**, so the 16 tokens attend as a
+  sequence and the torch arm of the comparison runs the same mask (ISSUE-011).
+  The learning rate is 3e-3, not the MLP's 1e-2 (ISSUE-012: 0.721 against
+  0.782 in torch). The task prints both samplers' clouds from the one trained
+  model, which is what `reference/compare_vit.py` needs to hold the model and
+  the starting noise fixed and vary only the sampler.
+
 **The foundation correction (2026-10-24).** The earlier "missing softmax" was
 true only of the old `bendtorch-core@0.1.0.0` line; the maintained
 `bendtorch@1.0.1.0` has `Attention`, `RMSNorm`, `Embedding`, `CrossEntropy`,
