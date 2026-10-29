@@ -64,8 +64,8 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <div class="counts">
   <span><b>9</b> fixed</span>
   <span><b>1</b> open</span>
-  <span><b>2</b> upstream</span>
-  <span><b>7</b> other</span>
+  <span><b>1</b> upstream</span>
+  <span><b>8</b> other</span>
 </div>
 <section class="issue" id="upstream-requests">
   <header class="ihead">
@@ -75,7 +75,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
   </header>
   
   <p>Opened from this work, each with its reproduction and numbers in the issue:</p>
-<ul><li><a href="https://github.com/bendlang/bend/issues/1894">bendlang/bend#1894</a> — the run path's stack overflow (ISSUE-007).</li><li><a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a> — <code>Conv2d</code>/<code>GroupNorm</code> (ISSUE-008).</li><li><a href="https://github.com/nuxyel/bend-ml/issues/26">nuxyel/bend-ml#26</a> — the value law for <code>Array.set</code>/<code>Array.get</code>. Filed 2026-10-27. <strong>Corrected 2026-10-29:</strong> our "it needs two Base lemmas" was wrong — nuxyel proved all three laws in a plain file (no Base, no <code>@unsafe</code>, no axioms) with <code>Apart</code> as the right hypothesis; we adopt them. <strong>Ownership, explicit:</strong> the error was ours (this repository's report) and is corrected here; whether the laws land in <code>bend-ml-tensor-array</code> is theirs to decide — we have offered the PR (the three laws plus the <code>Mat.to_list ∘ Mat.of_list</code> corollary and its test) and will open it on their word, or wire the corollary on top of their file if they land it.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/17">nuxyel/BendTorch#17</a> — <code>Attention</code> has no mask, so every attention is causal on both lanes (ISSUE-011). Filed 2026-10-29.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/12">nuxyel/BendTorch#12</a> — <strong>retracted and closed by us.</strong> The GPU lane is not missing: <code>package.sh</code> publishes <code>bendtorch-fast</code>, <code>bendtorch-gpu</code> and <code>bendtorch-load</code> beside the core (<code>bendtorch-gpu@1.1.1.0</code> = <code>0x3c22148d676c2988827dae103c18f499</code>). The ledger's ISSUE-014 said otherwise and is corrected below.</li></ul>
+<ul><li><a href="https://github.com/bendlang/bend/issues/1894">bendlang/bend#1894</a> — the run path's stack overflow (ISSUE-007). <strong>Closed by the maintainers 2026-10-29 as a known limit, not a bug:</strong> the JS backend's depth is the host engine's call stack, a deep non-tail recursion with large frames hits it, and it reports the same numbered line the C runtime uses; <code>bend x.bend -o app &amp;&amp; ./app</code> is the path for data-sized recursion, and replacing host recursion in the JS emitter is not planned. The diagnostic in PR 1921 (<code>Refs #1894</code>) is the visible half.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a> — <code>Conv2d</code>/<code>GroupNorm</code> (ISSUE-008).</li><li><a href="https://github.com/nuxyel/bend-ml/issues/26">nuxyel/bend-ml#26</a> — the value law for <code>Array.set</code>/<code>Array.get</code>. Filed 2026-10-27. <strong>Corrected 2026-10-29:</strong> our "it needs two Base lemmas" was wrong — nuxyel proved all three laws in a plain file (no Base, no <code>@unsafe</code>, no axioms) with <code>Apart</code> as the right hypothesis; we adopt them. <strong>Ownership, explicit:</strong> the error was ours (this repository's report) and is corrected here; whether the laws land in <code>bend-ml-tensor-array</code> is theirs to decide — we have offered the PR (the three laws plus the <code>Mat.to_list ∘ Mat.of_list</code> corollary and its test) and will open it on their word, or wire the corollary on top of their file if they land it.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/17">nuxyel/BendTorch#17</a> — <code>Attention</code> has no mask, so every attention is causal on both lanes (ISSUE-011). Filed 2026-10-29.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/12">nuxyel/BendTorch#12</a> — <strong>retracted and closed by us.</strong> The GPU lane is not missing: <code>package.sh</code> publishes <code>bendtorch-fast</code>, <code>bendtorch-gpu</code> and <code>bendtorch-load</code> beside the core (<code>bendtorch-gpu@1.1.1.0</code> = <code>0x3c22148d676c2988827dae103c18f499</code>). The ledger's ISSUE-014 said otherwise and is corrected below.</li></ul>
 </section><section class="issue" id="issue-001">
   <header class="ihead">
     <span class="id">ISSUE-001</span>
@@ -162,10 +162,10 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 </section><section class="issue" id="issue-007">
   <header class="ihead">
     <span class="id">ISSUE-007</span>
-    <span class="badge vio">upstream</span>
+    
     <span class="when" title="2026-10-27T23:55:33+05:00">logged 2026-10-27 23:55 UTC</span>
   </header>
-  <h2><code>bend file.bend</code> overflows its stack on a 32k-element list (bendlang/bend, high)</h2>
+  <h2><code>bend file.bend</code> overflows its stack on a 32k-element list (bendlang/bend, high) — CLOSED AS A KNOWN LIMIT</h2>
   <p><strong>What.</strong> The plain run path dies with <code>bend: memory fault (machine stack overflow?)</code>, exit 1, no source location, on a twelve-line program:</p>
 <pre class="code bend"><code>import Base
 import mlbend-generative@0.1.1.0/main.bend as G
@@ -304,7 +304,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-017</span>
     <span class="badge b0">worked around</span>
-    
+    <span class="when" title="2026-10-29T20:43:43+05:00">logged 2026-10-29 20:43 UTC</span>
   </header>
   <h2>a Nat product past 2^48-1 fail-stops the run (bendlang/bend, high)</h2>
   <p><strong>What.</strong> <code>m1-img</code>, the per-image-timestep run, died at <strong>step ~1700 of 3000</strong> with</p>
@@ -338,7 +338,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 15:43 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 17:40 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

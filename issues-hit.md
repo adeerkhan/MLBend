@@ -24,7 +24,12 @@ T = 64 and the same noise-prediction task as the Bend example.
 Opened from this work, each with its reproduction and numbers in the issue:
 
 - [bendlang/bend#1894](https://github.com/bendlang/bend/issues/1894) — the run
-  path's stack overflow (ISSUE-007).
+  path's stack overflow (ISSUE-007). **Closed by the maintainers 2026-10-29 as a
+  known limit, not a bug:** the JS backend's depth is the host engine's call
+  stack, a deep non-tail recursion with large frames hits it, and it reports the
+  same numbered line the C runtime uses; `bend x.bend -o app && ./app` is the
+  path for data-sized recursion, and replacing host recursion in the JS emitter
+  is not planned. The diagnostic in PR 1921 (`Refs #1894`) is the visible half.
 - [nuxyel/BendTorch#15](https://github.com/nuxyel/BendTorch/issues/15) —
   `Conv2d`/`GroupNorm` (ISSUE-008).
 - [nuxyel/bend-ml#26](https://github.com/nuxyel/bend-ml/issues/26) — the value
@@ -256,7 +261,7 @@ invisible to `make check`.
   these fixes) were bit-identical: final loss 1.0258427, same sample line. The
   old report card's different numbers came from a pre-`2f2631b` code state.
 
-## ISSUE-007 — `bend file.bend` overflows its stack on a 32k-element list (bendlang/bend, high) — UPSTREAM
+## ISSUE-007 — `bend file.bend` overflows its stack on a 32k-element list (bendlang/bend, high) — CLOSED AS A KNOWN LIMIT
 
 **What.** The plain run path dies with `bend: memory fault (machine stack
 overflow?)`, exit 1, no source location, on a twelve-line program:
