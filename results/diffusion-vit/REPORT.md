@@ -5,15 +5,15 @@ sampled by the 16-step DDIM walk with the clamped start.
 
 | | value |
 |---|---|
-| first loss | 1.006968 |
-| final loss | 0.024583 (minimum 0.003660) |
-| legibility (mean, min, max) | **0.409**, 0.236, 0.631 |
+| first loss | 1.009174 |
+| final loss | 0.089597 (minimum 0.074529) |
+| legibility (mean, min, max) | **0.783**, 0.568, 0.871 |
 | steps | 3000 (the comparison's arms train 3000) |
-| cloud mean / std | +0.3630 / 0.3393 (data 0.3076 / 0.3767) |
-| pixels in [0,1] | 4083/4096 |
-| nearest-digit MSE | 0.2187 (uniform noise 0.266) |
+| cloud mean / std | +0.3007 / 0.3450 (data 0.3076 / 0.3767) |
+| pixels in [0,1] | 4082/4096 |
+| nearest-digit MSE | 0.0618 (uniform noise 0.266) |
 
-> Weyl schedule (ISSUE-016); the timestep is still one per batch, which is the real gap: torch with one t per image scores 0.770/0.778, with one t per batch 0.392/0.441.
+
 
 Legibility is the best absolute correlation of each sample with any training
 digit, averaged. Random images score 0.326, the digits MLP 0.408, torch's

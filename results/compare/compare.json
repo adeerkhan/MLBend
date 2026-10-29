@@ -8,25 +8,25 @@
       "source": "results/diffusion-vit/run.json",
       "train_steps": 3000,
       "loss": {
-        "first": 1.0069675,
-        "final": 0.024583332
+        "first": 1.0091743,
+        "final": 0.08959652
       },
       "samplers": {
         "ddim": {
           "steps": 16,
           "cloud": null,
-          "legibility": 0.4090588551727479,
+          "legibility": 0.782920973743742,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.218723169485419
+          "nearest_mse": 0.061798512915715004
         },
         "ddpm": {
           "steps": 64,
           "cloud": null,
-          "legibility": 0.42442112718339076,
+          "legibility": 0.8070025656986233,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.20493340320286638
+          "nearest_mse": 0.05686975154919721
         }
       }
     },
@@ -42,17 +42,17 @@
         "ddim": {
           "steps": 16,
           "cloud": {
-            "mean": 0.26893705129623413,
-            "std": 0.31033337116241455,
+            "mean": 0.2728050947189331,
+            "std": 0.30436041951179504,
             "min": 0.0,
             "max": 1.0,
             "in_unit": 4096,
             "n": 4096
           },
-          "legibility": 0.7858015467600863,
-          "legibility_min": 0.6751990743360762,
-          "legibility_max": 0.8744116011743073,
-          "nearest_mse": 0.0602221047099336
+          "legibility": 0.7898046380537775,
+          "legibility_min": 0.6730928233314394,
+          "legibility_max": 0.8750751936084022,
+          "nearest_mse": 0.05832932289920971
         },
         "ddpm": {
           "steps": 64,

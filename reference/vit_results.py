@@ -118,6 +118,7 @@ def main():
         "program": "examples/diffusion_vit/main.bend",
         "steps": int(os.environ.get("VIT_STEPS", 0) or 0),
         "loss_points": len(losses),
+        "curve": losses,
         "first_loss": losses[0],
         "final_loss": final,
         "loss_min": min(losses),

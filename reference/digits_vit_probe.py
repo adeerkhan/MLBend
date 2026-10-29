@@ -256,6 +256,7 @@ def main():
                "lr": LR, "heads": HEADS, "pos": POS_MODE, "causal": CAUSAL,
                "device": DEVICE, "train_loop": os.environ.get("TRAIN", "torch"),
                "loss": {"first": losses[0], "final": losses[-1]},
+               "curve": losses,
                "nearest_mse": None, "per_sampler": report}
         os.makedirs(os.path.dirname(os.path.abspath(sys.argv[1])), exist_ok=True)
         json.dump(out, open(sys.argv[1], "w"), indent=2)
