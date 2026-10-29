@@ -12,20 +12,22 @@ in [`packages/`](packages/)). This is where they are **used, measured and shown*
 ## Layout
 
 ```
-packages/     what is published (metrics, datasets, hf, preprocess, split, generative, cluster)
 examples/     what is run — one directory per task: main.bend, README.md, plot.svg
   classification/   knn, logistic, mlp, naive_bayes, naive_bayes_heart, crossval
   diffusion/        2d, digits, vit
   transformers/     attention, periodic
   unsupervised/     kmeans, pca
-apparatus/    what proves it — twins, probes, gates, comparisons, the task registry, run scripts
+{metrics,hf,datasets,preprocess,split,generative,cluster}/   the sources published to the hub
+reference/    what proves it — twins, probes, gates, comparisons, the task registry, run scripts
 results/      what it proved — run.json, REPORT.md, plots, per task
 docs/         PLAN, AUDIT, notes, handoff
 bench/        compute-only benchmarks
 ```
 
-The rule: **`packages/` is what you publish, `examples/` is what you run, `apparatus/` is what proves
-it, `results/` is what it proved.**
+The rule: **the package directories are what you publish, `examples/` is what you run, `reference/`
+is what proves it, `results/` is what it proved.** (Moving the packages under `packages/` and the
+verification layer under `apparatus/` is the next structural step; the moves are mechanical but touch
+`bend.toml`'s members and every path, so they go in their own commit with `make check` behind them.)
 
 ## Quickstart
 
