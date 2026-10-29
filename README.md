@@ -64,7 +64,7 @@ legibility (ISSUE-016). The evidence is in
 ```
 examples/          what is run — one directory per task: main.bend, README.md, plot.svg
   classification/    knn, logistic, mlp, naive_bayes, naive_bayes_heart, crossval
-  diffusion/         2d, digits, vit
+  diffusion/         two_moons, digits, vit
   transformers/      attention, periodic
   unsupervised/      kmeans, pca
 {metrics,hf,datasets,preprocess,split,select,cluster,pipeline,report,generative}/
