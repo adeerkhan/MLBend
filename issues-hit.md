@@ -574,6 +574,47 @@ is still chunk 0 (`loss_at(0)` unchanged at 1.0069675). A fresh 3000-step run
 
 ---
 
+## ISSUE-016 — a periodic training schedule cost 0.43 legibility (ours, high) — FIXED
+
+**What.** The example drew its timestep and its digit chunk from the step index:
+`t = 1 + s mod 64`, `chunk = (s div 64) mod 16`, noise seeded by `s`. Every 64
+steps the model walked the timesteps in the same order. The port was faithful —
+this was the *loop*, and it was worth **0.43** of legibility.
+
+**How it was found.** Not by reading code. The 3000-step run reached **0.358**
+(DDIM) / 0.360 (ancestral) against the torch arm's **0.786 / 0.779** on the same
+model, data, budget and starting cloud. The isolation was then done in PyTorch,
+one variable at a time:
+
+| training loop (same model, 3000 steps, batch 64, lr 3e-3, causal) | DDIM | ancestral |
+|---|---|---|
+| Bend's example as written (deterministic t and chunk, seed = step) | 0.359 | 0.344 |
+| the same, with `t` and the chunk drawn per step | **0.770** | **0.778** |
+| torch's usual loop (a `t` per image) | 0.786 | 0.779 |
+| Bend itself (BendTorch, CPU) | 0.358 | 0.360 |
+
+The first row reproducing Bend's number in PyTorch is the proof that the port
+is right; the second is the proof that the schedule is the cause.
+
+**Why a period hurts.** With `t` fixed by the step, the gradient at every step
+is for one noise level, and the sequence of levels repeats every 64 steps, so
+Adam's moments line up with the phase of the sweep instead of averaging over
+levels. Drawing the level per step (or per image, as the reference does) is what
+the model needs. The earlier ISSUE-015 fix — decoupling the chunk from `t` —
+was a real defect but not this one: it moved the number by −0.013.
+
+**Fix.** `t_of(s)` and `chunk_of(s)` take the high bits of a Weyl sequence
+(`s·2 654 435 761 >> 26 mod 64`, `s·2 246 822 519 >> 20 mod 16`) in exact `Nat`
+arithmetic, so the period is not 64 and both stay reproducible. `s = 0` is still
+`t = 1`, chunk 0 — the window the first-loss gate uses, so `loss_at(0)` is
+unchanged at 1.0069675.
+
+**Component.** Ours: `examples/diffusion_vit/main.bend`.
+
+**Verified by.** The four rows above, and the fixed 3000-step run (`m1-rand`).
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said
