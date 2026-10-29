@@ -730,6 +730,22 @@ sha = "dc70d2ed520030cd346796057c291d6ee90616f4ff1157db180cad65e83f37c1"
 path = "main.bend"
 
 [[package]]
+name = "bend-ml-nat-lemmas"
+version = "0.1.2.0"
+hash = "0x09966385f3a8541fb22fd49450cdf477"
+source = "hub"
+dependencies = []
+constructors = []
+
+[[package.files]]
+sha = "7b28854c86d77ef5953513f14c020ff5932fdbb1059eab7ba75bbe7fa24ef048"
+path = "LICENSE"
+
+[[package.files]]
+sha = "79d7a5e344edbba26d0ed1ec67dedb7a12193637f03b765576f400e730673590"
+path = "main.bend"
+
+[[package]]
 name = "bend-ml-tensor"
 version = "0.1.0.0"
 hash = "0xf9837737d2c3f58ae1d0c5df42255584"
@@ -878,12 +894,40 @@ sha = "054aaf6c7ee4fdbe35c627f0a8c6b7e715313595c04388d1be10c650bc03056c"
 path = "main.bend"
 
 [[package]]
+name = "bend-ml-tensor-gpu"
+version = "0.1.2.1"
+hash = "0x454d8eb5320624d5b121fdc9d78ee0a6"
+source = "hub"
+dependencies = ["bend-ml-tensor-array@0.1.14.0"]
+constructors = [
+    "ABC",
+    "E",
+    "GR",
+    "O2",
+    "O3",
+    "O4",
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "T",
+]
+
+[[package.files]]
+sha = "6ef84dd63aeee1961133c6d77bf2ce28a2a766a0d67e31eb7cf299bd020122a8"
+path = "LICENSE"
+
+[[package.files]]
+sha = "a66c3f82e0c3cd770a0c407b4b825d678af77d7bd26a0b54317d06dfd722451e"
+path = "main.bend"
+
+[[package]]
 name = "bendtorch"
-version = "1.0.1.0"
-hash = "0xfc8448b10655d3efdb72c022131382f2"
+version = "1.1.1.0"
+hash = "0xe1214263ebd97956a02f4f3ea7544c84"
 source = "hub"
 dependencies = [
-    "bend-ml-nat-lemmas@0.1.1.0",
+    "bend-ml-nat-lemmas@0.1.2.0",
     "bend-ml-tensor-array@0.1.14.0",
 ]
 constructors = [
@@ -902,6 +946,7 @@ constructors = [
     "Bwd",
     "CAdam",
     "CAdamW",
+    "CAdamWBF16",
     "CGR",
     "CMomentum",
     "CS",
@@ -931,6 +976,10 @@ constructors = [
     "HMat",
     "HW",
     "Halves",
+    "KLeaf",
+    "KLeafV",
+    "KNew",
+    "KNode",
     "L1R",
     "LN",
     "Layer",
@@ -949,9 +998,18 @@ constructors = [
     "PA",
     "PC",
     "PL",
+    "PLeaf",
+    "PLeafV",
+    "PNew",
+    "PNode",
     "PO",
+    "PQ",
+    "PQV",
     "PR",
+    "PTA",
+    "PTU",
     "PW",
+    "Packed",
     "Q3",
     "Q4",
     "Q8",
@@ -981,8 +1039,11 @@ constructors = [
     "TrainPL",
     "Two",
     "TwoMom",
+    "UA",
+    "UD",
     "UF",
     "UL",
+    "UO",
     "Unit",
 ]
 
@@ -995,7 +1056,7 @@ sha = "7b28854c86d77ef5953513f14c020ff5932fdbb1059eab7ba75bbe7fa24ef048"
 path = "LICENSE"
 
 [[package.files]]
-sha = "905896a46e73f1bf105cec0f1ef7d9cac6d6096971df889e010bc064801f6a88"
+sha = "e98da9c6d28ea2a6deeb76ddbe8945489e1fa99d8f428805b641e1b7517fc316"
 path = "PROOF.bend"
 
 [[package.files]]
@@ -1003,7 +1064,7 @@ sha = "e2f8fbcfca139d251a6007ba29a3d7ccb98af05aa83fa42968dfaae5f1b2c5a8"
 path = "dtype.bend"
 
 [[package.files]]
-sha = "f93c8dbe2a98825baf9f5b33d9c335f997b4ecf384bf81ee5ef270be4ca9010d"
+sha = "91f00f494d581bf24834d346c0e0b0ae1bb7cec9b187838b9daff05a4a683eae"
 path = "main.bend"
 
 [[package.files]]
@@ -1015,8 +1076,54 @@ sha = "90ae4b439eee28368a03da64fdba37a90f2f2864342f0979f95ed19987d42375"
 path = "spec.bend"
 
 [[package.files]]
-sha = "cb76742ed1dbfcdfdcb1893f077384c6973807c07add8efc59f90ea9680b072d"
+sha = "d54328f315426468a04e2178847b6bc684dac8b5e5044038cc32ea947a6b5451"
 path = "tensor.bend"
+
+[[package]]
+name = "bendtorch-gpu"
+version = "1.1.1.0"
+hash = "0x3c22148d676c2988827dae103c18f499"
+source = "hub"
+dependencies = [
+    "bend-ml-tensor-array@0.1.14.0",
+    "bend-ml-tensor-gpu@0.1.2.1",
+    "bendtorch@1.1.1.0",
+]
+constructors = [
+    "C3S",
+    "EAC",
+    "EADAM",
+    "EC1",
+    "EC2",
+    "EC3",
+    "EC4",
+    "EDG",
+    "EEM",
+    "EMOM",
+    "EMS",
+    "EN",
+    "ERF",
+    "ERO",
+    "ES3",
+    "ESGD",
+    "IA",
+    "IJ",
+    "LS",
+    "MS",
+    "S3",
+    "S4",
+    "S6",
+    "S8",
+    "TS",
+]
+
+[[package.files]]
+sha = "7b28854c86d77ef5953513f14c020ff5932fdbb1059eab7ba75bbe7fa24ef048"
+path = "LICENSE"
+
+[[package.files]]
+sha = "fa002249e139860f7312fed059516e587915be5aa4991a04f0a26a0cb6ab8986"
+path = "main.bend"
 
 [[package]]
 name = "mlbend-cluster"

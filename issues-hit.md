@@ -714,6 +714,52 @@ arithmetic (1653), and the relaunched run (`m1-img2`) which passes that step.
 
 ---
 
+## ISSUE-018 — linking libnvrtc is not proof the model runs on the card (ours, high) — OPEN
+
+**What.** The ViT was switched to the GPU lane (`bendtorch@1.1.1.0` +
+`bendtorch-gpu@1.1.1.0`, eight `LinearNBF` and one `F.Attention`), built with
+`CUDA_HOME=~/.local/cuda-nvrtc`, and `ldd` says **it links `libnvrtc`**. Then:
+
+| | |
+|---|---|
+| `eps`, `ddim` from the GPU build | **bit-identical** to the CPU build, every printed digit |
+| wall time | **5m44s**, the same as the CPU build (≈5m) |
+
+No speedup at all. So whatever the binary links, the model's work is not moving
+to the device. Measured 2026-10-29, 20:40.
+
+**Why this is not a surprise in hindsight.** BendTorch's own device proof,
+`make gpu`, exercises **programs that call the bangs directly**
+(`demo/gpu_test.bend`, `demo/gpu_layers_test.bend`). Our model calls the same
+layer defs through `T.Seq`/`T.Residual` **closures**, and the compiler's
+"this program uses `!`" detection (and/or the runtime's dispatch) evidently does
+not follow a layer record's closures to the bang underneath. The project's own
+comment says as much for the JS lane: *"`bend -o` … so `!` runs on the CPU"* was
+the warning we saw when no CUDA toolkit was found — with the toolkit present the
+warning is silent, and silence is not execution.
+
+**What is still true and useful.** The bump from `1.0.1.0` to `1.1.1.0` did not
+change the mathematics: the frozen `eps`/`ddim` values are **bit-identical** to
+the CPU lane's, so the whole gate suite carries over (the twin tolerances stay
+where they were). The port is correct; the *dispatch* is what is missing.
+
+**Next.** Two candidate mechanisms, both cheap to test: (1) the compiler's
+`uses` scan does not see through `Layer` closures, so a model must call at least
+one bang directly for the binary to be built for the device — test by adding one
+direct bang call and re-timing; (2) the layer closures *are* compiled for the
+device but dispatch per tensor, and the `Mat` we hand them is a host array, so
+no work is offloaded — test with `nvidia-smi --query-compute-apps` **during** a
+run, which is the only witness that cannot lie. Until one of those is answered,
+every "GPU" number we publish is a CPU number, and the ledger says so.
+
+**Component.** Ours (how we call the lane) and possibly BendTorch's dispatch;
+to be attributed after the two experiments.
+
+**Verified by.** The bit-identical outputs, the wall time, and the earlier
+`make gpu` proof that the *demos* do execute on the card.
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said

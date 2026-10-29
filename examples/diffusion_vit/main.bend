@@ -25,7 +25,8 @@
 #              therefore attended as a causal sequence; a bidirectional mask
 #              is not expressible in this package today.
 import Base
-import bendtorch@1.0.1.0/main.bend as T
+import bendtorch@1.1.1.0/main.bend as T
+import bendtorch-gpu@1.1.1.0/main.bend as F
 import bend-ml-tensor-array@0.1.14.0/main.bend as TA
 import mlbend-generative@0.1.1.0/main.bend as G
 import mlbend-datasets@0.1.6.0/main.bend as Datasets
@@ -84,8 +85,8 @@ def KVL() -> T.Layer<KVP, A(W()), KVY, KVS>:
   T.Fork(~M(W(), W()), ~M(W(), W()), ~A(W()), ~A(W()), ~A(W()), ~A(W()), ~A(W()),
     ~(m => T.Mat.dup(RW(), W(), m)),
     ~(x => y => T.Mat.sum2(RW(), W(), x, y)),
-    ~T.LinearNB(RW(), W(), W(), 0n),
-    ~T.LinearNB(RW(), W(), W(), 0n))
+    ~F.LinearNBF(RW(), W(), W(), 0n),
+    ~F.LinearNBF(RW(), W(), W(), 0n))
 
 def QKVP() -> Type:
   T.Two<M(W(), W()), KVP>
@@ -97,7 +98,7 @@ def QKV() -> T.Layer<QKVP, A(W()), T.Two<A(W()), KVY>, QKVS>:
   T.Fork(~M(W(), W()), ~KVP, ~A(W()), ~A(W()), ~KVY, ~A(W()), ~KVS,
     ~(m => T.Mat.dup(RW(), W(), m)),
     ~(x => y => T.Mat.sum2(RW(), W(), x, y)),
-    ~T.LinearNB(RW(), W(), W(), 0n), ~KVL())
+    ~F.LinearNBF(RW(), W(), W(), 0n), ~KVL())
 
 def AX() -> Type:
   T.Two<A(W()), KVY>
@@ -110,8 +111,8 @@ def CoreS() -> Type:
 
 def Core() -> T.Layer<CoreP, AX, A(W()), CoreS>:
   T.Seq(~Unit, ~M(W(), W()), ~AX, ~A(W()), ~A(W()), ~T.AttnS, ~A(W()),
-    ~T.Attention(RW(), W(), W(), B(), TK(), 1n, 1n, W(), 0.125, {==}, {==}, {==}),
-    ~T.LinearNB(RW(), W(), W(), 0n))
+    ~F.Attention(RW(), W(), W(), B(), TK(), 1n, 1n, W(), 0.125, {==}, {==}, {==}),
+    ~F.LinearNBF(RW(), W(), W(), 0n))
 
 def AttP() -> Type:
   T.Two<QKVP, CoreP>
@@ -158,11 +159,11 @@ def MlpS() -> Type:
 
 def MlpHalf() -> T.Layer<T.Two<M(HI(), W()), Unit>, A(W()), A(HI()), T.Two<A(W()), A(HI())>>:
   T.Seq(~M(HI(), W()), ~Unit, ~A(W()), ~A(HI()), ~A(HI()), ~A(W()), ~A(HI()),
-    ~T.LinearNB(RW(), W(), HI(), 0n), ~T.GELU(RW(), HI()))
+    ~F.LinearNBF(RW(), W(), HI(), 0n), ~T.GELU(RW(), HI()))
 
 def MlpInner() -> T.Layer<MIP, A(W()), A(W()), MIS>:
   T.Seq(~T.Two<M(HI(), W()), Unit>, ~M(W(), HI()), ~A(W()), ~A(HI()), ~A(W()),
-    ~T.Two<A(W()), A(HI())>, ~A(HI()), ~MlpHalf(), ~T.LinearNB(RW(), HI(), W(), 0n))
+    ~T.Two<A(W()), A(HI())>, ~A(HI()), ~MlpHalf(), ~F.LinearNBF(RW(), HI(), W(), 0n))
 
 def MlpIn() -> T.Layer<T.Two<T.LN<W()>, MIP>, A(W()), A(W()), T.Two<A(W()), MIS>>:
   T.Seq(~T.LN<W()>, ~MIP, ~A(W()), ~A(W()), ~A(W()), ~A(W()), ~MIS,
@@ -220,10 +221,10 @@ def HeadS() -> Type:
   TA.Mat<RW(), W()>
 
 def Embed() -> T.Layer<EmbP, TA.Mat<RW(), FE()>, A(W()), TA.Mat<RW(), FE()>>:
-  T.LinearNB(RW(), FE(), W(), 0n)
+  F.LinearNBF(RW(), FE(), W(), 0n)
 
 def Head() -> T.Layer<HeadP, A(W()), TA.Mat<RW(), PX()>, HeadS>:
-  T.LinearNB(RW(), W(), PX(), 0n)
+  F.LinearNBF(RW(), W(), PX(), 0n)
 
 def HeadN() -> T.Layer<HP, A(W()), TA.Mat<RW(), PX()>, HS>:
   T.Seq(~T.LN<W()>, ~TA.Mat<PX(), W()>, ~A(W()), ~A(W()), ~TA.Mat<RW(), PX()>(),

@@ -63,7 +63,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
   <span><b>9</b> fixed</span>
-  <span><b>1</b> open</span>
+  <span><b>2</b> open</span>
   <span><b>1</b> upstream</span>
   <span><b>8</b> other</span>
 </div>
@@ -315,6 +315,21 @@ def main() -&gt; IO(Unit):
 <p><strong>Component.</strong> bendlang/bend (the runtime's <code>Nat</code> immediate) as a constraint; ours (the arithmetic that hit it).</p>
 <p><strong>Next.</strong> Worth an upstream note rather than an issue: the message is good, but a <code>Nat</code> that *looks* arbitrary-precision and stops the program at a product is a footgun for library authors, and <code>U32</code> is the intended tool for a mixer. If someone reproduces it in ten lines it may deserve an issue of its own; the <code>spin_fault</code> test already carries the message.</p>
 <p><strong>Verified by.</strong> The run's last line (above), the step where it died against the arithmetic (1653), and the relaunched run (<code>m1-img2</code>) which passes that step.</p>
+</section><section class="issue" id="issue-018">
+  <header class="ihead">
+    <span class="id">ISSUE-018</span>
+    <span class="badge ora">open</span>
+    
+  </header>
+  <h2>linking libnvrtc is not proof the model runs on the card (ours, high)</h2>
+  <p><strong>What.</strong> The ViT was switched to the GPU lane (<code>bendtorch@1.1.1.0</code> + <code>bendtorch-gpu@1.1.1.0</code>, eight <code>LinearNBF</code> and one <code>F.Attention</code>), built with <code>CUDA_HOME=~/.local/cuda-nvrtc</code>, and <code>ldd</code> says <strong>it links <code>libnvrtc</code></strong>. Then:</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>eps</code>, <code>ddim</code> from the GPU build</td><td><strong>bit-identical</strong> to the CPU build, every printed digit</td></tr><tr><td>wall time</td><td><strong>5m44s</strong>, the same as the CPU build (≈5m)</td></tr></tbody></table></div>
+<p>No speedup at all. So whatever the binary links, the model's work is not moving to the device. Measured 2026-10-29, 20:40.</p>
+<p><strong>Why this is not a surprise in hindsight.</strong> BendTorch's own device proof, <code>make gpu</code>, exercises <strong>programs that call the bangs directly</strong> (<code>demo/gpu_test.bend</code>, <code>demo/gpu_layers_test.bend</code>). Our model calls the same layer defs through <code>T.Seq</code>/<code>T.Residual</code> <strong>closures</strong>, and the compiler's "this program uses <code>!</code>" detection (and/or the runtime's dispatch) evidently does not follow a layer record's closures to the bang underneath. The project's own comment says as much for the JS lane: *"<code>bend -o</code> … so <code>!</code> runs on the CPU"* was the warning we saw when no CUDA toolkit was found — with the toolkit present the warning is silent, and silence is not execution.</p>
+<p><strong>What is still true and useful.</strong> The bump from <code>1.0.1.0</code> to <code>1.1.1.0</code> did not change the mathematics: the frozen <code>eps</code>/<code>ddim</code> values are <strong>bit-identical</strong> to the CPU lane's, so the whole gate suite carries over (the twin tolerances stay where they were). The port is correct; the *dispatch* is what is missing.</p>
+<p><strong>Next.</strong> Two candidate mechanisms, both cheap to test: (1) the compiler's <code>uses</code> scan does not see through <code>Layer</code> closures, so a model must call at least one bang directly for the binary to be built for the device — test by adding one direct bang call and re-timing; (2) the layer closures *are* compiled for the device but dispatch per tensor, and the <code>Mat</code> we hand them is a host array, so no work is offloaded — test with <code>nvidia-smi --query-compute-apps</code> <strong>during</strong> a run, which is the only witness that cannot lie. Until one of those is answered, every "GPU" number we publish is a CPU number, and the ledger says so.</p>
+<p><strong>Component.</strong> Ours (how we call the lane) and possibly BendTorch's dispatch; to be attributed after the two experiments.</p>
+<p><strong>Verified by.</strong> The bit-identical outputs, the wall time, and the earlier <code>make gpu</code> proof that the *demos* do execute on the card.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -338,7 +353,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 17:40 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 17:48 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>
