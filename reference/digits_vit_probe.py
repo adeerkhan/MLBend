@@ -64,6 +64,8 @@ POS_MODE = os.environ.get("POS", "learned")
 # BendTorch's only attention is causal (ISSUE-011), so the arm that represents
 # the Bend model in the comparison runs with the same mask.
 CAUSAL = os.environ.get("CAUSAL") == "1"
+# DEVICE=cuda on the card; the arm is 64 wide, so on the CPU 3 threads beat 16
+DEVICE = os.environ.get("DEVICE", "cpu")
 
 
 def pos_features():
@@ -122,6 +124,10 @@ def legibility(samples, data):
     return c.mean(), c.min(), c.max()
 
 
+def dev():
+    return torch.device(DEVICE)
+
+
 def start_noise(n=64):
     """The starting cloud every arm uses: noise_of(2000000, 4096), n x D.
 
@@ -132,7 +138,7 @@ def start_noise(n=64):
     v = noise_of(2000000, 4096).astype(np.float32)
     if n * D > v.size:
         v = np.tile(v, 1 + n * D // v.size)
-    return torch.from_numpy(v[: n * D].reshape(n, D).copy())
+    return torch.from_numpy(v[: n * D].reshape(n, D).copy()).to(dev())
 
 
 @torch.no_grad()
@@ -142,9 +148,9 @@ def sample_ddpm(model, abar, tembs, n=64, seed=1000):
     model.eval()
     torch.manual_seed(seed)
     x = start_noise(n).clone()
-    beta = torch.from_numpy(bend_betas().astype(np.float32))
+    beta = torch.from_numpy(bend_betas().astype(np.float32)).to(dev())
     for t in range(T - 1, -1, -1):
-        tt = torch.full((n,), t, dtype=torch.long)
+        tt = torch.full((n,), t, dtype=torch.long, device=dev())
         eps = unpatchify(model(patchify(x), tembs[tt]))
         a = abar[t].reshape(1, 1)
         ap = abar[t - 1].reshape(1, 1) if t > 0 else torch.ones(1, 1)
@@ -154,9 +160,9 @@ def sample_ddpm(model, abar, tembs, n=64, seed=1000):
         sa, sm = torch.sqrt(a), torch.sqrt(1 - a)
         x0 = ((x - sm * eps) / sa).clamp(0, 1)
         sig = torch.sqrt(bt * (1 - ap) / (1 - a))
-        z = torch.randn(n, D) if t > 0 else torch.zeros(n, D)
+        z = torch.randn(n, D, device=dev()) if t > 0 else torch.zeros(n, D, device=dev())
         x = c1 * x0 + c2 * x + sig * z
-    return x.numpy()
+    return x.detach().cpu().numpy()
 
 
 @torch.no_grad()
@@ -167,33 +173,33 @@ def sample(model, abar, tembs, n=64):
     pos = list(range(T - 1, -1, -1))[3::4] + [0]
     for i, p in enumerate(pos):
         below = pos[i + 1] if i + 1 < len(pos) else -1
-        t = torch.full((n,), p, dtype=torch.long)
+        t = torch.full((n,), p, dtype=torch.long, device=dev())
         eps = unpatchify(model(patchify(x), tembs[t]))
         a = abar[p].reshape(1, 1)
         ap = abar[below].reshape(1, 1) if below >= 0 else torch.ones(1, 1)
         x0 = ((x - torch.sqrt(1 - a) * eps) / torch.sqrt(a)).clamp(0, 1)
         eps = (x - torch.sqrt(a) * x0) / torch.sqrt(1 - a)
         x = torch.sqrt(ap) * x0 + torch.sqrt(torch.clamp(1 - ap, min=0.0)) * eps
-    return x.numpy()
+    return x.detach().cpu().numpy()
 
 
 def main():
     torch.manual_seed(0)
     np.random.seed(0)
     torch.set_num_threads(int(os.environ.get("THREADS", max(1, min(16, os.cpu_count() or 4)))))
-    x0 = torch.from_numpy(load().astype(np.float32))
-    abar = torch.from_numpy(np.cumprod(1.0 - bend_betas()).astype(np.float32))
-    tembs = torch.from_numpy(np.stack([temb(t) for t in range(1, T + 1)]))
-    model = Vit()
+    x0 = torch.from_numpy(load().astype(np.float32)).to(dev())
+    abar = torch.from_numpy(np.cumprod(1.0 - bend_betas()).astype(np.float32)).to(dev())
+    tembs = torch.from_numpy(np.stack([temb(t) for t in range(1, T + 1)])).to(dev())
+    model = Vit().to(dev())
     n_params = sum(p.numel() for p in model.parameters())
     print(f"ViT: dim {DIM}, {HEADS} heads, {BLOCKS} blocks, {TOKENS} tokens of {PIX} px "
           f"-- {n_params} parameters; pos {POS_MODE}, causal {CAUSAL}")
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=0.01, betas=(0.9, 0.999))
     losses = []
     for s in range(STEPS):
-        idx = torch.randint(0, N, (BATCH,))
-        t = torch.randint(0, T, (BATCH,))
-        eps = torch.randn(BATCH, D)
+        idx = torch.randint(0, N, (BATCH,)).to(dev())
+        t = torch.randint(0, T, (BATCH,)).to(dev())
+        eps = torch.randn(BATCH, D, device=dev())
         a = abar[t].unsqueeze(1)
         xt = a * x0[idx] + torch.sqrt(1 - a) * eps
         out = unpatchify(model(patchify(xt), tembs[t]))
@@ -224,6 +230,7 @@ def main():
     if len(sys.argv) > 1:
         out = {"arm": "torch-vit", "params": n_params, "steps": STEPS, "batch": BATCH,
                "lr": LR, "heads": HEADS, "pos": POS_MODE, "causal": CAUSAL,
+               "device": DEVICE,
                "loss": {"first": losses[0], "final": losses[-1]},
                "nearest_mse": None, "per_sampler": report}
         os.makedirs(os.path.dirname(os.path.abspath(sys.argv[1])), exist_ok=True)

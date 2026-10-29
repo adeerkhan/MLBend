@@ -474,6 +474,38 @@ with the same `x0` and ignored `s` for the batch.
 
 ---
 
+## ISSUE-014 — BendTorch has no CUDA path in the published package (BendTorch, high) — UPSTREAM
+
+**What.** `bendtorch@1.0.1.0` resolves to a package of eight files —
+`main.bend`, `tensor.bend`, `dtype.bend`, `spec.bend`, `PROOF.bend`,
+`LAWS.bend`, `package.bend`, `LICENSE` — and **no `torch/gpu.bend`**. Every
+layer is written over `Array<F32>` and runs on the CPU. The source says so
+itself where it matters: the erf comment reads "the C and JavaScript programs
+give the same bits (CUDA is not checked yet)". Found 2026-10-29, 14:20.
+
+**How it showed up.** The machine has an RTX 5060 and CUDA 13.4; a 3000-step
+run of the 100,736-parameter ViT takes **~90 minutes on 28 cores**, while the
+same architecture in PyTorch on the card is seconds. The reference arms can use
+the GPU (`torch 2.14.1+cu130` installed into `reference/.venv-lucidrains`, which
+had a CPU-only wheel); the Bend arm cannot, at any model size.
+
+**Why it matters.** The DoD's CIFAR-10 arm asks for "the compute decision (CPU
+budget against the CUDA lane, whose GPU layers must be verified for attention
+first)". There is no CUDA lane to verify: the layers are not device-abstracted
+at all, so `Attention`, `LayerNorm` and `LinearNB` have no GPU mirror to check.
+M5 stays a CPU-budget decision (10+ h) for Bend, while the comparison's torch
+arms move to the card.
+
+**Component.** BendTorch (upstream): the published package's file set, and the
+absence of a device layer under it.
+
+**Next.** Ask upstream for the `gpu.bend` that the repository carries to be in
+the published package, or for a device parameter on the layers. Until then the
+Bend arm is CPU-only and every Bend number in `NOTES.md` is a CPU number —
+which is now written next to each run (`device` in the arm JSONs).
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said

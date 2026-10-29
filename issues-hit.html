@@ -64,7 +64,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <div class="counts">
   <span><b>8</b> fixed</span>
   <span><b>0</b> open</span>
-  <span><b>3</b> upstream</span>
+  <span><b>4</b> upstream</span>
   <span><b>4</b> other</span>
 </div>
 <section class="issue" id="upstream-requests">
@@ -244,7 +244,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-013</span>
     <span class="badge grn">fixed</span>
-    
+    <span class="when" title="2026-10-28T22:32:24+05:00">logged 2026-10-28 22:32 UTC</span>
   </header>
   <h2>the "deterministic minibatch" was the same 64 digits every step (ours, high)</h2>
   <p><strong>What.</strong> <code>step_in</code> built each step's batch with <code>take_go(4096n, x0, Nil{})</code> — the <strong>first 64 of the 1024 digits</strong>, on every one of the 3000 steps. The torch arm of the comparison draws a fresh 64 from all 1024 per step, so the two arms were not training on the same task: Bend's was 16x smaller.</p>
@@ -253,6 +253,18 @@ def main() -&gt; IO(Unit):
 <p><strong>Fix.</strong> <code>batch_of(s, x0)</code> takes chunk <code>s mod 16</code> of the sixteen 64-digit chunks (<code>drop_go</code> drops whole chunks, then <code>take_go 4096</code>), so the step's data is a function of the step and all 1024 digits are covered every 16 steps. The first loss is unchanged (step 0 is chunk 0, the same 64 digits the twin's <code>first_loss</code> uses), so the first-loss gate still compares like with like.</p>
 <p><strong>Component.</strong> Ours: <code>examples/diffusion_vit/main.bend</code>.</p>
 <p><strong>Verified by.</strong> The loss curve above, and the code path: <code>step_in</code> was called with the same <code>x0</code> and ignored <code>s</code> for the batch.</p>
+</section><section class="issue" id="issue-014">
+  <header class="ihead">
+    <span class="id">ISSUE-014</span>
+    <span class="badge vio">upstream</span>
+    
+  </header>
+  <h2>BendTorch has no CUDA path in the published package (BendTorch, high)</h2>
+  <p><strong>What.</strong> <code>bendtorch@1.0.1.0</code> resolves to a package of eight files — <code>main.bend</code>, <code>tensor.bend</code>, <code>dtype.bend</code>, <code>spec.bend</code>, <code>PROOF.bend</code>, <code>LAWS.bend</code>, <code>package.bend</code>, <code>LICENSE</code> — and <strong>no <code>torch/gpu.bend</code></strong>. Every layer is written over <code>Array&lt;F32&gt;</code> and runs on the CPU. The source says so itself where it matters: the erf comment reads "the C and JavaScript programs give the same bits (CUDA is not checked yet)". Found 2026-10-29, 14:20.</p>
+<p><strong>How it showed up.</strong> The machine has an RTX 5060 and CUDA 13.4; a 3000-step run of the 100,736-parameter ViT takes <strong>~90 minutes on 28 cores</strong>, while the same architecture in PyTorch on the card is seconds. The reference arms can use the GPU (<code>torch 2.14.1+cu130</code> installed into <code>reference/.venv-lucidrains</code>, which had a CPU-only wheel); the Bend arm cannot, at any model size.</p>
+<p><strong>Why it matters.</strong> The DoD's CIFAR-10 arm asks for "the compute decision (CPU budget against the CUDA lane, whose GPU layers must be verified for attention first)". There is no CUDA lane to verify: the layers are not device-abstracted at all, so <code>Attention</code>, <code>LayerNorm</code> and <code>LinearNB</code> have no GPU mirror to check. M5 stays a CPU-budget decision (10+ h) for Bend, while the comparison's torch arms move to the card.</p>
+<p><strong>Component.</strong> BendTorch (upstream): the published package's file set, and the absence of a device layer under it.</p>
+<p><strong>Next.</strong> Ask upstream for the <code>gpu.bend</code> that the repository carries to be in the published package, or for a device parameter on the layers. Until then the Bend arm is CPU-only and every Bend number in <code>NOTES.md</code> is a CPU number — which is now written next to each run (<code>device</code> in the arm JSONs).</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -276,7 +288,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-28 17:32 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 09:19 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

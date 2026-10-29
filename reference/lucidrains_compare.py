@@ -114,10 +114,11 @@ def main():
 
     print_schedules()
 
+    device = torch.device(os.environ.get("DEVICE", "cpu"))
     x0 = load().astype(np.float32)                     # (1024, 64) in [0, 1]
-    x = torch.from_numpy(x0.reshape(N, 1, 8, 8))       # the library normalizes to [-1, 1]
+    x = torch.from_numpy(x0.reshape(N, 1, 8, 8)).to(device)   # the library normalizes to [-1, 1]
 
-    model = Unet(dim=dim, dim_mults=(1, 2), channels=1, flash_attn=False)
+    model = Unet(dim=dim, dim_mults=(1, 2), channels=1, flash_attn=False).to(device)
     diffusion = GaussianDiffusion(model, image_size=8, timesteps=T,
                                   sampling_timesteps=16, objective="pred_noise",
                                   beta_schedule="linear")
@@ -129,7 +130,7 @@ def main():
     losses = []
     t0 = time.time()
     for i in range(steps):
-        idx = torch.randint(0, N, (batch,))
+        idx = torch.randint(0, N, (batch,)).to(device)
         loss = diffusion(x[idx])
         opt.zero_grad()
         loss.backward()
@@ -151,7 +152,8 @@ def main():
     # replaced for the duration of the two calls: every arm then starts from
     # the same cloud, `noise_of(2000000, 4096)`.
     from test_diffusion_digits import noise_of
-    start = torch.from_numpy(noise_of(2000000, 4096).astype(np.float32).reshape(64, 1, 8, 8))
+    start = torch.from_numpy(noise_of(2000000, 4096).astype(np.float32)
+                             .reshape(64, 1, 8, 8)).to(device)
     randn = torch.randn
     torch.randn = lambda *a, **k: start.clone()
     try:
@@ -198,6 +200,7 @@ def main():
                "reference": "lucidrains/denoising-diffusion-pytorch (vendored, reference/lucidrains)",
                "steps": steps, "batch": batch, "seconds": seconds,
                "model": {"unet_dim": dim, "params": params},
+               "device": str(device),
                "schedule": {"reference_beta_first": float(reference_betas()[0]),
                             "reference_beta_last": float(reference_betas()[-1]),
                             "reference_abar_T": float(diffusion.alphas_cumprod[-1]),
