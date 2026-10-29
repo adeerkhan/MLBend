@@ -544,9 +544,28 @@ was wrong; BendTorch#12 was retracted by us for the same reason.
 toolkit.
 
 **Next.** Try `bendtorch@1.1.1.0` + `bendtorch-gpu@1.1.1.0` in a branch, swap the
-linear family, and measure the ViT on the card; install the CUDA toolkit for the
-`nvrtc.h` the RTC lane needs. Until then every Bend number is a CPU number,
-which is now written next to each run (`device` in the arm JSONs).
+linear family, and measure the ViT on the card. Until then every Bend number is
+a CPU number, which is now written next to each run (`device` in the arm JSONs).
+
+**Checked 2026-10-29, 17:05.** The lane is reachable today, and no root is
+needed:
+- `bend.toml` with `bendtorch = "1.1.1.0"` and `bendtorch-gpu = "1.1.1.0"`
+  resolves: `bendenv lock` pulls `bend-ml-tensor-gpu@0.1.2.1` and
+  `bendtorch-gpu`, `bendenv sync` fetches 5 packages / 6 files.
+- The toolkit the RTC lane needs is **already unpacked** at
+  `~/.local/cuda-nvrtc` (`include/nvrtc.h`, `include/cuda.h`,
+  `lib64/libnvrtc.so.13`), so `nvcc` is not required — `CUDA_HOME` +
+  `LD_LIBRARY_PATH` are enough, as the earlier note in `NOTES.md` records.
+- A `F.LinearF` forward from the *hub* package computes the expected values
+  (`1 1 1 1` for 2×2 ones against a 0.5 weight).
+- **Not yet proven:** that this ran on the device rather than the CPU — the
+  compiler's "uses CUDA" detection does not trigger for a program that only
+  calls layer closures, so its warning is silent either way. The device proof
+  is the package's own `gpu_test`/`gpu_layers`, which `NOTES.md` records as
+  passing with this exact toolkit; reproducing them needs a `bendtorch`
+  checkout, and the probe's own timing loop kept hitting Bend's pattern rules.
+  The lane switch in the example is the next piece of work, not a library
+  question.
 
 ---
 
