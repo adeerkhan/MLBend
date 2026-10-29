@@ -412,24 +412,113 @@ def chunk_of(+s: Nat) -> Nat:
 def batch_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
   take_go(4096n, drop_go(Nat.mul(chunk_of(s), 64n), x0), Nil{})
 
-def step_in(+s: Nat, +t: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
-  +a = F32.sqrt(abar(t))
-  +b = F32.sqrt((1.0 - abar(t) : F32))
+# ---- per-image timesteps (ISSUE-016) ----
+# The reference draws a timestep per image; one per batch costs ~0.36
+# legibility (torch, same model, 3000 steps: 0.392/0.441 against 0.770/0.778).
+# Each of the 64 images now gets its own level, its own a/b in the mix and its
+# own 8-value time embedding. Image i's level comes from a Weyl sequence over
+# (s, i), so the schedule is not periodic in either.
+
+def t_img(+s: Nat, +i: Nat) -> Nat:
+  (1n + Nat.mod(Nat.div(Nat.mul(Nat.add(i, Nat.mul(s, 64n)), 2654435761n), 67108864n), 64n) : Nat)
+
+def ab_img(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match i:
+    case 0n:
+      acc
+    case 1n+q:
+      ab_img(s, q, List.append(&2, F32, acc,
+        Con{F32.sqrt(abar(t_img(s, q))),
+          Con{F32.sqrt((1.0 - abar(t_img(s, q)) : F32)), Nil{}}}))
+
+def te_img(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match i:
+    case 0n:
+      acc
+    case 1n+q:
+      te_img(s, q, cat_go(G.temb_of(t_img(s, q), 64n, 4n), acc))
+
+def skip(+n: Nat, xs: List<&2, F32>) -> List<&2, F32>:
+  match n:
+    case 0n:
+      xs
+    case 1n+q:
+      match xs:
+        case Con{h, t}:
+          skip(q, t)
+        case _:
+          Nil{}
+
+def take8(+n: Nat, xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+  match n:
+    case 0n:
+      acc
+    case 1n+q:
+      match xs:
+        case Con{h, t}:
+          take8(q, t, List.append(&2, F32, acc, Con{h, Nil{}}))
+        case _:
+          acc
+
+def te8(tes: List<&2, F32>, +off: Nat) -> List<&2, F32>:
+  take8(8n, skip(off, tes), Nil{})
+
+# 64 pixels per image, a fresh (a, b) pair every 64
+def mix_img(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
+  +a: F32, +b: F32, +left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match xs ys:
+    case Con{h, t} Con{e, u}:
+      match ps:
+        case Con{+a2, Con{+b2, rest}}:
+          match left:
+            case 0n:
+              mix_img(t, u, rest, a2, b2, 63n,
+                List.append(&2, F32, acc, Con{((a2 * h : F32) + (b2 * e : F32) : F32), Nil{}}))
+            case 1n+q:
+              mix_img(t, u, Con{a2, Con{b2, rest}}, a, b, q,
+                List.append(&2, F32, acc, Con{((a * h : F32) + (b * e : F32) : F32), Nil{}}))
+        case _:
+          acc
+    case _ _:
+      acc
+
+def row_of(+k: Nat, +te: List<&2, F32>, +a: F32, +b: F32, +c: F32, +d: F32) -> List<&2, F32>:
+  cat_go(pos_of(k), cat_go(te, snoc(snoc(snoc(snoc(Nil{}, a), b), c), d)))
+
+# 16 tokens per image; a fresh 8-value time embedding every 16
+def rows_img(patched: List<&2, F32>, +tes: List<&2, F32>,
+  +img: Nat, +left: Nat, +k: Nat, +te: List<&2, F32>,
+  +acc: List<&2, F32>) -> List<&2, F32>:
+  match patched:
+    case Nil{}:
+      acc
+    case Con{a, Con{b, Con{c, Con{d, t}}}}:
+      match left:
+        case 0n:
+          +nt = te8(tes, Nat.mul(img, 8n))
+          rows_img(t, tes, (1n + img : Nat), 15n, Nat.mod((1n + k : Nat), 16n), nt,
+            List.append(&2, F32, acc, row_of(k, nt, a, b, c, d)))
+        case 1n+q:
+          rows_img(t, tes, img, q, Nat.mod((1n + k : Nat), 16n), te,
+            List.append(&2, F32, acc, row_of(k, te, a, b, c, d)))
+    case _:
+      acc
+
+def step_in(+s: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
   +batch = batch_of(s, x0)
   +noise = take_go(4096n, G.noise_of(s, 65536n), Nil{})
   TA.Mat.from_list(RW(), FE(),
-    rows_go(patch_all(64n, mix_go(batch, noise, a, b, Nil{}), Nil{}),
-      G.temb_of(t, 64n, 4n), 0n, Nil{}))
+    rows_img(patch_all(64n, mix_img(batch, noise, ab_img(s, 64n, Nil{}), 0.0, 0.0, 0n, Nil{}), Nil{}),
+      te_img(s, 64n, Nil{}), 0n, 0n, 0n, Nil{}, Nil{}))
 
 def step_tgt(+s: Nat) -> TA.Mat<RW(), PX()>:
   TA.Mat.from_list(RW(), PX(),
     patch_all(64n, take_go(4096n, G.noise_of(s, 65536n), Nil{}), Nil{}))
 
 def do_step(+s: Nat, tr: T.Train<ModelP()>, +x0: List<&2, F32>) -> T.Train<ModelP()>:
-  +t = t_of(s)
   T.Train.step(~ModelP(), ~TA.Mat<RW(), FE()>, ~TA.Mat<RW(), PX()>(), ~ModelS(),
     ~TA.Mat<RW(), PX()>(), ~Model(), ~mse, cfg(), tr,
-    step_in(s, t, x0), step_tgt(s))
+    step_in(s, x0), step_tgt(s))
 
 # `l` is the loss of the step before the call, so i = 1 carries step 0's loss —
 # printing at i = 0 prints the record's initial 0.0 instead (which is how the
