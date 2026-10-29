@@ -7,134 +7,80 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
-## 2026-10-28 — the ViT denoiser: the residual, causality, the minibatch
+## 2026-10-29 — the ViT reaches the gate; the card executes and does not help
 
-**Where things stand.** `examples/diffusion_vit/main.bend` is the ViT denoiser
-(2×2 patches, 16 tokens of 20 features, width 64, one head, three pre-LN
-blocks, one 4-value head per patch, 100,736 parameters, every layer
-BendTorch's). It trains on 64-digit chunks, and prints `loss:`, `final_loss:`,
-`data_mean:`, `sample_mean:`, `sample_std:`, `samples:` (16-step DDIM) and
-`samples_ddpm:` (64-step ancestral) from the one trained model and the one
-starting cloud. The twin is `reference/twin_vit.py`; the frozen comparison is
-`reference/vit_gate.py`; the gate file is `reference/vit_gates.py` (deliberately
-not `test_*` until `results/diffusion-vit/run.json` exists — rename it in the
-same commit as the results, because `check_all` collects every `test_*.py`).
-Everything else is committed on `main`; the tree is clean.
+**Where things stand.** `main` is green: **`make check` 92/92**, including the
+new legibility gate. The diffusion objective's M1–M4 are done on measured
+numbers; M5 (CIFAR) and M6 (UNet) are not.
 
-**Four issues, all found by measurement.**
-
-- **ISSUE-010 (fixed, the big one).** `AttBlk` was `Seq(LayerNorm,
-  Residual(Att))`, i.e. `ln(x) + att(ln(x))` — the residual on the *normalized*
-  value, no identity path. The five-checkpoint ladder (`emb0`, `ln0`, `att0`,
-  `blk0`, `body0` in `reference/probe_vit_frozen.bend`) showed staging, embed,
-  norm and attention all identical to the twin and `blk0` not; with Bend's own
-  wiring the twin reproduces `blk0` to **7.5e-08**. The block is now
-  `Residual(x, Seq(ln, f))`, parameter order and count unchanged.
-- **ISSUE-011 (upstream, not fixed).** BendTorch's only `Attention` is
-  **causal**: `qrow` builds `i+1` scores, `prow` softmaxes exactly those, no
-  mask argument. The 16 tokens attend as a sequence; the torch arm runs the
-  same mask. Every earlier ViT number in `NOTES.md` (0.809, 0.798, 0.778) was
-  bidirectional and is labelled so.
-- **ISSUE-012 (fixed).** The ViT inherited the digits MLP's lr 1e-2; torch,
-  same architecture: 1e-2 → 0.721, 3e-3 → 0.782, 3e-3/128 → 0.774. The example
-  runs `CAdam{0.003, …}`.
-- **ISSUE-013 (fixed).** `step_in` took the *first* 64 digits on every step
-  (a 16× smaller task than the torch arm's fresh 64 of 1024). The loss said so
-  (0.0055 at step 275 against torch's 0.0608 after 3000); the batch is now
-  chunk `s mod 16` of sixteen chunks.
-
-**The loss curve is a sawtooth and that is the timestep, not divergence.** The
-example draws one t for the whole batch (`t = 1 + s mod 64`), so a loss printed
-at low t is ~1.0 by construction and at high t ~0.002. Three runs at lr 1e-3,
-2e-3 and 3e-3 spike at the same printed steps — that is the tell. So the
-per-step loss is not comparable with the torch arm's (a t per image); the
-cloud is.
-
-**Measured, all on the same 1024 optdigits rows, the same starting cloud
-`noise_of(2000000, 4096)`, the same 3000 steps, nearest-digit |corr| and
-nearest-digit MSE:**
-
-| arm | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
+| | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
 |---|---|---|---|---|
-| torch-ViT (causal, 1 head, lr 3e-3, batch 64) | 0.786 | 0.779 | 0.0602 | 0.0633 |
+| **Bend-ViT, per-image t, 3000 steps** | **0.783** | **0.807** | 0.0618 | 0.0569 |
+| torch-ViT, same architecture | 0.790 | 0.779 | 0.0583 | 0.0633 |
 | lucidrains UNet | 0.932 | 0.940 | 0.0202 | 0.0183 |
-| Bend-ViT, 3000 steps, before ISSUE-015 (committed) | **0.371** | **0.360** | 0.194 | 0.186 |
 
-**The Bend arm is not converged**: legibility 0.371 against the torch arm's
-0.786, with a *lower* loss (0.00133 against 0.0608). ISSUE-015 explains it —
-`chunk = s mod 16` and `t = 1 + s mod 64` make `(t-1) mod 16 = chunk`, so each
-chunk saw only 4 of the 64 timesteps while sampling uses all 64. The chunk now
-advances once per sweep (`(s div 64) mod 16`); the fixed run is `m1-fix`. `results/diffusion-vit/` and
-`results/compare/` are complete end to end from that run (card, loss curve,
-grid, three-arm JSON and page, each row labelled with its training steps).
-The 3000-step run is `./scripts/vit.sh m1`; when it lands,
-`STEPS=3000 ./scripts/vit.sh m1-results` and `./scripts/vit.sh compare` rewrite
-both, and the legibility gate (`reference/vit_gates.py`, still not a `test_*`
-because 0.341 fails it) can be renamed into `make check` only if the number
-clears 0.75.
+Cloud mean/std +0.3007 / 0.3450 against the data's 0.3076 / 0.3767. The gate is
+`reference/test_diffusion_vit.py` (six checks; first-loss tolerance 1e-3 from a
+measured 1.27e-4 delta). Evidence: `results/diffusion-vit/{run.json, REPORT.md,
+loss.svg, grid.svg}` (run.json carries the loss `curve` and both samplers'
+samples) and `results/compare/{compare.json, index.html}` — torch-vit.json also
+carries its curve, so both arms can be plotted from the JSONs alone.
 
-**`scripts/vit.sh`** is now the way to run any of it: `m1`, `m1-results`,
-`gates`, `arms`, `compare`, `check`, `status`, `stop`. Each stage runs under
-`setsid nohup` in its own session with `stdbuf -oL` (Bend buffers its stdout)
-and drops a `.done` file with its exit code, because four runs died to process
-management on 2026-10-28 and a killed run cannot be sampled. `STEPS` is
-compiled into a copy placed beside the example, `THREADS=3` for the torch arms.
+**The finding that closed M1: one timestep per image, not per batch** — worth
+**+0.36**. Isolation table, all 3000 steps, same model: one t per batch
+0.359/0.344 (deterministic), 0.392/0.441 (random), 0.409 (Weyl); one t per image
+0.770/0.778. Implemented as `mix_img` (per-image a/b), `rows_img` (per-image
+8-value time embedding) and `t_img`. **The first version of that table was
+miswired** (the "random" arm drew t per image) — ISSUE-016 keeps the correction
+above the table.
 
-**A print-position bug found at the end:** `train_go` prints the record's loss
-*before* stepping, so the first line was the initial `0.0` and step 0's loss
-never appeared. It now prints at `i % 25 == 1` (so `i = 1` carries step 0), and
-`vit_results.py` can take a run's step-0 loss from `VIT_FIRST_LOG` (a 30-step
-run) — measured **1.0069675**, which is `twin.loss_at(0)` to the digit.
+**The GPU lane: it runs, and it does not make this faster** (ISSUE-018).
+`bendtorch@1.1.1.0` + `bendtorch-gpu@1.1.1.0` are in `bend.toml` on branch
+**`lane/gpu`**; the ViT there uses eight `LinearNBF` and one `F.Attention`. The
+binary links `libnvrtc`, `nvidia-smi` shows the process with **104 MiB on the
+card**, the frozen values are **bit-identical** to the CPU lane — and the wall
+time is unchanged (5m44 both ways). The time goes to **plumbing**: seven
+`init_params()`, 1024 rows built per forward, and the list conversions.
 
-**The twin's gates, measured** (`reference/vit_gate.py`): frozen `eps` maxabs
-**1.19e-07**, one ancestral step **4.77e-07**, the DDIM cloud **6.38e-06**,
-eta = 0 exactly **0**. Tolerances are set from those numbers (1e-5, 1e-5,
-1e-4), on maxabs rather than an element-wise relative gap (many `eps` values
-are near zero). `reference/vit_gates.py` turns them into a gate plus the
-twin's first loss against the run's and legibility ≥ 0.75.
+## What is next, in order
 
-**PyTorch on a 64-wide model wants few threads:** 21 minutes on 16 threads, 4
-on 3. `THREADS` is an env var in both torch arms. The UNet arm needs its
-`torch.randn` draw replaced for the two sampling calls to start from the same
-cloud (the vendored file is untouched).
+1. **Split a training step's seconds** — `init_params`, one `rows_go` build, one
+   `Mat.from_list`, one forward — before any CIFAR decision. If plumbing
+   dominates, the fix is to build rows once per shape and reuse; that is also
+   what would make a bigger model affordable. Highest-value measurement left.
+2. **`examples/flow_matching/main.bend`**: 2D first, on the lane (`F.LinearNBF`,
+   build gate `ldd | grep libnvrtc`), against `reference/flow_probe.py`'s
+   targets (loss 2.1253 -> 0.8662; samples mean [-0.111, 0.150] / std
+   [0.546, 0.745] against the data's [-0.002, -0.000] / [0.583, 0.741]; 465/512
+   in the box). Then flowers at batch 32 / 11k steps, dataset pinned by sha256.
+3. **`FullAttention`** — the PR we accepted on BendTorch#17: separate def, share
+   `qrow`/`prow` with the key length, its own three laws over all t,
+   `demo/ops_test.bend` + `reference/test_ops.py` against
+   `F.scaled_dot_product_attention`, `Attention`'s bits untouched. Then
+   `Im2col` (#15: `Im2col(n,h,w,c,k,s,p)`, gather backward, device bangs).
+4. **CIFAR-10** only behind (1) and a real step time.
+5. **Ledger hygiene**: 20 entries — 10 fixed, **0 open**, 1 upstream, 9 other.
+   Collapse resolved-and-reported entries to one line in an archive; ISSUE-014
+   and ISSUE-018 keep their corrections above the original text on purpose.
 
-**What is running / next, in order.**
+## Open threads upstream
 
-1. The M1 run (lr 3e-3, `examples/diffusion_vit/main.bend`, ~100 min on this
-   CPU) and two stability variants (lr 1e-3 and 2e-3 with `CAdamW` wd 0.01,
-   built from `_lr1e3.bend` / `_lr2e3.bend` copies — **delete those two files**
-   once the run is read; they are not part of the example).
-2. `reference/vit_results.py /tmp/opencode/vit_m3.txt` → the results card; if
-   legibility ≥ 0.75, commit it with the gate rename.
-3. `git mv reference/vit_gates.py reference/test_diffusion_vit.py`, run it
-   (rebuilds the frozen probe, ~6 min + 5 min run).
-4. `reference/compare_vit.py` → `results/compare/`.
-5. `make check` (started this session; check `/tmp/opencode/make_check_final.log`).
-6. `docs/agents/handoff.md` is this file.
+- **bendlang/bend#1894** — closed as a known limit; PR 1921 carries the
+  diagnostic (`Refs`), nothing owed.
+- **PR 1820** — poll period now 64 (our `6b9c405f`); waiting on the maintainers;
+  we cannot re-request review there (no permission).
+- **BendTorch#15** — design agreed; `Im2col` offered, after `FullAttention`.
+- **BendTorch#17** — our issue; we took the `FullAttention` PR.
+- **bend-ml#26** — laws landed on `devel` (`ASet.*`); our **PR #27** (64x64 test
+  half) is open; the corollary law is next.
+- **BendTorch `make gpu`** — its demo step calls `reference/.venv/bin/python`,
+  absent from the checkout (Error 127); a one-line fix we could PR.
 
-**`make check`: 91/91 passed** (2026-10-29, with every change above).
+## Traps paid for this session
 
-**The GPU.** The machine has an RTX 5060 and CUDA 13.4, but (a) BendTorch has
-no CUDA path at all — the published package is eight CPU files, no
-`torch/gpu.bend`, and its own comment says "CUDA is not checked yet"
-(ISSUE-014) — and (b) the torch venv was a CPU-only wheel; installing
-`torch==2.14.1+cu130` failed with **disk quota** (11 GB free, the CUDA set
-needs ~6 GB of wheels plus extraction). `~/.cache/uv` holds 9.4 GB and was
-locked by another uv process, so nothing was deleted. Both torch arms take
-`DEVICE=cuda` and record the device once there is room.
-
-**Blocked, with the evidence recorded.** M5 (CIFAR-10): the installed
-`bendtorch@1.0.1.0` has no `torch/gpu.bend`, so `Attention` has no device
-mirror; a ViT step is ~1.5 s at 1024 tokens here, and CIFAR is 4× the rows —
-10+ hours on the CPU. M6 (the reference UNet in Bend): BendTorch#15
-(`Conv2d`/`GroupNorm`) is open with no comments, re-checked today.
-
-**Upstream.** bendlang/bend#1894, nuxyel/BendTorch#15, nuxyel/bend-ml#26 all
-open, no comments; bendlang/bend PR #1820 `mergeable: clean`, waiting on the
-maintainer.
-
-**DoD (6) is settled and recorded in `NOTES.md`**: our schedule
-(`1e-4 + 0.2799·t/T`) is a *different* schedule from the reference's
-`linspace(1000/T·1e-4, 1000/T·0.02, T)`, kept and named; the 2d example has no
-clamp and needs none (cloud 0.599/0.424 against the data's 0.866/0.494), with
-the reason written down.
+`Nat` fail-stops past 2^48-1 (use `U32` for mixers); a `match` cannot scrutinise
+a computed value, and a binder cannot be matched after a later one; `List`s are
+affine unless the parameter is `+`; stdout is block-buffered (use `stdbuf -oL`
+and `setsid`, as `scripts/vit.sh` does); linking `libnvrtc` is not proof of
+execution — `nvidia-smi --query-compute-apps` is; and a GPU run is only faster
+if the work is matmul and not plumbing.
