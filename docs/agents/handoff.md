@@ -7,11 +7,24 @@ context: a fresh agent reads this first, then the issue it names, then
 **Write it before you stop.** An agent that ends a session without writing this
 leaves the next one blind.
 
-## 2026-10-29 — the ViT reaches the gate; the card executes and does not help
+## 2026-10-30 — PR #17 merged; the corpus is renamed and the README is real
 
-**Where things stand.** `main` is green: **`make check` 92/92**, including the
-new legibility gate. The diffusion objective's M1–M4 are done on measured
-numbers; M5 (CIFAR) and M6 (UNet) are not.
+**Where things stand.** `main` is `22259d7`, **`make check` 92/92** on the
+merged tree. PR #17 landed the structure: thirteen flat examples became four
+areas, every path followed, and the local folder is now
+`~/github/bend/bend-lab` with `origin` at `adeerkhan/bend-lab`. The README is
+rewritten around `bend-hero.png`, the measured three-arm table and the real
+layout; `examples/README.md` is a 13-task index instead of a stale second copy.
+
+**The one red, and its fix (ISSUE-019).** `examples/diffusion/2d` could not be
+imported: Bend refuses an import segment that starts with a digit, and
+`probe_ddim.bend` imports its example. The directory is now
+`examples/diffusion/two_moons`; the task id stays `diffusion-2d`. The nine
+generated example commands and the result links the move had broken were
+regenerated, and the ViT example README now carries the committed 0.783/0.807.
+
+**The measured state (unchanged, 2026-10-29).** The diffusion objective's
+M1–M4 are done on measured numbers; M5 (CIFAR) and M6 (UNet) are not.
 
 | | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
 |---|---|---|---|---|
@@ -44,22 +57,26 @@ time is unchanged (5m44 both ways). The time goes to **plumbing**: seven
 
 ## What is next, in order
 
-1. **Split a training step's seconds** — `init_params`, one `rows_go` build, one
+1. **Second migration** — package sources under `packages/`, `reference/` under
+   `apparatus/`; `bend.toml`'s members, the intra-package imports,
+   `check_all.py`'s package list and the Makefile. One commit, `make check`
+   behind it.
+2. **Split a training step's seconds** — `init_params`, one `rows_go` build, one
    `Mat.from_list`, one forward — before any CIFAR decision. If plumbing
    dominates, the fix is to build rows once per shape and reuse; that is also
    what would make a bigger model affordable. Highest-value measurement left.
-2. **`examples/flow_matching/main.bend`**: 2D first, on the lane (`F.LinearNBF`,
+3. **`examples/flow_matching/main.bend`**: 2D first, on the lane (`F.LinearNBF`,
    build gate `ldd | grep libnvrtc`), against `reference/flow_probe.py`'s
    targets (loss 2.1253 -> 0.8662; samples mean [-0.111, 0.150] / std
    [0.546, 0.745] against the data's [-0.002, -0.000] / [0.583, 0.741]; 465/512
    in the box). Then flowers at batch 32 / 11k steps, dataset pinned by sha256.
-3. **`FullAttention`** — the PR we accepted on BendTorch#17: separate def, share
+4. **`FullAttention`** — the PR we accepted on BendTorch#17: separate def, share
    `qrow`/`prow` with the key length, its own three laws over all t,
    `demo/ops_test.bend` + `reference/test_ops.py` against
    `F.scaled_dot_product_attention`, `Attention`'s bits untouched. Then
    `Im2col` (#15: `Im2col(n,h,w,c,k,s,p)`, gather backward, device bangs).
-4. **CIFAR-10** only behind (1) and a real step time.
-5. **Ledger hygiene**: 20 entries — 10 fixed, **0 open**, 1 upstream, 9 other.
+5. **CIFAR-10** only behind (1) and a real step time.
+6. **Ledger hygiene**: 21 entries — 11 fixed, **0 open**, 1 upstream, 9 other.
    Collapse resolved-and-reported entries to one line in an archive; ISSUE-014
    and ISSUE-018 keep their corrections above the original text on purpose.
 
@@ -82,5 +99,6 @@ time is unchanged (5m44 both ways). The time goes to **plumbing**: seven
 a computed value, and a binder cannot be matched after a later one; `List`s are
 affine unless the parameter is `+`; stdout is block-buffered (use `stdbuf -oL`
 and `setsid`, as `scripts/vit.sh` does); linking `libnvrtc` is not proof of
-execution — `nvidia-smi --query-compute-apps` is; and a GPU run is only faster
-if the work is matmul and not plumbing.
+execution — `nvidia-smi --query-compute-apps` is; a GPU run is only faster
+if the work is matmul and not plumbing; and an import path segment must start
+with a letter, so a directory named `2d` cannot be imported (`two_moons` can).
