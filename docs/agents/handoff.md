@@ -58,10 +58,13 @@ nearest-digit MSE:**
 |---|---|---|---|---|
 | torch-ViT (causal, 1 head, lr 3e-3, batch 64) | 0.786 | 0.779 | 0.0602 | 0.0633 |
 | lucidrains UNet | 0.932 | 0.940 | 0.0202 | 0.0183 |
-| Bend-ViT, **1200 steps** (committed) | **0.341** | **0.342** | 0.2100 | 0.1988 |
+| Bend-ViT, 3000 steps, before ISSUE-015 (committed) | **0.371** | **0.360** | 0.194 | 0.186 |
 
-**The Bend arm is not converged**: 1200 steps against the comparison's 3000,
-legibility 0.341 — just above random 0.326. `results/diffusion-vit/` and
+**The Bend arm is not converged**: legibility 0.371 against the torch arm's
+0.786, with a *lower* loss (0.00133 against 0.0608). ISSUE-015 explains it —
+`chunk = s mod 16` and `t = 1 + s mod 64` make `(t-1) mod 16 = chunk`, so each
+chunk saw only 4 of the 64 timesteps while sampling uses all 64. The chunk now
+advances once per sweep (`(s div 64) mod 16`); the fixed run is `m1-fix`. `results/diffusion-vit/` and
 `results/compare/` are complete end to end from that run (card, loss curve,
 grid, three-arm JSON and page, each row labelled with its training steps).
 The 3000-step run is `./scripts/vit.sh m1`; when it lands,
@@ -108,6 +111,17 @@ cloud (the vendored file is untouched).
 4. `reference/compare_vit.py` → `results/compare/`.
 5. `make check` (started this session; check `/tmp/opencode/make_check_final.log`).
 6. `docs/agents/handoff.md` is this file.
+
+**`make check`: 91/91 passed** (2026-10-29, with every change above).
+
+**The GPU.** The machine has an RTX 5060 and CUDA 13.4, but (a) BendTorch has
+no CUDA path at all — the published package is eight CPU files, no
+`torch/gpu.bend`, and its own comment says "CUDA is not checked yet"
+(ISSUE-014) — and (b) the torch venv was a CPU-only wheel; installing
+`torch==2.14.1+cu130` failed with **disk quota** (11 GB free, the CUDA set
+needs ~6 GB of wheels plus extraction). `~/.cache/uv` holds 9.4 GB and was
+locked by another uv process, so nothing was deleted. Both torch arms take
+`DEVICE=cuda` and record the device once there is room.
 
 **Blocked, with the evidence recorded.** M5 (CIFAR-10): the installed
 `bendtorch@1.0.1.0` has no `torch/gpu.bend`, so `Attention` has no device
