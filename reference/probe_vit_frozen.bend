@@ -9,7 +9,7 @@
 # `init_params` is deterministic (noise_of(1) scaled by 0.1, in the loader's
 # order), so each output can consume its own copy of the weights.
 import Base
-import bendtorch@1.0.1.0/main.bend as T
+import bendtorch@1.1.1.0/main.bend as T
 import bend-ml-tensor-array@0.1.14.0/main.bend as TA
 import mlbend-generative@0.1.1.0/main.bend as G
 import ../examples/diffusion_vit/main.bend as M
