@@ -75,7 +75,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
   </header>
   
   <p>Opened from this work, each with its reproduction and numbers in the issue:</p>
-<ul><li><a href="https://github.com/bendlang/bend/issues/1894">bendlang/bend#1894</a> — the run path's stack overflow (ISSUE-007).</li><li><a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a> — <code>Conv2d</code>/<code>GroupNorm</code> (ISSUE-008).</li><li><a href="https://github.com/nuxyel/bend-ml/issues/26">nuxyel/bend-ml#26</a> — the value law for <code>Array.set</code>/<code>Array.get</code>. Filed 2026-10-27. <strong>Corrected 2026-10-29:</strong> our "it needs two Base lemmas" was wrong — nuxyel proved all three laws in a plain file (no Base, no <code>@unsafe</code>, no axioms) with <code>Apart</code> as the right hypothesis; we adopt them.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/17">nuxyel/BendTorch#17</a> — <code>Attention</code> has no mask, so every attention is causal on both lanes (ISSUE-011). Filed 2026-10-29.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/12">nuxyel/BendTorch#12</a> — <strong>retracted and closed by us.</strong> The GPU lane is not missing: <code>package.sh</code> publishes <code>bendtorch-fast</code>, <code>bendtorch-gpu</code> and <code>bendtorch-load</code> beside the core (<code>bendtorch-gpu@1.1.1.0</code> = <code>0x3c22148d676c2988827dae103c18f499</code>). The ledger's ISSUE-014 said otherwise and is corrected below.</li></ul>
+<ul><li><a href="https://github.com/bendlang/bend/issues/1894">bendlang/bend#1894</a> — the run path's stack overflow (ISSUE-007).</li><li><a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a> — <code>Conv2d</code>/<code>GroupNorm</code> (ISSUE-008).</li><li><a href="https://github.com/nuxyel/bend-ml/issues/26">nuxyel/bend-ml#26</a> — the value law for <code>Array.set</code>/<code>Array.get</code>. Filed 2026-10-27. <strong>Corrected 2026-10-29:</strong> our "it needs two Base lemmas" was wrong — nuxyel proved all three laws in a plain file (no Base, no <code>@unsafe</code>, no axioms) with <code>Apart</code> as the right hypothesis; we adopt them. <strong>Ownership, explicit:</strong> the error was ours (this repository's report) and is corrected here; whether the laws land in <code>bend-ml-tensor-array</code> is theirs to decide — we have offered the PR (the three laws plus the <code>Mat.to_list ∘ Mat.of_list</code> corollary and its test) and will open it on their word, or wire the corollary on top of their file if they land it.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/17">nuxyel/BendTorch#17</a> — <code>Attention</code> has no mask, so every attention is causal on both lanes (ISSUE-011). Filed 2026-10-29.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/12">nuxyel/BendTorch#12</a> — <strong>retracted and closed by us.</strong> The GPU lane is not missing: <code>package.sh</code> publishes <code>bendtorch-fast</code>, <code>bendtorch-gpu</code> and <code>bendtorch-load</code> beside the core (<code>bendtorch-gpu@1.1.1.0</code> = <code>0x3c22148d676c2988827dae103c18f499</code>). The ledger's ISSUE-014 said otherwise and is corrected below.</li></ul>
 </section><section class="issue" id="issue-001">
   <header class="ihead">
     <span class="id">ISSUE-001</span>
@@ -274,7 +274,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-015</span>
     <span class="badge grn">fixed</span>
-    <span class="when" title="2026-10-29T14:42:25+05:00">logged 2026-10-29 14:42 UTC</span>
+    <span class="when" title="2026-10-29T16:15:58+05:00">logged 2026-10-29 16:15 UTC</span>
   </header>
   <h2>the minibatch and the timestep cycle were locked, so each chunk saw 4 of 64 timesteps (ours, high)</h2>
   <p><strong>What.</strong> The rotating minibatch took chunk <code>s mod 16</code> of the sixteen 64-digit chunks, and the timestep is <code>t = 1 + s mod 64</code>. Since 16 divides 64, <code>(t - 1) mod 16 = s mod 16 = chunk</code> on <strong>every step</strong>: chunk <code>c</code> was only ever trained at <code>t ∈ {c+1, c+17, c+33, c+49}</code>. At sampling every chunk meets all 64 timesteps, so 60 of them had never been seen for that data. Found 2026-10-29, 14:45, from the numbers rather than the code.</p>
@@ -286,7 +286,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-016</span>
     <span class="badge grn">fixed</span>
-    
+    <span class="when" title="2026-10-29T16:15:58+05:00">logged 2026-10-29 16:15 UTC</span>
   </header>
   <h2>a periodic training schedule cost 0.43 legibility (ours, high)</h2>
   <p><strong>What.</strong> The example drew its timestep and its digit chunk from the step index: <code>t = 1 + s mod 64</code>, <code>chunk = (s div 64) mod 16</code>, noise seeded by <code>s</code>. Every 64 steps the model walked the timesteps in the same order. The port was faithful — this was the *loop*, and it was worth <strong>0.43</strong> of legibility.</p>
@@ -320,7 +320,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 11:15 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 11:30 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

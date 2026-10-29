@@ -31,7 +31,11 @@ Opened from this work, each with its reproduction and numbers in the issue:
   law for `Array.set`/`Array.get`. Filed 2026-10-27. **Corrected 2026-10-29:**
   our "it needs two Base lemmas" was wrong — nuxyel proved all three laws in a
   plain file (no Base, no `@unsafe`, no axioms) with `Apart` as the right
-  hypothesis; we adopt them.
+  hypothesis; we adopt them. **Ownership, explicit:** the error was ours (this
+  repository's report) and is corrected here; whether the laws land in
+  `bend-ml-tensor-array` is theirs to decide — we have offered the PR (the three
+  laws plus the `Mat.to_list ∘ Mat.of_list` corollary and its test) and will open
+  it on their word, or wire the corollary on top of their file if they land it.
 - [nuxyel/BendTorch#17](https://github.com/nuxyel/BendTorch/issues/17) —
   `Attention` has no mask, so every attention is causal on both lanes
   (ISSUE-011). Filed 2026-10-29.
