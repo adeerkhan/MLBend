@@ -23,6 +23,14 @@ imported: Bend refuses an import segment that starts with a digit, and
 generated example commands and the result links the move had broken were
 regenerated, and the ViT example README now carries the committed 0.783/0.807.
 
+**The plumbing split is measured (2026-10-30).** `make plumbing`: one training
+step is **544 ms**, of which **77%** is input and target construction, 10% is
+the forward, and 12% is loss, backward and optimizer. `init_params` is
+**25.3 s** once per process. The row build appends into a growing list, so it
+is O(n²). The first fix is the list builder, not CIFAR and not the GPU.
+`results/PLUMBING.md` has the table and `bench/plumbing/main.bend` reproduces
+it.
+
 **The measured state (unchanged, 2026-10-29).** The diffusion objective's
 M1–M4 are done on measured numbers; M5 (CIFAR) and M6 (UNet) are not.
 
@@ -61,10 +69,11 @@ time is unchanged (5m44 both ways). The time goes to **plumbing**: seven
    `apparatus/`; `bend.toml`'s members, the intra-package imports,
    `check_all.py`'s package list and the Makefile. One commit, `make check`
    behind it.
-2. **Split a training step's seconds** — `init_params`, one `rows_go` build, one
-   `Mat.from_list`, one forward — before any CIFAR decision. If plumbing
-   dominates, the fix is to build rows once per shape and reuse; that is also
-   what would make a bigger model affordable. Highest-value measurement left.
+2. **Fix the row builder** — `rows_img`, `mix_img`, `patch_all`, `ab_img`,
+   `te_img` and `init_params` all append into a growing list, which is O(n²).
+   Build with cons and reverse once (or into an array), keep the row order, and
+   re-run `make plumbing` plus the frozen probes. This is what makes CIFAR, and
+   any bigger model, affordable.
 3. **`examples/flow_matching/main.bend`**: 2D first, on the lane (`F.LinearNBF`,
    build gate `ldd | grep libnvrtc`), against `reference/flow_probe.py`'s
    targets (loss 2.1253 -> 0.8662; samples mean [-0.111, 0.150] / std

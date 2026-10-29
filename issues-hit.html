@@ -327,13 +327,14 @@ def main() -&gt; IO(Unit):
 <p>So my first reading ("linking is not execution") was <strong>wrong</strong>, and the witness is what corrected it. The device executes; the numbers are exactly the host's; and the time does not move.</p>
 <p><strong>Why the time does not move.</strong> The probe's cost is not the matmuls. Each run calls <code>init_params()</code> seven times (a 100,736-parameter model built through <code>fill_go</code>/<code>Layer.load</code> over lists), builds 1024 rows per forward with <code>rows_go</code>/<code>Mat.from_list</code>, and converts back with <code>Mat.to_list</code>. Those are host list operations, and they dominate a 1024×64 forward on an 8 GB card by orders of magnitude. The device is idle most of the wall clock.</p>
 <p><strong>What this means for the compute decision (and it changes it).</strong> Moving a model to the card buys nothing while the per-step work is row building and list conversion. The next measurement is therefore not "GPU vs CPU" but <strong>where a training step's seconds go</strong>: time <code>init_params</code>, one <code>rows_go</code> build, one <code>Mat.from_list</code>, and one forward separately. If, say, 80% is plumbing, CIFAR on this lane is a plumbing problem, not a CUDA problem — and the fix is to build rows once per shape and reuse, which is also what would make a bigger model affordable.</p>
+<p><strong>Measured 2026-10-30</strong> (<code>make plumbing</code>, three runs, median). One training step is <strong>543 ms</strong>. <code>step_in</code> (279 ms) and <code>step_tgt</code> (139 ms) are <strong>77%</strong> of it, the forward is 52 ms (10%), loss + backward + optimizer are 73 ms (13%), and <code>Mat.from_list</code> is 3 ms. <code>init_params</code> costs <strong>25.0 s</strong> once per process. The row build is O(n²): <code>rows_img</code>, <code>mix_img</code>, <code>patch_all</code>, <code>ab_img</code> and <code>te_img</code> all append into a growing list, and <code>init_params</code> pays the same pattern over 100,736 parameters. So the first fix is the list builder (cons and reverse, or build into an array once), before CIFAR or the device.</p>
 <p><strong>Component.</strong> Ours: the per-step data plumbing (and the probe's seven <code>init_params</code> calls).</p>
 <p><strong>Verified by.</strong> The <code>nvidia-smi</code> line above, the bit-identical values, and the unchanged wall time — all three, together, and they only make sense together.</p>
 </section><section class="issue" id="issue-019">
   <header class="ihead">
     <span class="id">ISSUE-019</span>
     <span class="badge grn">fixed</span>
-    
+    <span class="when" title="2026-10-30T01:00:54+05:00">logged 2026-10-30 01:00 UTC</span>
   </header>
   <h2>a directory named <code>2d</code> cannot be imported, so the DDIM probe went red (ours, high)</h2>
   <p><strong>When.</strong> 2026-10-30, on the structure branch before it merged.</p>
@@ -368,7 +369,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 20:00 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 20:37 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

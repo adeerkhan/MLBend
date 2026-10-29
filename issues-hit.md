@@ -752,6 +752,15 @@ this lane is a plumbing problem, not a CUDA problem — and the fix is to build
 rows once per shape and reuse, which is also what would make a bigger model
 affordable.
 
+**Measured 2026-10-30** (`make plumbing`, three runs, median). One training
+step is **543 ms**. `step_in` (279 ms) and `step_tgt` (139 ms) are **77%** of
+it, the forward is 52 ms (10%), loss + backward + optimizer are 73 ms (13%),
+and `Mat.from_list` is 3 ms. `init_params` costs **25.0 s** once per process.
+The row build is O(n²): `rows_img`, `mix_img`, `patch_all`, `ab_img` and
+`te_img` all append into a growing list, and `init_params` pays the same
+pattern over 100,736 parameters. So the first fix is the list builder (cons and
+reverse, or build into an array once), before CIFAR or the device.
+
 **Component.** Ours: the per-step data plumbing (and the probe's seven
 `init_params` calls).
 

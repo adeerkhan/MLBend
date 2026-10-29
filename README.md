@@ -135,20 +135,21 @@ with eight `LinearNBF` and one `F.Attention`, links `libnvrtc`, and executes on
 an RTX 5060. `nvidia-smi` shows the process with 104 MiB on the card, and the
 frozen values are bit-identical to the CPU lane.
 
-It buys no speed yet. It is 5m44 either way, because the time goes to plumbing:
-seven `init_params()` calls, 1024 rows rebuilt per forward, and the
-`Mat.to_list` conversions. That turns CIFAR from a CUDA question into a data
-path question. The measurement that decides it is next: one training step split
-into `init_params`, one `rows_go` build, one `Mat.from_list` and one forward.
+It buys no speed yet, and `make plumbing` shows why. One training step is
+543 ms: 77% is building the input and the target, 10% is the forward, and 13%
+is loss, backward and optimizer. `init_params` costs 25 s once per process.
+The row build appends into a growing list, which is O(n²), so the host work
+dwarfs the matmul. Moving the layers to the card cannot help until that data
+path is fixed. The split is in `results/PLUMBING.md`.
 
 ## Status
 
 `make check` is 92/92. Diffusion is complete through the ViT, with the gate at
-0.75 and the Bend model measured at 0.783 and 0.807. Flow matching has a
-measured probe and needs its 2D example. CIFAR-10 waits on the plumbing
-measurement and a real step time. The UNet in Bend waits on `Im2col` and
-`GroupNorm` upstream. Upstream, `FullAttention` for BendTorch and `Im2col` come
-next.
+0.75 and the Bend model measured at 0.783 and 0.807. The plumbing split is
+measured, and the next fix is the row builder. Flow matching has a measured
+probe and needs its 2D example. CIFAR-10 waits on the row builder and a real
+step time. The UNet in Bend waits on `Im2col` and `GroupNorm` upstream.
+Upstream, `FullAttention` for BendTorch and `Im2col` come next.
 
 ## Licence
 
