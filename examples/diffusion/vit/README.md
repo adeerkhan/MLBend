@@ -1,6 +1,6 @@
 # diffusion-vit — a transformer denoiser for 8×8 digits
 
-The same task as `examples/diffusion_digits` (noise prediction over the first
+The same task as `examples/diffusion/digits` (noise prediction over the first
 1024 optdigits rows, T = 64, the linear schedule of `mlbend-generative`, 16-step
 DDIM with the clamped start), but the denoiser is a transformer instead of a
 dense MLP.
@@ -21,7 +21,7 @@ dense MLP.
 | parameters | 100,736 |
 | layers | BendTorch's only: `LinearNB`, `LayerNorm`, `Attention`, `GELU`, `Residual`, `Seq` |
 
-Two facts shaped it, both in `issues-hit.md`:
+Three facts shaped it, all in `issues-hit.md`:
 
 - **The residual must wrap the norm** (`ISSUE-010`). Written
   `Seq(ln, Residual(att))` it computes `ln(x) + att(ln(x))`, which discards the
@@ -31,10 +31,16 @@ Two facts shaped it, both in `issues-hit.md`:
   `0..i` and the layer takes no mask. The 16 tokens are therefore attended as a
   sequence — token 0 sees only itself, token 15 sees all — and the PyTorch arm
   of the comparison runs the same mask to be the same architecture.
+- **The timestep must be drawn per image, not per batch** (`ISSUE-016`). Bend
+  drew one `t` for the whole minibatch while the reference draws one per image;
+  on the same model and the same 3000 steps that alone was worth **+0.36**
+  legibility.
 
 Two more, about training: the ViT needs lr 3e-3 rather than the MLP's 1e-2
 (`ISSUE-012`), and the minibatch must rotate through the sixteen 64-digit
-chunks rather than being the same 64 digits every step (`ISSUE-013`).
+chunks rather than being the same 64 digits every step (`ISSUE-013`). The
+earlier chunk/timestep lock (`ISSUE-015`) had let each chunk see only 4 of the
+64 timesteps; that is fixed too.
 
 ## What it measures
 
@@ -42,25 +48,25 @@ chunks rather than being the same 64 digits every step (`ISSUE-013`).
 starting cloud (`samples:` the 16-step DDIM, `samples_ddpm:` the 64-step
 ancestral), and prints `data_mean`, `sample_mean`, `sample_std`. The legibility
 statistic is the mean best absolute correlation of a sample with any training
-digit (random images 0.326, the digits MLP 0.408).
+digit (random images 0.326, the digits MLP 0.408, the gate 0.75).
 
 The three arms, same data, same starting noise, same sampler step counts:
 
 | arm | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
 |---|---|---|---|---|
-| torch-ViT, causal, 1 head, 3000 steps | 0.786 | 0.779 | 0.0602 | 0.0633 |
+| **Bend-ViT, 3000 steps** | **0.783** | **0.807** | 0.0618 | 0.0569 |
+| torch-ViT, same architecture | 0.790 | 0.779 | 0.0583 | 0.0633 |
 | lucidrains UNet, 3000 steps | 0.932 | 0.940 | 0.0202 | 0.0183 |
-| **Bend-ViT, 3000 steps, before ISSUE-015** (in `results/diffusion-vit/`) | **0.371** | **0.360** | 0.194 | 0.186 |
 
-The Bend row is **not converged relative to the other arms**, and the reason
-was found in the numbers rather than the code: with `chunk = s mod 16` and
-`t = 1 + s mod 64`, `(t - 1) mod 16 = chunk` on every step, so each 64-digit
-chunk was trained at only **4 of the 64 timesteps** while sampling uses all 64.
-The loss (0.00133) is *lower* than the torch arm's and the samples are half as
-legible — fitting the training pairs, generalising worse (ISSUE-015). The chunk
-now advances once per timestep sweep; `./scripts/vit.sh m1` reruns it and
-`m1-results` + `compare` rewrite the card and the page.
+The Bend model is within 0.007 of the PyTorch twin on DDIM and ahead of it on
+the ancestral sampler. Its cloud is mean/std **+0.3007 / 0.3450** against the
+data's **+0.3076 / 0.3767**, with 4082 of 4096 pixels in `[0, 1]`. The UNet is
+still the better denoiser on 8×8 digits — it has the convolutions and the
+group norms that this model does not.
 
-![loss](../results/diffusion-vit/loss.svg)
+The card is `results/diffusion-vit/REPORT.md`; the three-arm page is
+`results/compare/index.html`.
 
-![samples](../results/diffusion-vit/grid.svg)
+![loss](../../../results/diffusion-vit/loss.svg)
+
+![samples](../../../results/diffusion-vit/grid.svg)
