@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_knn.py
 
-The Bend program (examples/knn/main.bend) fetches the dataset from
+The Bend program (examples/classification/knn/main.bend) fetches the dataset from
 HuggingFace, standardises every column, takes the first four fifths as
 the training set and the last fifth as the test set, and lets the three
 nearest neighbours vote. This script does the same with scikit-learn and
@@ -44,7 +44,7 @@ def load():
 def bend_knn():
     """The accuracy, from the Bend program."""
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-knn-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/knn/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/classification/knn/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)

@@ -31,7 +31,7 @@ import bend-ml-tensor-array@0.1.14.0/main.bend as TA
 import mlbend-generative@0.1.1.0/main.bend as G
 import mlbend-datasets@0.1.6.0/main.bend as Datasets
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
-import ../diffusion_digits/main.bend as D
+import ../digits/main.bend as D
 
 def at_go(xs: List<&2, F32>, +k: Nat, +i: Nat) -> F32:
   match xs:

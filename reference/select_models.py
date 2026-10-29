@@ -5,7 +5,7 @@
 The experiment layer's next layer: choose a parameter by cross-validation and
 report the result. This is the Python side of the loop, on the same breast
 cancer split the Bend kNN example uses; the Bend counterpart is the fixed
-`k = 3` run in `examples/knn`.
+`k = 3` run in `examples/classification/knn`.
 
 Writes results/selection/knn.json, results/selection/knn.svg and
 results/report/knn.md.

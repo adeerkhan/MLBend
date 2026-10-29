@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_naive_bayes.py
 
-The Bend program (examples/naive_bayes/main.bend) trains on the first
+The Bend program (examples/classification/naive_bayes/main.bend) trains on the first
 four fifths of the breast cancer dataset and scores the last fifth, with
 the means and the population variances of every feature in every class.
 This script fits scikit-learn's `GaussianNB` on the same split and
@@ -30,7 +30,7 @@ if os.path.isdir(ENV_DIR):
 def bend_result():
     """The accuracy, from the Bend program."""
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-nb-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/naive_bayes/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/classification/naive_bayes/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)

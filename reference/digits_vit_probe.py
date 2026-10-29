@@ -2,7 +2,7 @@
 
   reference/.venv-lucidrains/bin/python reference/digits_vit_probe.py
 
-The dense MLP in `examples/diffusion_digits` learns noise (final loss 0.042)
+The dense MLP in `examples/diffusion/digits` learns noise (final loss 0.042)
 but generates mush: its samples' best correlation with any training digit is
 0.408, against 0.326 for random images, while the reference's UNet reaches
 0.926. The gap is spatial structure. `Conv2d` does not exist in BendTorch yet

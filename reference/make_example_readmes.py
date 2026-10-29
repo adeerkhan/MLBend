@@ -100,7 +100,7 @@ def line_svg(path, title, series):
 
 def attention_heatmap(path):
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-attention-readme")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/attention/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/transformers/attention/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         return None
@@ -144,107 +144,107 @@ def write(name, title, body, plot=True):
 def main():
     # task-backed examples
     acc, ref = metric("cancer-knn", "accuracy")
-    bar_svg(os.path.join(ROOT, "examples/knn/plot.svg"), "Accuracy on breast cancer",
+    bar_svg(os.path.join(ROOT, "examples/classification/knn/plot.svg"), "Accuracy on breast cancer",
             ["Bend", "scikit-learn"], [acc, ref])
     write("knn", "k-nearest neighbours",
           "Three nearest neighbours over the breast cancer dataset, standardised, "
           "with the first four fifths as the training rows. No gradients and no library: "
           "a distance and a vote.\n\n"
-          "```console\n$ bendenv run -- bend examples/knn/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/classification/knn/main.bend\n```\n\n"
           f"The accuracy is **{acc:.6f}**, against scikit-learn's **{ref:.6f}** "
           "on the same split (`reference/test_knn.py`).")
 
     acc, ref = metric("cancer-naive-bayes", "accuracy")
-    bar_svg(os.path.join(ROOT, "examples/naive_bayes/plot.svg"), "Accuracy on breast cancer",
+    bar_svg(os.path.join(ROOT, "examples/classification/naive_bayes/plot.svg"), "Accuracy on breast cancer",
             ["Bend", "scikit-learn"], [acc, ref])
     write("naive_bayes", "Gaussian naive Bayes",
           "A Gaussian per feature per class, trained on the first four fifths of the "
           "breast cancer dataset. The gradient-free baseline, with no standardising "
           "(a Gaussian is affine-invariant).\n\n"
-          "```console\n$ bendenv run -- bend examples/naive_bayes/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/classification/naive_bayes/main.bend\n```\n\n"
           f"The accuracy is **{acc:.6f}**, the same as scikit-learn's `GaussianNB` "
           f"(**{ref:.6f}**).")
 
     acc, ref = metric("iris-crossval", "mean_accuracy")
-    bar_svg(os.path.join(ROOT, "examples/crossval/plot.svg"), "Mean accuracy over five folds",
+    bar_svg(os.path.join(ROOT, "examples/classification/crossval/plot.svg"), "Mean accuracy over five folds",
             ["Bend", "scikit-learn"], [acc, ref])
     write("crossval", "Cross-validation, without leakage",
           "The whole chain: iris from HuggingFace, the scaler fitted by "
           "`mlbend-pipeline` on the training rows of each fold, logistic regression "
           "with bend-ml's autodiff, the folds from `mlbend-select`, the score from "
           "`mlbend-metrics`.\n\n"
-          "```console\n$ bendenv run -- bend examples/crossval/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/classification/crossval/main.bend\n```\n\n"
           f"Mean accuracy **{acc:.4f}**, against scikit-learn's `Pipeline(StandardScaler, "
           f"LogisticRegression)` at **{ref:.4f}** on the same folds: the program prints "
           "the fold of every row and the reference runs those folds, so the two numbers "
           "agree to 5.9e-8 instead of agreeing only about the procedure.")
 
     acc, ref = metric("iris-mlp", "accuracy")
-    bar_svg(os.path.join(ROOT, "examples/mlp/plot.svg"), "Accuracy on iris",
+    bar_svg(os.path.join(ROOT, "examples/classification/mlp/plot.svg"), "Accuracy on iris",
             ["Bend", "scikit-learn"], [acc, ref])
     write("mlp", "A two-layer network",
           "Eight rectified hidden units over iris with bend-ml's tensors and autodiff: "
           "`AG.linear`, `AG.mask.rows`, `AG.linear` again, cross-entropy, and the "
           "backward chain through both layers. 400 SGD steps.\n\n"
-          "```console\n$ bendenv run -- bend examples/mlp/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/classification/mlp/main.bend\n```\n\n"
           f"Accuracy **{acc:.6f}**, the same as scikit-learn's `MLPClassifier(8)` "
           f"(**{ref:.6f}**). The loss falls from 1.1172 to 0.1107.")
 
     inertia, _ = metric("wine-kmeans", "inertia")
     sizes = latest("wine-kmeans")["metrics"]["cluster_sizes"]["bend"]
-    bar_svg(os.path.join(ROOT, "examples/kmeans/plot.svg"), "Rows per cluster (wine)",
+    bar_svg(os.path.join(ROOT, "examples/unsupervised/kmeans/plot.svg"), "Rows per cluster (wine)",
             [f"cluster {i}" for i in range(len(sizes))], sizes)
     write("kmeans", "k-means over wine",
           "Three clusters, ten rounds, through `mlbend-cluster` after standardising "
           "the columns. The algorithm lives in the package; the example holds the data "
           "and the standardising.\n\n"
-          "```console\n$ bendenv run -- bend examples/kmeans/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/unsupervised/kmeans/main.bend\n```\n\n"
           f"Inertia **{inertia:.2f}**; cluster sizes **{' '.join(str(s) for s in sizes)}**. "
           "The same numbers as the NumPy implementation (`reference/test_kmeans.py`).")
 
     ratio, ref = metric("wine-pca", "explained_variance_ratio")
-    bar_svg(os.path.join(ROOT, "examples/pca/plot.svg"), "First component: explained variance",
+    bar_svg(os.path.join(ROOT, "examples/unsupervised/pca/plot.svg"), "First component: explained variance",
             ["Bend", "scikit-learn"], [ratio, ref])
     write("pca", "The first principal component",
           "The covariance matrix of the standardised wine features and a hundred power "
           "iterations for its first eigenvector. A transformer, not a trainer.\n\n"
-          "```console\n$ bendenv run -- bend examples/pca/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/unsupervised/pca/main.bend\n```\n\n"
           f"Explained variance ratio **{ratio:.6f}**, against scikit-learn's "
           f"**{ref:.6f}**.")
 
     acc, ref = metric("heart-naive-bayes", "accuracy")
-    bar_svg(os.path.join(ROOT, "examples/naive_bayes_heart/plot.svg"), "Accuracy on heart failure",
+    bar_svg(os.path.join(ROOT, "examples/classification/naive_bayes_heart/plot.svg"), "Accuracy on heart failure",
             ["Bend", "scikit-learn"], [acc, ref])
     write("naive_bayes_heart", "Gaussian naive Bayes on heart failure",
           "The same baseline as `naive_bayes`, on a second dataset: 299 rows of twelve "
           "features, the label `is_dead`, the first four fifths for training.\n\n"
-          "```console\n$ bendenv run -- bend examples/naive_bayes_heart/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/classification/naive_bayes_heart/main.bend\n```\n\n"
           f"Accuracy **{acc:.6f}**, against scikit-learn's **{ref:.6f}** on the same split.")
 
     # logistic: a line of its four losses
-    line_svg(os.path.join(ROOT, "examples/logistic/plot.svg"), "Loss over four SGD steps",
+    line_svg(os.path.join(ROOT, "examples/classification/logistic/plot.svg"), "Loss over four SGD steps",
              [("logistic", [1.0986128, 1.086162, 1.0759476, 1.0671557])])
     write("logistic", "Logistic regression",
           "A logistic regression over iris with bend-ml's tensors and autodiff: "
           "`AG.linear`, `AG.ce_loss`, `AG.ce_grad`, `AG.linear_bwd`, `AG.sgd`. "
           "The learning rate is 0.01 because the features are not standardised.\n\n"
-          "```console\n$ bendenv run -- bend examples/logistic/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/classification/logistic/main.bend\n```\n\n"
           "Loss **1.0986128 → 1.086162 → 1.0759476 → 1.0671557** over four steps.")
 
     # attention: heatmap of its output
-    attention_heatmap(os.path.join(ROOT, "examples/attention/plot.svg"))
+    attention_heatmap(os.path.join(ROOT, "examples/transformers/attention/plot.svg"))
     write("attention", "Single-head self-attention",
           "The core of a transformer in plain Bend: Q, K and V projections, the scaled "
           "dot-product scores, a row softmax and the weighted sum of V. Four tokens of "
           "eight features, fixed weights; every output agrees with the NumPy reference "
           "to 1.5e-8.\n\n"
-          "```console\n$ bendenv run -- bend examples/attention/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/transformers/attention/main.bend\n```\n\n"
           "The heatmap is the 4 × 8 output; `reference/test_attention.py` checks every "
           "number and the checksum.")
 
     # transformer: use the saved loss graph
     src = os.path.join(ROOT, "results/transformer/loss.svg")
-    dst = os.path.join(ROOT, "examples/transformer/plot.svg")
+    dst = os.path.join(ROOT, "examples/transformers/periodic/plot.svg")
     if os.path.exists(src):
         open(dst, "w").write(open(src).read())
     bend = latest("transformer-periodic")["metrics"]
@@ -255,7 +255,7 @@ def main():
           "A one-block causal transformer on `bendtorch@1.0.1.0`: embedding, RMSNorm, "
           "single-head causal attention, output projection, RMSNorm, linear head. "
           "AdamW, 200 steps, next-token prediction on the periodic sequence 0..7.\n\n"
-          "```console\n$ bendenv run -- bend examples/transformer/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/transformers/periodic/main.bend\n```\n\n"
           f"Loss **{first:.4f} → {final:.4f}**, next-token accuracy **{accuracy:.4f}**. "
           "The NumPy twin starts at the same loss and ends at 0.1351 with accuracy "
           "0.9375; the full curve and the manifest are in "
@@ -263,7 +263,7 @@ def main():
     # the two diffusion examples: their saved picture beside their report's numbers
     src = os.path.join(ROOT, "results/diffusion/scatter.svg")
     if os.path.exists(src):
-        open(os.path.join(ROOT, "examples/diffusion/plot.svg"), "w").write(open(src).read())
+        open(os.path.join(ROOT, "examples/diffusion/2d/plot.svg"), "w").write(open(src).read())
     bend = latest("diffusion-2d")["metrics"]
     first = bend["first_loss"]["bend"]
     final = bend["final_loss"]["bend"]
@@ -275,7 +275,7 @@ def main():
           "no noise at all. Every random number is a pure function of a counter "
           "(murmur3's fmix32 over the step salt and the index, Box-Muller over 24-bit "
           "uniforms), so the NumPy twin draws the same ones.\n\n"
-          "```console\n$ bendenv run -- bend examples/diffusion/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/diffusion/2d/main.bend\n```\n\n"
           f"First loss **{first:.4f}** against the twin's — the gate — and final loss "
           f"**{final:.4f}**, reported. Both clouds' statistics are report-mode: the "
           "optimizers round differently and a 64-step loop amplifies a ulp. The curve, "
@@ -283,7 +283,7 @@ def main():
 
     src = os.path.join(ROOT, "results/diffusion-digits/grid.svg")
     if os.path.exists(src):
-        open(os.path.join(ROOT, "examples/diffusion_digits/plot.svg"), "w").write(open(src).read())
+        open(os.path.join(ROOT, "examples/diffusion/digits/plot.svg"), "w").write(open(src).read())
     bend = latest("diffusion-digits")["metrics"]
     first = bend["first_loss"]["bend"]
     write("diffusion_digits", "A DDPM denoiser on digits",
@@ -296,7 +296,7 @@ def main():
           "the posterior mean from that start — without the clamp the chain walks away "
           "from the data even when the denoiser predicts noise well (`issues-hit.md`, "
           "ISSUE-005).\n\n"
-          "```console\n$ bendenv run -- bend examples/diffusion_digits/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/diffusion/digits/main.bend\n```\n\n"
           f"First loss **{first:.4f}** against the NumPy twin's — the gate — and the data "
           "mean to 4.6e-9. The final loss and both clouds' statistics are reported, not "
           "gated: the optimizers round differently over 3000 steps. "

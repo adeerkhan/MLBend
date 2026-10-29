@@ -6,7 +6,7 @@ The arms, on the *same* 1024 optdigits rows, the same starting cloud
 (`noise_of(2000000, 4096)`) and the same step counts (64-step ancestral,
 16-step DDIM) where each arm can be run that way:
 
-  bend-vit        examples/diffusion_vit/main.bend — BendTorch layers only,
+  bend-vit        examples/diffusion/vit/main.bend — BendTorch layers only,
                   causal attention (ISSUE-011), pre-LN, one head
   torch-vit       the same architecture and hyperparameters in PyTorch
                   (reference/digits_vit_probe.py, HEADS=1 POS=features
@@ -29,7 +29,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "results", "compare")
 ARMS = (
     ("bend-vit", os.path.join(ROOT, "results", "diffusion-vit", "run.json"),
-     "Bend, examples/diffusion_vit (causal attention, pre-LN, 100,736 params)"),
+     "Bend, examples/diffusion/vit (causal attention, pre-LN, 100,736 params)"),
     ("torch-vit", os.path.join(OUT, "torch-vit.json"),
      "PyTorch, the same architecture and hyperparameters"),
     ("lucidrains-unet", os.path.join(ROOT, "results", "lucidrains-diffusion", "run.json"),

@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_kmeans.py
 
-The Bend program (examples/kmeans/main.bend) fetches the wine dataset
+The Bend program (examples/unsupervised/kmeans/main.bend) fetches the wine dataset
 from HuggingFace, standardises every column, starts from the first three
 rows and runs ten rounds of Lloyd's algorithm. This script does the same
 in NumPy and compares: the cluster sizes must be the same, and the
@@ -27,7 +27,7 @@ if os.path.isdir(ENV_DIR):
 def bend_kmeans():
     """The inertia and the cluster sizes, from the Bend program."""
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-kmeans-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/kmeans/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/unsupervised/kmeans/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)

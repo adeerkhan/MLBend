@@ -6,7 +6,7 @@
 `reference/lucidrains/` is a verbatim copy of
 github.com/lucidrains/denoising-diffusion-pytorch at the commit in its
 VENDORED.md. This script does not modify the library: it trains the same
-denoiser object our `examples/diffusion_digits/main.bend` trains (noise
+denoiser object our `examples/diffusion/digits/main.bend` trains (noise
 prediction, T = 64, linear schedule) on the same 1024 optdigits rows, so the
 two implementations can be compared on one dataset and one schedule.
 

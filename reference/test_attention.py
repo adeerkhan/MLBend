@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_attention.py
 
-The Bend program (examples/attention/main.bend) runs one attention head
+The Bend program (examples/transformers/attention/main.bend) runs one attention head
 over four tokens of eight features with fixed weights. This script builds
 the same tokens and weights with the same formulas and compares every
 output number. F32 is single precision on both sides; the tolerance is the
@@ -52,7 +52,7 @@ def expected():
 
 def bend_result():
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-attention-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/attention/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/transformers/attention/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)

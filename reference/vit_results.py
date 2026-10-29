@@ -115,7 +115,7 @@ def main():
     unit = int(((clouds["ddim"] >= 0) & (clouds["ddim"] <= 1)).sum())
     run = {
         "task": "diffusion-vit",
-        "program": "examples/diffusion_vit/main.bend",
+        "program": "examples/diffusion/vit/main.bend",
         "steps": int(os.environ.get("VIT_STEPS", 0) or 0),
         "loss_points": len(losses),
         "curve": losses,
@@ -150,7 +150,7 @@ def main():
 
     card = f"""# diffusion-vit — report card
 
-The Bend ViT denoiser over the first 1024 optdigits digits: `examples/diffusion_vit/main.bend`,
+The Bend ViT denoiser over the first 1024 optdigits digits: `examples/diffusion/vit/main.bend`,
 sampled by the 16-step DDIM walk with the clamped start.
 
 | | value |

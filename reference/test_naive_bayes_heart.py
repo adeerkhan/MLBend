@@ -41,7 +41,7 @@ def load():
 
 def bend_result():
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-nb-heart")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/naive_bayes_heart/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/classification/naive_bayes_heart/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)

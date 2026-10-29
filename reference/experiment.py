@@ -261,7 +261,7 @@ def reference_wine_pca(context=None):
 TASKS = {
     "iris-crossval": {
         "description": "logistic regression over iris, five stratified folds, scaler fitted on the training rows only",
-        "program": "examples/crossval/main.bend",
+        "program": "examples/classification/crossval/main.bend",
         "dataset": {"name": "iris", "rows": 150, "features": 4,
                     "source": "https://huggingface.co/datasets/mstz/iris",
                     "files": ["https://huggingface.co/datasets/mstz/iris/resolve/e99306d5df05d2ea66a188ea936037f6588a20e9/iris.data"], "expected_sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0"},
@@ -277,7 +277,7 @@ TASKS = {
     },
     "iris-mlp": {
         "description": "a two-layer rectified network over iris, 400 SGD steps",
-        "program": "examples/mlp/main.bend",
+        "program": "examples/classification/mlp/main.bend",
         "dataset": {"name": "iris", "rows": 150, "features": 4,
                     "source": "https://huggingface.co/datasets/mstz/iris",
                     "files": ["https://huggingface.co/datasets/mstz/iris/resolve/e99306d5df05d2ea66a188ea936037f6588a20e9/iris.data"], "expected_sha256": "6f608b71a7317216319b4d27b4d9bc84e6abd734eda7872b71a458569e2656c0"},
@@ -290,7 +290,7 @@ TASKS = {
     },
     "wine-pca": {
         "description": "first principal component of wine, by power iteration",
-        "program": "examples/pca/main.bend",
+        "program": "examples/unsupervised/pca/main.bend",
         "dataset": {"name": "wine", "rows": 6497, "features": 11,
                     "source": "https://huggingface.co/datasets/mstz/wine",
                     "files": ["https://huggingface.co/datasets/mstz/wine/resolve/2042c73ed074afafc54264ba6ef0ad0450fa1e04/wine/train.csv"], "expected_sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c"},
@@ -303,7 +303,7 @@ TASKS = {
     },
     "wine-kmeans": {
         "description": "k-means over wine, three clusters for ten rounds",
-        "program": "examples/kmeans/main.bend",
+        "program": "examples/unsupervised/kmeans/main.bend",
         "dataset": {"name": "wine", "rows": 6497, "features": 11,
                     "source": "https://huggingface.co/datasets/mstz/wine",
                     "files": ["https://huggingface.co/datasets/mstz/wine/resolve/2042c73ed074afafc54264ba6ef0ad0450fa1e04/wine/train.csv"], "expected_sha256": "7dcde7c70defa60f2e1a89c1cac712e0f90d940b1f3eaaf68a530b3c3b5dd95c"},
@@ -317,7 +317,7 @@ TASKS = {
     },
     "diffusion-2d": {
         "description": "a DDPM denoiser trained and sampled on two moons, BendTorch against NumPy",
-        "program": "examples/diffusion/main.bend",
+        "program": "examples/diffusion/2d/main.bend",
         "dataset": {"name": "two-moons", "rows": 128, "features": 2,
                     "source": "generated: two interleaved half-circles on a fixed grid"},
         "seed": 0,
@@ -332,7 +332,7 @@ TASKS = {
     },
     "diffusion-digits": {
         "description": "a DDPM denoiser over the first 1024 optdigits digits, BendTorch against NumPy",
-        "program": "examples/diffusion_digits/main.bend",
+        "program": "examples/diffusion/digits/main.bend",
         "dataset": {"name": "optdigits", "rows": 1024, "features": 64,
                     "source": "https://huggingface.co/datasets/mstz/optdigits",
                     "files": ["https://huggingface.co/datasets/mstz/optdigits/resolve/4f20cc827b763fb69e2a80e18e892e4e11498aec/optdigits.data"], "expected_sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"},
@@ -349,7 +349,7 @@ TASKS = {
     },
     "diffusion-vit": {
         "description": "a ViT denoiser (2x2 patches, causal attention) over the first 1024 optdigits digits",
-        "program": "examples/diffusion_vit/main.bend",
+        "program": "examples/diffusion/vit/main.bend",
         "dataset": {"name": "optdigits", "rows": 1024, "features": 64,
                     "source": "https://huggingface.co/datasets/mstz/optdigits",
                     "files": ["https://huggingface.co/datasets/mstz/optdigits/resolve/4f20cc827b763fb69e2a80e18e892e4e11498aec/optdigits.data"], "expected_sha256": "e1b683cc211604fe8fd8c4417e6a69f31380e0c61d4af22e93cc21e9257ffedd"},
@@ -366,7 +366,7 @@ TASKS = {
     },
     "transformer-periodic": {
         "description": "a one-block causal transformer trained on a periodic sequence, BendTorch against NumPy",
-        "program": "examples/transformer/main.bend",
+        "program": "examples/transformers/periodic/main.bend",
         "dataset": {"name": "periodic-0-7", "rows": 32, "features": 8,
                     "source": "generated: two sequences of sixteen positions, vocab 8"},
         "seed": 0,
@@ -380,7 +380,7 @@ TASKS = {
     },
     "attention-parity": {
         "description": "single-head self-attention forward, four tokens of eight features",
-        "program": "examples/attention/main.bend",
+        "program": "examples/transformers/attention/main.bend",
         "dataset": {"name": "synthetic-attention", "rows": 4, "features": 8,
                     "source": "generated by the formula in the program"},
         "seed": 0,
@@ -392,7 +392,7 @@ TASKS = {
     },
     "cancer-naive-bayes": {
         "description": "Gaussian naive Bayes over breast cancer, four fifths train",
-        "program": "examples/naive_bayes/main.bend",
+        "program": "examples/classification/naive_bayes/main.bend",
         "dataset": {"name": "breast_cancer", "rows": 683, "features": 9,
                     "source": "https://huggingface.co/datasets/mstz/breast",
                     "files": ["https://huggingface.co/datasets/mstz/breast/resolve/3cc7c6eef1160389f64f8760d71cba2b789603ec/cancer/train.csv"], "expected_sha256": "4c35090cb5bf3e3ec8c528a4a837a33bacefc0b06c3b62fbb1331baf7ca865e8"},
@@ -405,7 +405,7 @@ TASKS = {
     },
     "heart-naive-bayes": {
         "description": "Gaussian naive Bayes over heart failure, four fifths train",
-        "program": "examples/naive_bayes_heart/main.bend",
+        "program": "examples/classification/naive_bayes_heart/main.bend",
         "dataset": {"name": "heart_failure", "rows": 299, "features": 12,
                     "source": "https://huggingface.co/datasets/mstz/heart_failure",
                     "files": ["https://huggingface.co/datasets/mstz/heart_failure/resolve/57c2e1a4b3bb2f28e766c6d3b10bc0ced972c857/death/train.csv"], "expected_sha256": "e0771c8c824b89f5b5fc6a4e4af56a3da940512bb93f255a190673868d28c08c"},
@@ -418,7 +418,7 @@ TASKS = {
     },
     "cancer-knn": {
         "description": "three-nearest-neighbours over breast cancer, four fifths train",
-        "program": "examples/knn/main.bend",
+        "program": "examples/classification/knn/main.bend",
         "dataset": {"name": "breast_cancer", "rows": 683, "features": 9,
                     "source": "https://huggingface.co/datasets/mstz/breast",
                     "files": ["https://huggingface.co/datasets/mstz/breast/resolve/3cc7c6eef1160389f64f8760d71cba2b789603ec/cancer/train.csv"], "expected_sha256": "4c35090cb5bf3e3ec8c528a4a837a33bacefc0b06c3b62fbb1331baf7ca865e8"},

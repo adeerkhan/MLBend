@@ -38,7 +38,7 @@ TOL_DDIM = 1e-4
 
 
 PROBE_BIN = "/tmp/mlbend-vit-frozen"
-PROBE_SRC = ("reference/probe_vit_frozen.bend", "examples/diffusion_vit/main.bend")
+PROBE_SRC = ("reference/probe_vit_frozen.bend", "examples/diffusion/vit/main.bend")
 
 
 def probe_binary():

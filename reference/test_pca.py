@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_pca.py
 
-The Bend program (examples/pca/main.bend) standardises the wine features,
+The Bend program (examples/unsupervised/pca/main.bend) standardises the wine features,
 builds the covariance matrix and runs a hundred power iterations for the
 first principal component. This script does the same with scikit-learn's
 `PCA` on the same standardised data and compares the explained variance
@@ -25,7 +25,7 @@ if os.path.isdir(ENV_DIR):
 def bend_ratio():
     """The explained variance ratio, from the Bend program."""
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-pca-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/pca/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/unsupervised/pca/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)

@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_crossval.py
 
-The Bend program (examples/crossval/main.bend) fetches the iris dataset
+The Bend program (examples/classification/crossval/main.bend) fetches the iris dataset
 from HuggingFace, standardises it with `mlbend-preprocess`, trains a
 logistic regression with bend-ml's autodiff on four of every five
 stratified folds, and scores the fifth with `mlbend-metrics`.
@@ -53,7 +53,7 @@ def load():
 def bend_folds():
     """The accuracy of every fold, from the Bend program."""
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-crossval-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/crossval/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/classification/crossval/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)

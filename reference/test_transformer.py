@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_transformer.py
 
-`examples/transformer/main.bend` trains an embedding, one causal single-head
+`examples/transformers/periodic/main.bend` trains an embedding, one causal single-head
 attention block (RMSNorm, attention, output projection), a second RMSNorm and
 a linear head, with AdamW on next-token prediction over the periodic sequence
 0..7. This script builds the same architecture with the same deterministic
@@ -162,7 +162,7 @@ def numpy_curve():
 
 def bend_curve():
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-transformer")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/transformer/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/transformers/periodic/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)
@@ -249,7 +249,7 @@ def main():
     svg([bend[:n], curve[:n]], os.path.join(out_dir, "loss.svg"))
     manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "example": "examples/transformer/main.bend",
+        "example": "examples/transformers/periodic/main.bend",
         "architecture": "embedding, RMSNorm, causal single-head attention, output projection, RMSNorm, linear head",
         "dataset": {"name": "periodic-0-7", "rows": ROWS, "sequences": SEQUENCES,
                     "positions": POSITIONS, "vocab": VOCAB},

@@ -60,8 +60,8 @@ finish() {          # finish <stage> -> its exit code, or 1 while it runs
 
 case "${1:-}" in
 m1)
-  src="$ROOT/examples/diffusion_vit/.run-$STEPS.bend"
-  sed "s/run(x0, [0-9]*n)/run(x0, ${STEPS}n)/" "$ROOT/examples/diffusion_vit/main.bend" > "$src"
+  src="$ROOT/examples/diffusion/vit/.run-$STEPS.bend"
+  sed "s/run(x0, [0-9]*n)/run(x0, ${STEPS}n)/" "$ROOT/examples/diffusion/vit/main.bend" > "$src"
   "$BEND" "$src" -o "$LOG/vit-m1$STAGE.bin" > "$LOG/m1$STAGE.build.log" 2>&1
   rm -f "$src"
   echo "built $LOG/vit-m1$STAGE.bin ($STEPS steps)"

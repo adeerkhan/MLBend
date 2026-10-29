@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_diffusion_digits.py
 
-`examples/diffusion_digits/main.bend` reads the first 1024 rows of
+`examples/diffusion/digits/main.bend` reads the first 1024 rows of
 mstz/optdigits (pinned revision, 8x8 digits, pixels scaled to [0, 1]),
 trains a three-linear-layer SiLU denoiser full-batch by AdamW to predict
 the noise of the 64-step linear schedule, then samples 64 fresh digits
@@ -289,7 +289,7 @@ def numpy_answer():
 
 def run_bend():
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-digits-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/diffusion_digits/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/diffusion/digits/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)
@@ -486,7 +486,7 @@ def main():
             f.write(f"{s}\t{losses[i] if i < len(losses) else float('nan')}\t{curve[s]}\n")
     grid_svg(os.path.join(res, "grid.svg"), x0.reshape(N, D)[:64], bend_samples.reshape(S, D))
     json.dump({"created_at": datetime.now(timezone.utc).isoformat(),
-               "example": "examples/diffusion_digits/main.bend",
+               "example": "examples/diffusion/digits/main.bend",
                "dataset": {"url": URL, "sha256": SHA, "rows": N},
                "seconds": seconds,
                "bend": {"first_loss": losses[0], "final_loss": losses[-1],

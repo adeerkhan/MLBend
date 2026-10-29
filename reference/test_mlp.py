@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_mlp.py
 
-The Bend program (examples/mlp/main.bend) trains eight rectified hidden
+The Bend program (examples/classification/mlp/main.bend) trains eight rectified hidden
 units over the iris dataset for 400 full-batch steps of SGD, starting
 from a fixed small pattern, and prints the loss before, the loss after
 and the accuracy. This script checks the same shape of result with
@@ -35,7 +35,7 @@ if os.path.isdir(ENV_DIR):
 def bend_result():
     """The two losses and the accuracy, from the Bend program."""
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-mlp-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/mlp/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/classification/mlp/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)
