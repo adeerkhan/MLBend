@@ -50,14 +50,16 @@ The three arms, same data, same starting noise, same sampler step counts:
 |---|---|---|---|---|
 | torch-ViT, causal, 1 head, 3000 steps | 0.786 | 0.779 | 0.0602 | 0.0633 |
 | lucidrains UNet, 3000 steps | 0.932 | 0.940 | 0.0202 | 0.0183 |
-| **Bend-ViT, 1200 steps** (in `results/diffusion-vit/`) | **0.341** | **0.342** | 0.210 | 0.199 |
+| **Bend-ViT, 3000 steps, before ISSUE-015** (in `results/diffusion-vit/`) | **0.371** | **0.360** | 0.194 | 0.186 |
 
-The Bend row is a **1200-step run, a quarter short of the comparison's 3000**,
-and it has not converged: 0.341 sits just above random (0.326). The pipeline is
-complete end to end — loss curve, both clouds, statistics, nearest-digit MSE —
-and the number is what it is. The 3000-step run is `./scripts/vit.sh m1`
-(STEPS=3000); when it lands, `m1-results` rewrites the card and
-`./scripts/vit.sh compare` rewrites the page.
+The Bend row is **not converged relative to the other arms**, and the reason
+was found in the numbers rather than the code: with `chunk = s mod 16` and
+`t = 1 + s mod 64`, `(t - 1) mod 16 = chunk` on every step, so each 64-digit
+chunk was trained at only **4 of the 64 timesteps** while sampling uses all 64.
+The loss (0.00133) is *lower* than the torch arm's and the samples are half as
+legible — fitting the training pairs, generalising worse (ISSUE-015). The chunk
+now advances once per timestep sweep; `./scripts/vit.sh m1` reruns it and
+`m1-results` + `compare` rewrite the card and the page.
 
 ![loss](../results/diffusion-vit/loss.svg)
 
