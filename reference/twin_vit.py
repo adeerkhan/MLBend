@@ -260,7 +260,7 @@ def loss_at(s, seed=1):
     `loss_at(0)` is `first_loss()` — the gate checks that too."""
     from test_diffusion_digits import ALPHAS, noise_of, load
     x0 = load()
-    chunk = (s % 16) * 64
+    chunk = ((s // 64) % 16) * 64
     batch = x0[chunk:chunk + 64]
     t = 1 + s % 64
     nz = noise_of(s, 4096).reshape(64, 64)

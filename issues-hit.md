@@ -506,6 +506,34 @@ which is now written next to each run (`device` in the arm JSONs).
 
 ---
 
+## ISSUE-015 — the minibatch and the timestep cycle were locked, so each chunk saw 4 of 64 timesteps (ours, high) — FIXED
+
+**What.** The rotating minibatch took chunk `s mod 16` of the sixteen 64-digit
+chunks, and the timestep is `t = 1 + s mod 64`. Since 16 divides 64,
+`(t - 1) mod 16 = s mod 16 = chunk` on **every step**: chunk `c` was only ever
+trained at `t ∈ {c+1, c+17, c+33, c+49}`. At sampling every chunk meets all 64
+timesteps, so 60 of them had never been seen for that data. Found 2026-10-29,
+14:45, from the numbers rather than the code.
+
+**How it showed up.** The 3000-step run reached **legibility 0.371** (min
+0.249, max 0.593) with a final loss of **0.00133** — a *lower* loss than the
+torch arm's 0.0608 and *half* its legibility (0.786). A denoiser that fits its
+training pairs better and generalises worse is being asked, at sampling time,
+for something it never trained on; the correlation is the arithmetic above.
+
+**Fix.** `batch_of` advances the chunk once per timestep sweep:
+`chunk = (s div 64) mod 16`. Sixty-four consecutive steps hold one chunk while
+`t` runs 1..64, so every (chunk, t) pair is covered every 1024 steps, and step 0
+is still chunk 0 (`loss_at(0)` unchanged at 1.0069675). A fresh 3000-step run
+(`m1-fix`) measures the difference.
+
+**Component.** Ours: `examples/diffusion_vit/main.bend`.
+
+**Verified by.** The congruence above, and the loss/legibility pair
+(0.00133 / 0.371 against the torch arm's 0.0608 / 0.786).
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said

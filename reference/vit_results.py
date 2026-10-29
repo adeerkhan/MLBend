@@ -140,6 +140,8 @@ def main():
     if vals:
         for k, v in vals.items():
             run[k] = v
+    if os.environ.get("VIT_NOTE"):
+        run["note"] = os.environ["VIT_NOTE"]
     os.makedirs(OUT, exist_ok=True)
     json.dump(run, open(os.path.join(OUT, "run.json"), "w"), indent=2)
     loss_svg(os.path.join(OUT, "loss.svg"), losses)
@@ -159,6 +161,8 @@ sampled by the 16-step DDIM walk with the clamped start.
 | cloud mean / std | {run['cloud']['mean']:+.4f} / {run['cloud']['std']:.4f} (data {DATA_MEAN:.4f} / {DATA_STD:.4f}) |
 | pixels in [0,1] | {unit}/{len(clouds["ddim"])} |
 | nearest-digit MSE | {run["nearest_mse"].get("ddim", float("nan")):.4f} (uniform noise 0.266) |
+
+{('> ' + os.environ['VIT_NOTE']) if os.environ.get('VIT_NOTE') else ''}
 
 Legibility is the best absolute correlation of each sample with any training
 digit, averaged. Random images score 0.326, the digits MLP 0.408, torch's

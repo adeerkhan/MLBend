@@ -62,7 +62,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>Each entry says what happened, why it happened, how it showed up, and which library or component carries the cause. <code>ours</code> means MLBend (this repository); a package name means the published Bend package; <code>lucidrains</code> means the vendored reference in <code>reference/lucidrains/</code>.</p>
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
-  <span><b>8</b> fixed</span>
+  <span><b>9</b> fixed</span>
   <span><b>0</b> open</span>
   <span><b>4</b> upstream</span>
   <span><b>4</b> other</span>
@@ -257,7 +257,7 @@ def main() -&gt; IO(Unit):
   <header class="ihead">
     <span class="id">ISSUE-014</span>
     <span class="badge vio">upstream</span>
-    
+    <span class="when" title="2026-10-29T14:19:50+05:00">logged 2026-10-29 14:19 UTC</span>
   </header>
   <h2>BendTorch has no CUDA path in the published package (BendTorch, high)</h2>
   <p><strong>What.</strong> <code>bendtorch@1.0.1.0</code> resolves to a package of eight files — <code>main.bend</code>, <code>tensor.bend</code>, <code>dtype.bend</code>, <code>spec.bend</code>, <code>PROOF.bend</code>, <code>LAWS.bend</code>, <code>package.bend</code>, <code>LICENSE</code> — and <strong>no <code>torch/gpu.bend</code></strong>. Every layer is written over <code>Array&lt;F32&gt;</code> and runs on the CPU. The source says so itself where it matters: the erf comment reads "the C and JavaScript programs give the same bits (CUDA is not checked yet)". Found 2026-10-29, 14:20.</p>
@@ -265,6 +265,18 @@ def main() -&gt; IO(Unit):
 <p><strong>Why it matters.</strong> The DoD's CIFAR-10 arm asks for "the compute decision (CPU budget against the CUDA lane, whose GPU layers must be verified for attention first)". There is no CUDA lane to verify: the layers are not device-abstracted at all, so <code>Attention</code>, <code>LayerNorm</code> and <code>LinearNB</code> have no GPU mirror to check. M5 stays a CPU-budget decision (10+ h) for Bend, while the comparison's torch arms move to the card.</p>
 <p><strong>Component.</strong> BendTorch (upstream): the published package's file set, and the absence of a device layer under it.</p>
 <p><strong>Next.</strong> Ask upstream for the <code>gpu.bend</code> that the repository carries to be in the published package, or for a device parameter on the layers. Until then the Bend arm is CPU-only and every Bend number in <code>NOTES.md</code> is a CPU number — which is now written next to each run (<code>device</code> in the arm JSONs).</p>
+</section><section class="issue" id="issue-015">
+  <header class="ihead">
+    <span class="id">ISSUE-015</span>
+    <span class="badge grn">fixed</span>
+    
+  </header>
+  <h2>the minibatch and the timestep cycle were locked, so each chunk saw 4 of 64 timesteps (ours, high)</h2>
+  <p><strong>What.</strong> The rotating minibatch took chunk <code>s mod 16</code> of the sixteen 64-digit chunks, and the timestep is <code>t = 1 + s mod 64</code>. Since 16 divides 64, <code>(t - 1) mod 16 = s mod 16 = chunk</code> on <strong>every step</strong>: chunk <code>c</code> was only ever trained at <code>t ∈ {c+1, c+17, c+33, c+49}</code>. At sampling every chunk meets all 64 timesteps, so 60 of them had never been seen for that data. Found 2026-10-29, 14:45, from the numbers rather than the code.</p>
+<p><strong>How it showed up.</strong> The 3000-step run reached <strong>legibility 0.371</strong> (min 0.249, max 0.593) with a final loss of <strong>0.00133</strong> — a *lower* loss than the torch arm's 0.0608 and *half* its legibility (0.786). A denoiser that fits its training pairs better and generalises worse is being asked, at sampling time, for something it never trained on; the correlation is the arithmetic above.</p>
+<p><strong>Fix.</strong> <code>batch_of</code> advances the chunk once per timestep sweep: <code>chunk = (s div 64) mod 16</code>. Sixty-four consecutive steps hold one chunk while <code>t</code> runs 1..64, so every (chunk, t) pair is covered every 1024 steps, and step 0 is still chunk 0 (<code>loss_at(0)</code> unchanged at 1.0069675). A fresh 3000-step run (<code>m1-fix</code>) measures the difference.</p>
+<p><strong>Component.</strong> Ours: <code>examples/diffusion_vit/main.bend</code>.</p>
+<p><strong>Verified by.</strong> The congruence above, and the loss/legibility pair (0.00133 / 0.371 against the torch arm's 0.0608 / 0.786).</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -288,7 +300,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 09:19 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 09:42 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

@@ -397,8 +397,12 @@ def drop_go(left: Nat, xs: List<&2, F32>) -> List<&2, F32>:
     case 1n+rest:
       drop_go(rest, drop64(xs))
 
+# The chunk advances once per timestep sweep: 64 steps keep one chunk while t
+# runs 1..64, then the next chunk. Taking `s mod 16` instead would lock the two
+# together — t = 1 + s mod 64 makes (t - 1) mod 16 = s mod 16, so chunk c would
+# only ever be trained at t in {c+1, c+17, c+33, c+49} (ISSUE-015).
 def batch_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
-  take_go(4096n, drop_go(Nat.mul(Nat.mod(s, 16n), 64n), x0), Nil{})
+  take_go(4096n, drop_go(Nat.mul(Nat.mod(Nat.div(s, 64n), 16n), 64n), x0), Nil{})
 
 def step_in(+s: Nat, +t: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
   +a = F32.sqrt(abar(t))

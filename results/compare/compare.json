@@ -6,27 +6,27 @@
     "bend-vit": {
       "what": "Bend, examples/diffusion_vit (causal attention, pre-LN, 100,736 params)",
       "source": "results/diffusion-vit/run.json",
-      "train_steps": 1200,
+      "train_steps": 3000,
       "loss": {
         "first": 1.0069675,
-        "final": 0.0032849999
+        "final": 0.0013283326
       },
       "samplers": {
         "ddim": {
           "steps": 16,
           "cloud": null,
-          "legibility": 0.3410858605681112,
+          "legibility": 0.3714880552864658,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.2100175264684566
+          "nearest_mse": 0.1941674819967734
         },
         "ddpm": {
           "steps": 64,
           "cloud": null,
-          "legibility": 0.3415599052314118,
+          "legibility": 0.359574976965035,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.1987857794744414
+          "nearest_mse": 0.18578452471067133
         }
       }
     },
