@@ -259,7 +259,7 @@ def main():
           f"Loss **{first:.4f} → {final:.4f}**, next-token accuracy **{accuracy:.4f}**. "
           "The NumPy twin starts at the same loss and ends at 0.1351 with accuracy "
           "0.9375; the full curve and the manifest are in "
-          "[`results/transformer/`](../../results/transformer/).")
+          "[`results/transformer/`](../../../results/transformer/).")
     # the two diffusion examples: their saved picture beside their report's numbers
     src = os.path.join(ROOT, "results/diffusion/scatter.svg")
     if os.path.exists(src):
@@ -279,7 +279,7 @@ def main():
           f"First loss **{first:.4f}** against the twin's — the gate — and final loss "
           f"**{final:.4f}**, reported. Both clouds' statistics are report-mode: the "
           "optimizers round differently and a 64-step loop amplifies a ulp. The curve, "
-          "the cloud and the manifest are in [`results/diffusion/`](../../results/diffusion/).")
+          "the cloud and the manifest are in [`results/diffusion/`](../../../results/diffusion/).")
 
     src = os.path.join(ROOT, "results/diffusion-digits/grid.svg")
     if os.path.exists(src):
@@ -302,7 +302,7 @@ def main():
           "gated: the optimizers round differently over 3000 steps. "
           "`reference/test_diffusion_digits.py` also compares both samplers with the "
           "twin element by element, over frozen weights. The curve, the grid and the "
-          "manifest are in [`results/diffusion-digits/`](../../results/diffusion-digits/).")
+          "manifest are in [`results/diffusion-digits/`](../../../results/diffusion-digits/).")
     print("wrote example READMEs and plots")
 
 

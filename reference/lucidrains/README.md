@@ -29,7 +29,7 @@ versions that were used are pinned in `requirements.txt`.
 
 - `reference/lucidrains_compare.py` — trains the same denoiser task
   (noise prediction, T = 64, linear schedule) on the same 1024 optdigits rows
-  as `examples/diffusion_digits/main.bend`, prints both schedules side by side,
+  as `examples/diffusion/digits/main.bend`, prints both schedules side by side,
   trains, samples with DDIM (16 calls) and with the ancestral loop (64), and
   writes `results/lucidrains-diffusion/`.
 
@@ -52,7 +52,7 @@ The parts that changed the Bend side, with the files they come from:
 
 | Reference | Where | What Bend did |
 |---|---|---|
-| zero-mean init at `1/sqrt(fan_in)` | PyTorch `nn.Linear` default | `examples/diffusion_digits` `value()` rebuilt (ISSUE-001) |
+| zero-mean init at `1/sqrt(fan_in)` | PyTorch `nn.Linear` default | `examples/diffusion/digits` `value()` rebuilt (ISSUE-001) |
 | x̂₀ clamped to [-1, 1] before the posterior mean | `p_mean_variance`, `ddim_sample` (`maybe_clip`) | open — see `issues-hit.md` H2 |
 | data normalized to [-1, 1] | `normalize_to_neg_one_to_one` | open — H3 |
 | `linear_beta_schedule` = `linspace(1e-4·1000/T, 0.02·1000/T, T)` | `linear_beta_schedule` | divergence recorded (ISSUE-002) |

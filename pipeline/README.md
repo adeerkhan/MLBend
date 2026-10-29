@@ -51,7 +51,7 @@ passes; the tests hold that end.
 
 The means, the deviations and every transformed number — the unseen test rows
 included — against scikit-learn's `StandardScaler` fitted on the same training
-rows (`reference/test_pipeline.py`). `examples/crossval` uses the package, and
+rows (`reference/test_pipeline.py`). `examples/classification/crossval` uses the package, and
 its mean accuracy is compared with scikit-learn's
 `Pipeline(StandardScaler, LogisticRegression)` on the same folds
 (`reference/test_crossval.py`).

@@ -1,125 +1,38 @@
 # The examples
 
-Programs that use the libraries and the packages, rather than packages of
-their own. Bend-ml and bendtorch are the libraries: nothing here
-re-implements them.
+One directory per task, in the four areas of the corpus. Each task directory
+holds a `main.bend`, a `README.md` with its command and its measured numbers,
+and a `plot.svg`.
 
-| Example | What it shows |
+| task | what it shows |
 |---|---|
-| [`logistic/main.bend`](logistic/main.bend) | a logistic regression over the iris dataset, fetched from HuggingFace at run time, with bend-ml's tensors and bend-ml's autodiff |
-| [`mlp/main.bend`](mlp/main.bend) | a two-layer network with a rectifier, over the same data and the same library: the chain of gradients through both layers |
-| [`kmeans/main.bend`](kmeans/main.bend) | k-means over the wine dataset, through `mlbend-cluster`, after standardising the columns |
-| [`pca/main.bend`](pca/main.bend) | the first principal component of wine, by power iteration: a transformer, not a trainer |
-| [`attention/main.bend`](attention/main.bend) | a single-head self-attention block over four tokens: the core of a transformer, checked against PyTorch |
-| [`transformer/main.bend`](transformer/main.bend) | a one-block causal transformer trained on a periodic sequence with the real BendTorch, against a NumPy twin, with the loss curve saved |
-| [`knn/main.bend`](knn/main.bend) | k-nearest neighbours over the breast cancer dataset: no gradients, no library, a distance and a vote |
-| [`naive_bayes/main.bend`](naive_bayes/main.bend) | Gaussian naive Bayes over the same data: the gradient-free baseline the experiment layer keeps beside the learned models |
-| [`naive_bayes_heart/main.bend`](naive_bayes_heart/main.bend) | the same baseline on heart failure: a second dataset, one copied program |
-| [`crossval/main.bend`](crossval/main.bend) | the whole chain end to end: dataset → scaler fitted on each training fold → logistic regression → stratified folds → accuracy, with no leakage |
+| [`classification/knn`](classification/knn) | three nearest neighbours over breast cancer: no gradients, no library, a distance and a vote |
+| [`classification/logistic`](classification/logistic) | logistic regression over iris with bend-ml's tensors and autodiff, step by step |
+| [`classification/mlp`](classification/mlp) | a two-layer rectified network over iris: the backward chain through both layers |
+| [`classification/naive_bayes`](classification/naive_bayes) | the Gaussian baseline over breast cancer: the gradient-free reference point |
+| [`classification/naive_bayes_heart`](classification/naive_bayes_heart) | the same baseline on heart failure: a second dataset |
+| [`classification/crossval`](classification/crossval) | the whole chain: a scaler fitted on each training fold, logistic regression, stratified folds, no leakage |
+| [`diffusion/2d`](diffusion/2d) | a DDPM denoiser trained and sampled on two moons |
+| [`diffusion/digits`](diffusion/digits) | the same over 1024 real 8×8 optdigits images |
+| [`diffusion/vit`](diffusion/vit) | a transformer denoiser on the same digits, against a PyTorch twin and the lucidrains UNet |
+| [`transformers/attention`](transformers/attention) | a single-head self-attention block in plain Bend, checked against NumPy |
+| [`transformers/periodic`](transformers/periodic) | a one-block causal transformer trained on a periodic sequence |
+| [`unsupervised/kmeans`](unsupervised/kmeans) | k-means over wine, through `mlbend-cluster` |
+| [`unsupervised/pca`](unsupervised/pca) | the first principal component of wine by power iteration |
 
-## The logistic example
+These are programs that use the libraries and the packages, not packages of
+their own. Bend-ml and BendTorch are the libraries; nothing here re-implements
+them.
 
-```console
-$ bendenv run -- bend examples/logistic/main.bend
-loss before: 1.0986128
-loss after:  1.086162
-loss after:  1.0759476
-loss after:  1.0671557
-```
-
-The forward pass is `AG.linear`, the loss is `AG.ce_loss`, the gradient of
-the loss with respect to the logits is `AG.ce_grad`, the backward of the
-layer is `AG.linear_bwd`, and the step is `AG.sgd`. The program adds the
-model and the loop over it, and nothing else.
-
-The learning rate is 0.01 because the features are not standardised:
-iris runs to 7.0, and at 0.5 the loss *rises* (1.099 → 1.537 → 6.88),
-which is the step overshooting and not a wrong gradient.
-`mlbend-preprocess`, which standardises, is what makes a larger rate
-sane.
-
-## The MLP example
+Every task README opens with the command that runs it:
 
 ```console
-$ bendenv run -- bend examples/mlp/main.bend
-loss before: 1.1172239
-loss after:  0.11065235
-accuracy: 0.97333336
+$ bendenv run -- bend examples/diffusion/vit/main.bend
 ```
 
-Eight rectified hidden units between the features and the three classes,
-400 full-batch steps at 0.5. The forward pass is `AG.linear`,
-`AG.mask.rows` (the rectifier) and `AG.linear` again; the loss is
-`AG.ce_loss`; the backward pass is `AG.ce_grad`, `AG.linear_bwd`,
-`AG.relu_bwd` and `AG.linear_bwd` again; the step is `AG.sgd` and
-`AG.sgd_vec`. The starting weights are a fixed small pattern, so the run
-is reproducible: the weights are varied by place, because zero weights
-would leave the hidden units with no gradient at all.
+Most of them are also tasks in the experiment layer, where the same number is
+computed again with NumPy or scikit-learn:
 
-scikit-learn's `MLPClassifier` with eight hidden units reaches the same
-0.9733 on the same data (`reference/test_mlp.py`); it trains with Adam
-and another initialisation, so what agrees is the result, not the path.
-
-## The k-means example
-
-The wine dataset, standardised, clustered by `mlbend-cluster` into three
-clusters for ten rounds. The example only holds the data and the
-standardising; the algorithm lives in the package, where every row is
-proved to get exactly one cluster.
-
-## The naive Bayes example
-
-A Gaussian per feature per class, trained on the first four fifths of the
-breast cancer dataset: a gradient-free baseline that needs no library and
-no standardising. It scores 0.9854, the same as scikit-learn's
-`GaussianNB` on the same split. It is also a task in the experiment layer
-(`cancer-naive-bayes`).
-
-## The transformer example
-
-A one-block causal transformer on `bendtorch@1.0.1.0`: embedding, RMSNorm,
-single-head causal attention, output projection, RMSNorm, linear head, trained
-with AdamW for 200 steps on next-token prediction over the periodic sequence
-0..7. The loss falls from **2.3591** to **0.0021**; a NumPy twin with the same
-deterministic weights starts at the same 2.3591 and ends at 0.1351. The two
-curves, the step-by-step losses and the run's manifest are written to
-`results/transformer/` (`loss.tsv`, `loss.svg`, `run.json`).
-
-It is a task in the experiment layer (`transformer-periodic`). The
-architecture uses the maintained `bendtorch` package, not the old
-`bendtorch-core` tape; the plain-Bend `attention` example above remains the
-library-free parity check.
-
-## The attention example
-
-The core of a transformer in plain Bend: Q, K and V projections, the scaled
-dot-product scores, a softmax over every row, and the weighted sum of V. Four
-tokens of eight features with fixed weights, the same formulas in the PyTorch
-reference; every output agrees within 1.5e-8 (`reference/test_attention.py`).
-This is the forward pass. Training the block needs a softmax/exp gradient on
-BendTorch's tape, which does not exist yet — that is the next upstream step.
-
-## The heart-failure baseline
-
-The same naive Bayes program on `mstz/heart_failure`: 299 rows, twelve
-features, the label `is_dead`. Accuracy 0.9333 against scikit-learn's 0.95 on
-the same split; the file's `True`/`False` cells are read as 1 and 0 by both.
-It is the second dataset in the corpus (`heart-naive-bayes`).
-
-## The PCA example
-
-The covariance matrix of the standardised wine features, and a hundred
-power iterations for its first eigenvector. The explained variance ratio
-is 0.275443, against scikit-learn's 0.275443 on the same data. It is a
-transformer, not a trainer, and it is a task in the experiment layer
-(`wine-pca`).
-
-## The cross-validation example
-
-The whole chain: the iris dataset comes from HuggingFace, the scaler is fitted
-by `mlbend-pipeline` on the training rows of each fold — never on the whole
-dataset — the model is trained with bend-ml's
-autodiff, the folds come from `mlbend-select` over `mlbend-split`, and the
-score is `mlbend-metrics`. The program adds the loop over the folds and
-nothing else.
-
+```console
+$ reference/.venv/bin/python reference/experiment.py --list
+```

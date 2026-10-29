@@ -6,6 +6,6 @@ The same task over real data: the first 1024 rows of `mstz/optdigits` (pinned re
 $ bendenv run -- bend examples/diffusion/digits/main.bend
 ```
 
-First loss **1.0039** against the NumPy twin's — the gate — and the data mean to 4.6e-9. The final loss and both clouds' statistics are reported, not gated: the optimizers round differently over 3000 steps. `reference/test_diffusion_digits.py` also compares both samplers with the twin element by element, over frozen weights. The curve, the grid and the manifest are in [`results/diffusion-digits/`](../../results/diffusion-digits/).
+First loss **1.0039** against the NumPy twin's — the gate — and the data mean to 4.6e-9. The final loss and both clouds' statistics are reported, not gated: the optimizers round differently over 3000 steps. `reference/test_diffusion_digits.py` also compares both samplers with the twin element by element, over frozen weights. The curve, the grid and the manifest are in [`results/diffusion-digits/`](../../../results/diffusion-digits/).
 
 ![plot](plot.svg)

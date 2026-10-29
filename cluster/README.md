@@ -42,7 +42,7 @@ and the proof is a recursion over the rows.
 
 The labels, the cluster sizes, the inertia and the centres of six fixed
 rows, against the same algorithm in NumPy (`reference/test_cluster.py`),
-and the wine dataset through `examples/kmeans` against
+and the wine dataset through `examples/unsupervised/kmeans` against
 `reference/test_kmeans.py`. `F32` is not a real number, so no value is
 proved, only tested.
 

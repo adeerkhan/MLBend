@@ -6,6 +6,6 @@ A three-linear-layer SiLU denoiser on `bendtorch@1.0.1.0`, trained by AdamW for 
 $ bendenv run -- bend examples/diffusion/2d/main.bend
 ```
 
-First loss **152.9537** against the twin's — the gate — and final loss **0.0650**, reported. Both clouds' statistics are report-mode: the optimizers round differently and a 64-step loop amplifies a ulp. The curve, the cloud and the manifest are in [`results/diffusion/`](../../results/diffusion/).
+First loss **152.9537** against the twin's — the gate — and final loss **0.0650**, reported. Both clouds' statistics are report-mode: the optimizers round differently and a 64-step loop amplifies a ulp. The curve, the cloud and the manifest are in [`results/diffusion/`](../../../results/diffusion/).
 
 ![plot](plot.svg)

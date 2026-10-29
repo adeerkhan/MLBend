@@ -91,6 +91,6 @@ The shape of the matrix is proved; the `F32` numbers are not, because `F32` is
 not a real number. `reference/test_report.py` compares the matrix, the
 per-class scores, the averages and the accuracy of `report/tests/ok.bend`
 with scikit-learn's `confusion_matrix` and `classification_report`, within a
-relative `1e-5`. `examples/knn` prints the report beside its accuracy, and
+relative `1e-5`. `examples/classification/knn` prints the report beside its accuracy, and
 `reference/test_knn.py` checks both against scikit-learn's kNN on the same
 predictions. The trust base is in [`docs/AUDIT.md`](../docs/AUDIT.md).
