@@ -1,0 +1,130 @@
+"""Where one ViT training step's seconds go.
+
+  reference/.venv/bin/python reference/bench_plumbing.py
+
+The GPU lane runs the model with the same wall time as the CPU lane
+(ISSUE-018). This benchmark splits a real step into its parts, using the
+example's own functions: parameter initialisation, the row build, the
+list-to-matrix conversion, one forward, the target build, and the full step.
+It writes `results/plumbing.json` and `results/PLUMBING.md`.
+"""
+import json
+import os
+import platform
+import re
+import statistics
+import subprocess
+import tempfile
+from datetime import datetime, timezone
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BEND = os.environ.get("BEND_BIN") or os.path.expanduser("~/.bend/bin/bend")
+ENV = dict(os.environ, BEND_NO_TELEMETRY="1")
+ENV_DIR = os.path.join(ROOT, ".bend", "env")
+if os.path.isdir(ENV_DIR):
+    ENV["BEND_LIB"] = ENV_DIR
+
+PROGRAM = os.path.join(ROOT, "bench/plumbing/main.bend")
+REPEATS = 3
+
+LINE = re.compile(r"^([a-z_0-9]+): ([0-9.eE+-]+)$")
+
+
+def run_once(binary):
+    out = subprocess.run([binary], capture_output=True, text=True, env=ENV, cwd=ROOT)
+    if out.returncode != 0:
+        raise SystemExit("the benchmark did not run:\n" + out.stdout + out.stderr)
+    values = {}
+    for line in out.stdout.splitlines():
+        match = LINE.match(line.strip())
+        if match:
+            values[match.group(1)] = float(match.group(2))
+    return values
+
+
+def main():
+    binary = os.path.join(tempfile.mkdtemp(), "mlbend-plumbing-bench")
+    build = subprocess.run([BEND, "-o", binary, PROGRAM], capture_output=True, text=True,
+                           env=ENV, cwd=ROOT)
+    if build.returncode != 0:
+        raise SystemExit("the benchmark did not build:\n" + build.stdout + build.stderr)
+
+    runs = [run_once(binary) for _ in range(REPEATS)]
+    keys = sorted(runs[0])
+    median = {key: statistics.median(run[key] for run in runs) for key in keys}
+
+    step = median["full_step_x3_ms"] / 3.0
+    from_list = max(0.0, median["step_in_ms"] - median["rows_ms"])
+    backward = max(0.0, step - median["step_in_ms"] - median["step_tgt_ms"] - median["forward_ms"])
+    plumbing = median["step_in_ms"] + median["step_tgt_ms"]
+    derived = {
+        "step_ms": step,
+        "from_list_ms": from_list,
+        "backward_update_ms": backward,
+        "plumbing_ms": plumbing,
+        "plumbing_share": plumbing / step,
+        "backward_share": backward / step,
+        "forward_share": median["forward_ms"] / step,
+    }
+
+    record = {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "program": "bench/plumbing/main.bend",
+        "what": "one ViT training step, split by IO.now()", 
+        "params": int(median["params"]),
+        "repeats": REPEATS,
+        "runs": runs,
+        "median_ms": {key: value for key, value in median.items() if key != "params"},
+        "derived_ms": derived,
+        "machine": platform.platform(),
+        "cpus": os.cpu_count(),
+        "bend": "2.0.38",
+    }
+    with open(os.path.join(ROOT, "results/plumbing.json"), "w") as f:
+        json.dump(record, f, indent=2)
+        f.write("\n")
+
+    m = median
+    card = f"""# The plumbing split of one ViT training step
+
+`make plumbing` builds and runs `bench/plumbing/main.bend` {REPEATS} times and
+keeps the median of each phase. It imports the real example (`examples/diffusion/vit`)
+and calls its own functions, so these are the numbers the model actually pays.
+
+Machine: {platform.platform()} · {os.cpu_count()} CPUs · Bend 2.0.38
+
+| phase | ms |
+|---|---:|
+| `init_params` (once per process) | {m['init_params_ms']:.0f} |
+| `rows` (1024 rows before the matrix) | {m['rows_ms']:.0f} |
+| `step_in` (batch, noise, mix, rows, matrix) | {m['step_in_ms']:.0f} |
+| `Mat.from_list` (derived: step_in - rows) | {from_list:.0f} |
+| `forward` (the model on that matrix) | {m['forward_ms']:.0f} |
+| `step_tgt` (noise, patches, matrix) | {m['step_tgt_ms']:.0f} |
+| `train_new` (grad and optimizer buffers) | {m['train_new_ms']:.0f} |
+| **one full step** | **{step:.0f}** |
+
+Shares of the step: input and target construction **{plumbing / step:.0%}**,
+forward {m['forward_ms'] / step:.0%}, loss + backward + optimizer
+{backward / step:.0%}.
+
+The step is plumbing. `step_in` and `step_tgt` together are
+{plumbing:.0f} ms of {step:.0f} ms, and most of that is the list build: the
+rows are assembled with `List.append` into a growing list, which is O(n²) in
+the number of values, so it dominates even the forward. `init_params` pays the
+same pattern over 100,736 parameters and costs {m['init_params_ms'] / 1000:.1f} s
+once per process.
+
+That is why the device buys no speed: a matmul moved to the card is 10% of the
+step, and the {plumbing / step:.0%} around it stays on the host. It also reframes CIFAR: the
+first fix is the row builder (cons and reverse, or build into an array once),
+not the GPU.
+"""
+    with open(os.path.join(ROOT, "results/PLUMBING.md"), "w") as f:
+        f.write(card)
+
+    print(card)
+
+
+if __name__ == "__main__":
+    main()

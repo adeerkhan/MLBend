@@ -8,7 +8,7 @@ BEND := $(or $(BEND_BIN),$(HOME)/.bend/bin/bend)
 BEND_VERSION := 2.0.38
 BEND_REF := ../bend-ref
 
-.PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench select plots sweep sweep-agent
+.PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench plumbing select plots sweep sweep-agent
 
 setup:            ## Bend, Lean and the Python venv
 	scripts/setup.sh
@@ -39,6 +39,9 @@ results:          ## regenerate results/RESULTS.md from the latest reports
 
 bench:            ## a compute-only kernel benchmark, saved under results/
 	$(PY) reference/bench_matmul.py
+
+plumbing:         ## the time split of one ViT training step, saved under results/
+	$(PY) reference/bench_plumbing.py
 
 select:           ## model selection and a classification report (kNN)
 	$(PY) reference/select_models.py
