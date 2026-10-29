@@ -28,7 +28,7 @@
 # point.
 import Base
 import mlbend-generative@0.1.1.0/main.bend as G
-import ../examples/diffusion_digits/main.bend as D
+import ../examples/diffusion/digits/main.bend as D
 
 def show_fs_go(xs: List<&2, F32>) -> String:
   match xs:

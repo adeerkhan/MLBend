@@ -73,7 +73,7 @@ the machine and the metric table.
 
 ### 1. The pipeline, without leakage — written (2026-10-23)
 
-`examples/crossval` standardised the whole matrix before the folds were made:
+`examples/classification/crossval` standardised the whole matrix before the folds were made:
 the scaling had seen the test rows. `mlbend-pipeline@0.1.0.0` fixes that:
 `fit` takes the training rows and nothing else, `transform` applies the fitted
 means and deviations to any rows, and `fold` does both for one split. The law

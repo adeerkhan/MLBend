@@ -1,6 +1,6 @@
 {
-  "created_at": "2026-10-29T18:17:35.985570+00:00",
-  "example": "examples/transformer/main.bend",
+  "created_at": "2026-10-29T19:01:10.324149+00:00",
+  "example": "examples/transformers/periodic/main.bend",
   "architecture": "embedding, RMSNorm, causal single-head attention, output projection, RMSNorm, linear head",
   "dataset": {
     "name": "periodic-0-7",
@@ -18,7 +18,7 @@
     "first_loss": 2.3591437,
     "final_loss": 0.0021143379,
     "accuracy": 1.0,
-    "seconds": 0.02322805399307981
+    "seconds": 0.026783890993101522
   },
   "numpy": {
     "first_loss": 2.359143018722534,

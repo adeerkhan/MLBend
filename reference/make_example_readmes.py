@@ -146,7 +146,7 @@ def main():
     acc, ref = metric("cancer-knn", "accuracy")
     bar_svg(os.path.join(ROOT, "examples/classification/knn/plot.svg"), "Accuracy on breast cancer",
             ["Bend", "scikit-learn"], [acc, ref])
-    write("knn", "k-nearest neighbours",
+    write("classification/knn", "k-nearest neighbours",
           "Three nearest neighbours over the breast cancer dataset, standardised, "
           "with the first four fifths as the training rows. No gradients and no library: "
           "a distance and a vote.\n\n"
@@ -157,7 +157,7 @@ def main():
     acc, ref = metric("cancer-naive-bayes", "accuracy")
     bar_svg(os.path.join(ROOT, "examples/classification/naive_bayes/plot.svg"), "Accuracy on breast cancer",
             ["Bend", "scikit-learn"], [acc, ref])
-    write("naive_bayes", "Gaussian naive Bayes",
+    write("classification/naive_bayes", "Gaussian naive Bayes",
           "A Gaussian per feature per class, trained on the first four fifths of the "
           "breast cancer dataset. The gradient-free baseline, with no standardising "
           "(a Gaussian is affine-invariant).\n\n"
@@ -168,7 +168,7 @@ def main():
     acc, ref = metric("iris-crossval", "mean_accuracy")
     bar_svg(os.path.join(ROOT, "examples/classification/crossval/plot.svg"), "Mean accuracy over five folds",
             ["Bend", "scikit-learn"], [acc, ref])
-    write("crossval", "Cross-validation, without leakage",
+    write("classification/crossval", "Cross-validation, without leakage",
           "The whole chain: iris from HuggingFace, the scaler fitted by "
           "`mlbend-pipeline` on the training rows of each fold, logistic regression "
           "with bend-ml's autodiff, the folds from `mlbend-select`, the score from "
@@ -182,7 +182,7 @@ def main():
     acc, ref = metric("iris-mlp", "accuracy")
     bar_svg(os.path.join(ROOT, "examples/classification/mlp/plot.svg"), "Accuracy on iris",
             ["Bend", "scikit-learn"], [acc, ref])
-    write("mlp", "A two-layer network",
+    write("classification/mlp", "A two-layer network",
           "Eight rectified hidden units over iris with bend-ml's tensors and autodiff: "
           "`AG.linear`, `AG.mask.rows`, `AG.linear` again, cross-entropy, and the "
           "backward chain through both layers. 400 SGD steps.\n\n"
@@ -194,7 +194,7 @@ def main():
     sizes = latest("wine-kmeans")["metrics"]["cluster_sizes"]["bend"]
     bar_svg(os.path.join(ROOT, "examples/unsupervised/kmeans/plot.svg"), "Rows per cluster (wine)",
             [f"cluster {i}" for i in range(len(sizes))], sizes)
-    write("kmeans", "k-means over wine",
+    write("unsupervised/kmeans", "k-means over wine",
           "Three clusters, ten rounds, through `mlbend-cluster` after standardising "
           "the columns. The algorithm lives in the package; the example holds the data "
           "and the standardising.\n\n"
@@ -205,7 +205,7 @@ def main():
     ratio, ref = metric("wine-pca", "explained_variance_ratio")
     bar_svg(os.path.join(ROOT, "examples/unsupervised/pca/plot.svg"), "First component: explained variance",
             ["Bend", "scikit-learn"], [ratio, ref])
-    write("pca", "The first principal component",
+    write("unsupervised/pca", "The first principal component",
           "The covariance matrix of the standardised wine features and a hundred power "
           "iterations for its first eigenvector. A transformer, not a trainer.\n\n"
           "```console\n$ bendenv run -- bend examples/unsupervised/pca/main.bend\n```\n\n"
@@ -215,7 +215,7 @@ def main():
     acc, ref = metric("heart-naive-bayes", "accuracy")
     bar_svg(os.path.join(ROOT, "examples/classification/naive_bayes_heart/plot.svg"), "Accuracy on heart failure",
             ["Bend", "scikit-learn"], [acc, ref])
-    write("naive_bayes_heart", "Gaussian naive Bayes on heart failure",
+    write("classification/naive_bayes_heart", "Gaussian naive Bayes on heart failure",
           "The same baseline as `naive_bayes`, on a second dataset: 299 rows of twelve "
           "features, the label `is_dead`, the first four fifths for training.\n\n"
           "```console\n$ bendenv run -- bend examples/classification/naive_bayes_heart/main.bend\n```\n\n"
@@ -224,7 +224,7 @@ def main():
     # logistic: a line of its four losses
     line_svg(os.path.join(ROOT, "examples/classification/logistic/plot.svg"), "Loss over four SGD steps",
              [("logistic", [1.0986128, 1.086162, 1.0759476, 1.0671557])])
-    write("logistic", "Logistic regression",
+    write("classification/logistic", "Logistic regression",
           "A logistic regression over iris with bend-ml's tensors and autodiff: "
           "`AG.linear`, `AG.ce_loss`, `AG.ce_grad`, `AG.linear_bwd`, `AG.sgd`. "
           "The learning rate is 0.01 because the features are not standardised.\n\n"
@@ -233,7 +233,7 @@ def main():
 
     # attention: heatmap of its output
     attention_heatmap(os.path.join(ROOT, "examples/transformers/attention/plot.svg"))
-    write("attention", "Single-head self-attention",
+    write("transformers/attention", "Single-head self-attention",
           "The core of a transformer in plain Bend: Q, K and V projections, the scaled "
           "dot-product scores, a row softmax and the weighted sum of V. Four tokens of "
           "eight features, fixed weights; every output agrees with the NumPy reference "
@@ -251,7 +251,7 @@ def main():
     first = bend["first_loss"]["bend"]
     final = bend["final_loss"]["bend"]
     accuracy = bend["accuracy"]["bend"]
-    write("transformer", "A trained transformer",
+    write("transformers/periodic", "A trained transformer",
           "A one-block causal transformer on `bendtorch@1.0.1.0`: embedding, RMSNorm, "
           "single-head causal attention, output projection, RMSNorm, linear head. "
           "AdamW, 200 steps, next-token prediction on the periodic sequence 0..7.\n\n"
@@ -267,7 +267,7 @@ def main():
     bend = latest("diffusion-2d")["metrics"]
     first = bend["first_loss"]["bend"]
     final = bend["final_loss"]["bend"]
-    write("diffusion", "A DDPM denoiser on two moons",
+    write("diffusion/2d", "A DDPM denoiser on two moons",
           "A three-linear-layer SiLU denoiser on `bendtorch@1.0.1.0`, trained by AdamW for "
           "4000 steps to predict the noise of a 64-step linear-β forward process over two "
           "moons, then sampled two ways: the ancestral loop over all 64 rungs, and DDIM "
@@ -286,7 +286,7 @@ def main():
         open(os.path.join(ROOT, "examples/diffusion/digits/plot.svg"), "w").write(open(src).read())
     bend = latest("diffusion-digits")["metrics"]
     first = bend["first_loss"]["bend"]
-    write("diffusion_digits", "A DDPM denoiser on digits",
+    write("diffusion/digits", "A DDPM denoiser on digits",
           "The same task over real data: the first 1024 rows of `mstz/optdigits` "
           "(pinned revision, its SHA-256 in the manifest), 8x8 digits scaled to [0, 1]. "
           "A digit's 64 pixels plus 8 time-embedding values in, a 64-wide SiLU body, a "

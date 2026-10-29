@@ -5,7 +5,7 @@ The same task as `examples/diffusion_digits` (noise prediction over the first
 DDIM with the clamped start), but the denoiser is a transformer instead of a
 dense MLP.
 
-    bendenv run -- bend examples/diffusion_vit/main.bend
+    bendenv run -- bend examples/diffusion/vit/main.bend
     ./scripts/vit.sh m1            # build + train in its own session, with a log
     ./scripts/vit.sh m1-results    # -> results/diffusion-vit/
 
