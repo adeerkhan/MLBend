@@ -1,10 +1,10 @@
 {
-  "created_at": "2026-10-28T16:21:11.133132+00:00",
+  "created_at": "2026-10-28T18:26:53.306018+00:00",
   "example": "examples/diffusion/main.bend",
   "architecture": "linear(10,32), SiLU, linear(32,32), SiLU, linear(32,2)",
   "process": "DDPM, T=64, linear beta 0.0001..0.3, eps-prediction; DDIM eta=0, every 4th rung (16 model calls)",
   "machine": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
-  "seconds": 45.38529682159424,
+  "seconds": 31.69089388847351,
   "bend": {
     "first_loss": 152.95369,
     "final_loss": 0.056912296,

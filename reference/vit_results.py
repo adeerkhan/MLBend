@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.join(ROOT, "reference"))
 from test_diffusion_digits import load
 from vit_report import legibility, nearest_mse
 
-OUT = os.path.join(ROOT, "results", "diffusion-vit")
+OUT = os.environ.get("OUT") or os.path.join(ROOT, "results", "diffusion-vit")
 
 
 def parse(text):
@@ -104,7 +104,7 @@ def main():
     run = {
         "task": "diffusion-vit",
         "program": "examples/diffusion_vit/main.bend",
-        "steps": len(losses) - 1,
+        "loss_points": len(losses),
         "first_loss": losses[0],
         "final_loss": final,
         "loss_min": min(losses),
