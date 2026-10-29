@@ -9,24 +9,24 @@
       "train_steps": 3000,
       "loss": {
         "first": 1.0069675,
-        "final": 0.0013686772
+        "final": 0.024583332
       },
       "samplers": {
         "ddim": {
           "steps": 16,
           "cloud": null,
-          "legibility": 0.357966213126506,
+          "legibility": 0.4090588551727479,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.19383648336487933
+          "nearest_mse": 0.218723169485419
         },
         "ddpm": {
           "steps": 64,
           "cloud": null,
-          "legibility": 0.3487684804875042,
+          "legibility": 0.42442112718339076,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.18518713151441668
+          "nearest_mse": 0.20493340320286638
         }
       }
     },

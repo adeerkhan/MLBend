@@ -597,44 +597,61 @@ is still chunk 0 (`loss_at(0)` unchanged at 1.0069675). A fresh 3000-step run
 
 ---
 
-## ISSUE-016 — a periodic training schedule cost 0.43 legibility (ours, high) — FIXED
+## ISSUE-016 — one timestep per batch, not per image, costs ~0.36 legibility (ours, high) — OPEN
 
-**What.** The example drew its timestep and its digit chunk from the step index:
-`t = 1 + s mod 64`, `chunk = (s div 64) mod 16`, noise seeded by `s`. Every 64
-steps the model walked the timesteps in the same order. The port was faithful —
-this was the *loop*, and it was worth **0.43** of legibility.
+**What.** The training loop draws **one timestep for the whole 64-digit batch**
+(`t = t_of(s)`), where the reference draws a timestep **per image**. That single
+choice is worth about **0.36** of nearest-digit legibility, and it is the whole
+remaining gap between Bend and the torch arm.
 
-**How it was found.** Not by reading code. The 3000-step run reached **0.358**
-(DDIM) / 0.360 (ancestral) against the torch arm's **0.786 / 0.779** on the same
-model, data, budget and starting cloud. The isolation was then done in PyTorch,
-one variable at a time:
+**How it was found, and a correction.** The first version of this entry blamed
+the *periodicity* of `t = 1 + s mod 64`, on the strength of a PyTorch arm that
+"randomized t" and scored 0.770 against 0.359 for the deterministic one. That
+arm was **miswired**: its `TRAIN=bend-rand` branch drew
+`t = torch.randint(0, T, (BATCH,))` — a timestep *per image* — so it measured
+per-image t, not randomness. Written correctly (one t for the whole batch,
+drawn at random, random chunk) it scores **0.392 / 0.441**, i.e. the same as
+the deterministic and the Weyl versions. The measured table, all the same
+model, data, 3000 steps, batch 64, lr 3e-3, causal, one head:
 
-| training loop (same model, 3000 steps, batch 64, lr 3e-3, causal) | DDIM | ancestral |
+| training loop | DDIM 16 | ancestral 64 |
 |---|---|---|
-| Bend's example as written (deterministic t and chunk, seed = step) | 0.359 | 0.344 |
-| the same, with `t` and the chunk drawn per step | **0.770** | **0.778** |
-| torch's usual loop (a `t` per image) | 0.786 | 0.779 |
-| Bend itself (BendTorch, CPU) | 0.358 | 0.360 |
+| one t per batch, deterministic (Bend's original) | 0.359 | 0.344 |
+| one t per batch, random t and chunk (torch, corrected arm) | **0.392** | **0.441** |
+| one t per batch, Weyl schedule (`t_of`/`chunk_of`, Bend `m1-rand`) | **0.409** | — |
+| one t per image, random chunk (torch) | 0.770 | 0.778 |
+| one t per image, torch's own loop | 0.786 | 0.779 |
 
-The first row reproducing Bend's number in PyTorch is the proof that the port
-is right; the second is the proof that the schedule is the cause.
+So: randomness and period are **not** the cause (0.359 → 0.409 across three
+different schedules, all one-t-per-batch), and the step from one t per batch to
+one t per image is **+0.36**.
 
-**Why a period hurts.** With `t` fixed by the step, the gradient at every step
-is for one noise level, and the sequence of levels repeats every 64 steps, so
-Adam's moments line up with the phase of the sweep instead of averaging over
-levels. Drawing the level per step (or per image, as the reference does) is what
-the model needs. The earlier ISSUE-015 fix — decoupling the chunk from `t` —
-was a real defect but not this one: it moved the number by −0.013.
+**Why it matters mathematically.** With one t per batch, every one of the
+3000 updates is a gradient at a single noise level; the model is asked to be a
+different function at each step, and each level gets 3000/64 ≈ 47 updates. The
+reference's per-image t gives 64 levels *per step* — every update is an average
+over the whole schedule — which is what makes a denoiser learn one function for
+all levels. The loss curve says the same thing: Bend's per-step loss is ~1.0 at
+low t and ~0.002 at high t (the level, not instability), while the torch arm's
+printed number is an average over levels.
 
-**Fix.** `t_of(s)` and `chunk_of(s)` take the high bits of a Weyl sequence
-(`s·2 654 435 761 >> 26 mod 64`, `s·2 246 822 519 >> 20 mod 16`) in exact `Nat`
-arithmetic, so the period is not 64 and both stay reproducible. `s = 0` is still
-`t = 1`, chunk 0 — the window the first-loss gate uses, so `loss_at(0)` is
-unchanged at 1.0069675.
+**The fix, and what it touches.** `step_in` must build the batch with a
+timestep **per image**: per-image `a = sqrt(ᾱ_t)`, `b = sqrt(1-ᾱ_t)` in
+`mix_go`, and a per-image 8-value time embedding appended by `rows_go` (which
+today appends one `te` to every row). That is a real but contained change:
+`mix_go` and `rows_go` take one entry per image instead of one for all, and the
+twin's `loss_at` mirrors it. Step 0 is still `t = 1`, so the first-loss gate is
+unchanged.
 
-**Component.** Ours: `examples/diffusion_vit/main.bend`.
+**Status.** The Weyl change (`t_of`/`chunk_of`) is kept — it is harmless and it
+decouples the timestep from the chunk — but it is **not** the fix. The fix is
+per-image timesteps, and it is the next change to the example.
 
-**Verified by.** The four rows above, and the fixed 3000-step run (`m1-rand`).
+**Component.** Ours: `examples/diffusion_vit/main.bend` (the training loop), and
+the twin's `loss_at`.
+
+**Verified by.** The corrected six-row table above, each row a 3000-step run of
+the same model.
 
 ---
 

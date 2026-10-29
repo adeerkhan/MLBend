@@ -60,6 +60,16 @@ relevant entry before changing performance-sensitive code or a law.
   meant to be: reproducible and covering every digit. The first loss is
   unchanged, because step 0 is chunk 0 — the 64 digits the twin's
   `first_loss` already used.
+- **Correction, same day: the gap is one t per batch, not the schedule.** The
+  first reading of the isolation table blamed the periodic `t = 1 + s mod 64`.
+  The PyTorch arm that "randomized t" was miswired — it drew a t *per image*.
+  Written correctly, one t per batch scores 0.392/0.441 whether the level is
+  deterministic, random or Weyl; one t per image scores 0.770/0.778. So the fix
+  is per-image timesteps (a per-image time embedding and per-image `a`/`b` in
+  the input mix), not randomness. Bend's Weyl run measures 0.409, with the
+  schedule randomized and the loop unchanged — the number the corrected table
+  predicts. `ISSUE-016` in `issues-hit.md` carries the corrected table and says
+  plainly that the first version of the entry was wrong.
 - **The loss curve is a sawtooth, and that is the timestep, not the optimiser.**
   The example draws **one t for the whole 64-digit batch** (`t = 1 + s mod 64`),
   so the printed loss is the loss at *that* t: ~1.0 at low t, where x_t is

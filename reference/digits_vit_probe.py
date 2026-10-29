@@ -70,7 +70,7 @@ DEVICE = os.environ.get("DEVICE", "cpu")
 # one timestep for the whole batch, the digit chunk rotating once per sweep,
 # the step index seeding the noise. Everything else stays the same, so a
 # difference in the cloud is attributable to the loop.
-BEND_LOOP = os.environ.get("TRAIN") == "bend"
+BEND_LOOP = os.environ.get("TRAIN") in ("bend", "bend-rand")
 
 
 def pos_features():
@@ -204,8 +204,16 @@ def main():
     for s in range(STEPS):
         if BEND_LOOP:
             chunk = (s // 64) % (N // BATCH)
-            idx = torch.arange(chunk * BATCH, (chunk + 1) * BATCH, device=dev())
-            t = torch.full((BATCH,), s % T, dtype=torch.long, device=dev())
+            if os.environ.get("TRAIN") == "bend-rand":
+                # ONE t for the whole batch, drawn at random, random chunk:
+                # the true isolator for "periodic" against "per-image t"
+                chunk = int(torch.randint(0, N // BATCH, (1,)))
+                tt = int(torch.randint(0, T, (1,)))
+                t = torch.full((BATCH,), tt, dtype=torch.long, device=dev())
+                idx = torch.arange(chunk * BATCH, (chunk + 1) * BATCH, device=dev())
+            else:
+                t = torch.full((BATCH,), s % T, dtype=torch.long, device=dev())
+                idx = torch.arange(chunk * BATCH, (chunk + 1) * BATCH, device=dev())
             torch.manual_seed(s)
             eps = torch.randn(BATCH, D, device=dev())
         else:
@@ -242,7 +250,7 @@ def main():
     if len(sys.argv) > 1:
         out = {"arm": "torch-vit", "params": n_params, "steps": STEPS, "batch": BATCH,
                "lr": LR, "heads": HEADS, "pos": POS_MODE, "causal": CAUSAL,
-               "device": DEVICE, "train_loop": "bend" if BEND_LOOP else "torch",
+               "device": DEVICE, "train_loop": os.environ.get("TRAIN", "torch"),
                "loss": {"first": losses[0], "final": losses[-1]},
                "nearest_mse": None, "per_sampler": report}
         os.makedirs(os.path.dirname(os.path.abspath(sys.argv[1])), exist_ok=True)

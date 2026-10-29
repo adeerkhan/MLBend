@@ -24,8 +24,8 @@ reference UNet is convolutional; the architectures differ on purpose.</p>
 <table>
 <tr><th>arm</th><th>sampler</th><th>first loss</th><th>final loss</th>
 <th>legibility</th><th>nearest-digit MSE</th><th>cloud mean / std · in [0,1]</th></tr>
-<tr><td>bend-vit <span class=dim>· 3000 train</span></td><td>ddpm (64 steps)</td><td class=num>1.0070</td><td class=num>0.0014</td><td class=num>0.349</td><td class=num>0.1852</td><td class=num>— / — · —/—</td></tr>
-<tr><td>bend-vit <span class=dim>· 3000 train</span></td><td>ddim (16 steps)</td><td class=num>1.0070</td><td class=num>0.0014</td><td class=num>0.358</td><td class=num>0.1938</td><td class=num>— / — · —/—</td></tr>
+<tr><td>bend-vit <span class=dim>· 3000 train</span></td><td>ddpm (64 steps)</td><td class=num>1.0070</td><td class=num>0.0246</td><td class=num>0.424</td><td class=num>0.2049</td><td class=num>— / — · —/—</td></tr>
+<tr><td>bend-vit <span class=dim>· 3000 train</span></td><td>ddim (16 steps)</td><td class=num>1.0070</td><td class=num>0.0246</td><td class=num>0.409</td><td class=num>0.2187</td><td class=num>— / — · —/—</td></tr>
 <tr><td>torch-vit <span class=dim>· 3000 train</span></td><td>ddpm (64 steps)</td><td class=num>1.4615</td><td class=num>0.0719</td><td class=num>0.779</td><td class=num>0.0633</td><td class=num>+0.270 / 0.336 · 4096/4096</td></tr>
 <tr><td>torch-vit <span class=dim>· 3000 train</span></td><td>ddim (16 steps)</td><td class=num>1.4615</td><td class=num>0.0719</td><td class=num>0.786</td><td class=num>0.0602</td><td class=num>+0.269 / 0.310 · 4096/4096</td></tr>
 <tr><td>lucidrains-unet <span class=dim>· 3000 train</span></td><td>ddpm (64 steps)</td><td class=num>0.9634</td><td class=num>0.0780</td><td class=num>0.940</td><td class=num>0.0183</td><td class=num>+0.284 / 0.352 · 4096/4096</td></tr>
