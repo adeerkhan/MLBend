@@ -175,7 +175,11 @@ def sample(model, abar, tembs, n=64):
     model.eval()
     torch.manual_seed(1000)
     x = start_noise(n).clone()
-    pos = list(range(T - 1, -1, -1))[3::4] + [0]
+    # the reference's rungs (lucidrains' linspace(-1, T-1, steps+1)): every 4th
+    # from T-1 down to 3, and the last step lands on abar = 1. The old
+    # `[3::4] + [0]` gave 60..0 plus a duplicated 0 - a schedule the reference
+    # never uses, which made the DDIM column not like-for-like.
+    pos = list(range((T - 1) % 4, T, 4))[::-1]
     for i, p in enumerate(pos):
         below = pos[i + 1] if i + 1 < len(pos) else -1
         t = torch.full((n,), p, dtype=torch.long, device=dev())

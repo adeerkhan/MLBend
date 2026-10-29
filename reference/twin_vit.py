@@ -255,21 +255,23 @@ def bend_init(seed=1):
 
 
 def loss_at(s, seed=1):
-    """The loss Bend's step `s` prints: chunk `s mod 16` of the digits, the
-    timestep 1 + s mod 64, the noise of seed s, and the model's MSE against it.
-    `loss_at(0)` is `first_loss()` — the gate checks that too."""
+    """The loss Bend's step `s` prints, with the per-image timesteps (ISSUE-016):
+    chunk `(s div 64) mod 16`, a level per image from the same Weyl sequence,
+    the noise of seed s, and the model's MSE against it."""
     from test_diffusion_digits import ALPHAS, noise_of, load
     x0 = load()
-    chunk = ((s // 64) % 16) * 64
+    chunk = (s * 2246822519 // 1048576 % 16) * 64
     batch = x0[chunk:chunk + 64]
-    t = 1 + s % 64
     nz = noise_of(s, 4096).reshape(64, 64)
-    a = F(np.sqrt(ALPHAS[t - 1]).astype(F))
-    b = F(np.sqrt(F(1.0) - ALPHAS[t - 1]).astype(F))
-    mixed = F(F(a * batch) + F(b * nz))
-    out = forward(bend_init(seed), tokens_of(mixed, t))
-    tgt = target_of(nz)
-    return float(np.mean(F(out - tgt) ** 2))
+    ts = [1 + ((i + s * 64) * 2654435761 // 67108864) % 64 for i in range(64)]
+    ab = np.array([[np.sqrt(ALPHAS[t - 1]), np.sqrt(1.0 - ALPHAS[t - 1])] for t in ts], dtype=F)
+    mixed = F(ab[:, 0:1] * batch + ab[:, 1:2] * nz)
+    tok = patch(mixed).reshape(64, TK, PX)
+    te = np.stack([temb(t) for t in ts])
+    po = np.tile(np.stack([pos(k) for k in range(TK)]), (64, 1, 1))
+    tokens = F(np.concatenate([tok, np.repeat(te[:, None, :], TK, axis=1), po], axis=-1))
+    out = forward(bend_init(seed), tokens)
+    return float(np.mean(F(out - target_of(nz)) ** 2))
 
 
 def first_loss(seed=1):
