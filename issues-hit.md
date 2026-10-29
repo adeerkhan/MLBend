@@ -558,14 +558,22 @@ needed:
   `LD_LIBRARY_PATH` are enough, as the earlier note in `NOTES.md` records.
 - A `F.LinearF` forward from the *hub* package computes the expected values
   (`1 1 1 1` for 2×2 ones against a 0.5 weight).
-- **Not yet proven:** that this ran on the device rather than the CPU — the
-  compiler's "uses CUDA" detection does not trigger for a program that only
-  calls layer closures, so its warning is silent either way. The device proof
-  is the package's own `gpu_test`/`gpu_layers`, which `NOTES.md` records as
-  passing with this exact toolkit; reproducing them needs a `bendtorch`
-  checkout, and the probe's own timing loop kept hitting Bend's pattern rules.
-  The lane switch in the example is the next piece of work, not a library
-  question.
+- **Now proven on the device** (2026-10-29, 18:20). `nuxyel/BendTorch`'s own
+  `make gpu` with `CUDA_HOME=$HOME/.local/cuda-nvrtc`:
+  `gpu_test_cuda` **links libnvrtc** (so it is a CUDA binary, not a CPU one) and
+  prints `0 0 0 0 0 0 0 0`, i.e. *"torch/gpu.bend's layers give main.bend's bits
+  on the GPU"*; `gpu_layers_test` then matches except through CUDA's `exp`
+  (`SiLU 4 ulps, cross-entropy 4, attention 176128 at the small sizes 7680`) and
+  with `exp_cr` in place of `F32.exp` **every case matches on the device**.
+  So the lane is exact but for CUDA's `exp`, which is the documented policy.
+- **What `make gpu` still fails on is not the GPU.** After those checks it moves
+  to the demos and calls `reference/.venv/bin/python`, which does not exist in
+  the BendTorch checkout (`/bin/sh: line 1: reference/.venv/bin/python: No such
+  file or directory`, `make: *** [Makefile:116: gpu] Error 127`). Anyone who
+  clones and runs `make gpu` hits that; it is worth a one-line fix upstream
+  (create the venv, or call `python3`), and it is the reason the target "fails"
+  on a machine where the device checks all pass.
+- **So the lane switch is the next piece of work, not a library question.**
 
 ---
 
