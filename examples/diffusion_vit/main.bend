@@ -397,12 +397,20 @@ def drop_go(left: Nat, xs: List<&2, F32>) -> List<&2, F32>:
     case 1n+rest:
       drop_go(rest, drop64(xs))
 
-# The chunk advances once per timestep sweep: 64 steps keep one chunk while t
-# runs 1..64, then the next chunk. Taking `s mod 16` instead would lock the two
-# together — t = 1 + s mod 64 makes (t - 1) mod 16 = s mod 16, so chunk c would
-# only ever be trained at t in {c+1, c+17, c+33, c+49} (ISSUE-015).
+# The timestep and the chunk come from a Weyl sequence's high bits, not from
+# `s mod 64`: a 64-step periodic schedule is what cost the model 0.43
+# legibility (ISSUE-016 — torch with this example's deterministic loop scored
+# 0.359/0.344, and the same loop with `t` and the chunk drawn per step scored
+# 0.770/0.778). Exact Nat arithmetic, so the period is not 64; s = 0 is still
+# t = 1 and chunk 0, which is the window the first-loss gate uses.
+def t_of(+s: Nat) -> Nat:
+  (1n + Nat.mod(Nat.div(Nat.mul(s, 2654435761n), 67108864n), 64n) : Nat)
+
+def chunk_of(+s: Nat) -> Nat:
+  Nat.mod(Nat.div(Nat.mul(s, 2246822519n), 1048576n), 16n)
+
 def batch_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
-  take_go(4096n, drop_go(Nat.mul(Nat.mod(Nat.div(s, 64n), 16n), 64n), x0), Nil{})
+  take_go(4096n, drop_go(Nat.mul(chunk_of(s), 64n), x0), Nil{})
 
 def step_in(+s: Nat, +t: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
   +a = F32.sqrt(abar(t))
@@ -418,7 +426,7 @@ def step_tgt(+s: Nat) -> TA.Mat<RW(), PX()>:
     patch_all(64n, take_go(4096n, G.noise_of(s, 65536n), Nil{}), Nil{}))
 
 def do_step(+s: Nat, tr: T.Train<ModelP()>, +x0: List<&2, F32>) -> T.Train<ModelP()>:
-  +t = Nat.add(Nat.mod(s, 64n), 1n)
+  +t = t_of(s)
   T.Train.step(~ModelP(), ~TA.Mat<RW(), FE()>, ~TA.Mat<RW(), PX()>(), ~ModelS(),
     ~TA.Mat<RW(), PX()>(), ~Model(), ~mse, cfg(), tr,
     step_in(s, t, x0), step_tgt(s))
