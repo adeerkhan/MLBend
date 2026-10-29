@@ -263,7 +263,8 @@ def loss_at(s, seed=1):
     chunk = (s * 2246822519 // 1048576 % 16) * 64
     batch = x0[chunk:chunk + 64]
     nz = noise_of(s, 4096).reshape(64, 64)
-    ts = [1 + ((i + s * 64) * 2654435761 // 67108864) % 64 for i in range(64)]
+    # U32 wrap, as Bend does: (i + s*64)*a mod 2^32, then >> 26 mod 64
+    ts = [1 + ((((i + s * 64) * 2654435761) & 0xFFFFFFFF) >> 26) % 64 for i in range(64)]
     ab = np.array([[np.sqrt(ALPHAS[t - 1]), np.sqrt(1.0 - ALPHAS[t - 1])] for t in ts], dtype=F)
     mixed = F(ab[:, 0:1] * batch + ab[:, 1:2] * nz)
     tok = patch(mixed).reshape(64, TK, PX)

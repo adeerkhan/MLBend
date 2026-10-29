@@ -419,8 +419,11 @@ def batch_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
 # own 8-value time embedding. Image i's level comes from a Weyl sequence over
 # (s, i), so the schedule is not periodic in either.
 
+# U32, not Nat: the product (i + s*64)*a crosses 2^48-1 at s ~ 1653, and a Nat
+# past the largest immediate is a runtime fail-stop, not a wrap. U32 wraps by
+# definition, which is what a Weyl mixer wants anyway.
 def t_img(+s: Nat, +i: Nat) -> Nat:
-  (1n + Nat.mod(Nat.div(Nat.mul(Nat.add(i, Nat.mul(s, 64n)), 2654435761n), 67108864n), 64n) : Nat)
+  (1n + U32.to_nat(U32.mod(U32.div(U32.mul(U32.from_nat(Nat.add(i, Nat.mul(s, 64n))), 2654435761), 67108864), 64)) : Nat)
 
 def ab_img(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
   match i:
