@@ -64,8 +64,8 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <div class="counts">
   <span><b>9</b> fixed</span>
   <span><b>0</b> open</span>
-  <span><b>4</b> upstream</span>
-  <span><b>4</b> other</span>
+  <span><b>2</b> upstream</span>
+  <span><b>6</b> other</span>
 </div>
 <section class="issue" id="upstream-requests">
   <header class="ihead">
@@ -75,7 +75,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
   </header>
   
   <p>Opened from this work, each with its reproduction and numbers in the issue:</p>
-<ul><li><a href="https://github.com/bendlang/bend/issues/1894">bendlang/bend#1894</a> — the run path's stack overflow (ISSUE-007).</li><li><a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a> — <code>Conv2d</code>/<code>GroupNorm</code> (ISSUE-008).</li><li><a href="https://github.com/nuxyel/bend-ml/issues/26">nuxyel/bend-ml#26</a> — the value law for <code>Array.set</code>/<code>Array.get</code>; it needs two Base lemmas, so it is an issue with the analysis rather than a PR. Filed 2026-10-27.</li></ul>
+<ul><li><a href="https://github.com/bendlang/bend/issues/1894">bendlang/bend#1894</a> — the run path's stack overflow (ISSUE-007).</li><li><a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a> — <code>Conv2d</code>/<code>GroupNorm</code> (ISSUE-008).</li><li><a href="https://github.com/nuxyel/bend-ml/issues/26">nuxyel/bend-ml#26</a> — the value law for <code>Array.set</code>/<code>Array.get</code>. Filed 2026-10-27. <strong>Corrected 2026-10-29:</strong> our "it needs two Base lemmas" was wrong — nuxyel proved all three laws in a plain file (no Base, no <code>@unsafe</code>, no axioms) with <code>Apart</code> as the right hypothesis; we adopt them.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/17">nuxyel/BendTorch#17</a> — <code>Attention</code> has no mask, so every attention is causal on both lanes (ISSUE-011). Filed 2026-10-29.</li><li><a href="https://github.com/nuxyel/BendTorch/issues/12">nuxyel/BendTorch#12</a> — <strong>retracted and closed by us.</strong> The GPU lane is not missing: <code>package.sh</code> publishes <code>bendtorch-fast</code>, <code>bendtorch-gpu</code> and <code>bendtorch-load</code> beside the core (<code>bendtorch-gpu@1.1.1.0</code> = <code>0x3c22148d676c2988827dae103c18f499</code>). The ledger's ISSUE-014 said otherwise and is corrected below.</li></ul>
 </section><section class="issue" id="issue-001">
   <header class="ihead">
     <span class="id">ISSUE-001</span>
@@ -217,15 +217,18 @@ def main() -&gt; IO(Unit):
 </section><section class="issue" id="issue-011">
   <header class="ihead">
     <span class="id">ISSUE-011</span>
-    <span class="badge vio">upstream</span>
+    
     <span class="when" title="2026-10-28T20:43:31+05:00">logged 2026-10-28 20:43 UTC</span>
   </header>
-  <h2>BendTorch's only attention is causal, so the ViT attends one way (BendTorch, high)</h2>
+  <h2>BendTorch's only attention is causal, so the ViT attends one way (BendTorch, high) — UPSTREAM (filed #17)</h2>
   <p><strong>What.</strong> <code>bendtorch@1.0.1.0</code>'s <code>Attention</code> has no mask argument, and its forward is causal by construction: for query position <code>i</code>, <code>qrow</code> builds <code>scores</code> against keys <code>0..i</code> only (<code>drow(i, ...)</code>, <code>i + 1</code> dots) and <code>prow</code> softmaxes exactly those <code>i + 1</code>, leaving the rest of the <code>t x t</code> block at zero. The three trailing arguments of the layer are erased *shape* facts (<code>n == b*t</code>, <code>w == kv*g*hd</code>, <code>kvw == kv*hd</code>), not masks. Found 2026-10-28, 20:05.</p>
 <p><strong>How it showed up.</strong> The twin's bidirectional attention missed Bend's <code>att0</code>; masking the upper triangle reproduces it exactly (<code>0.07157408 -0.09983167 0.03612092 ...</code> both sides). Causality is not a tolerance here: it is the same numbers or not.</p>
 <p><strong>Why it matters.</strong> For a language model a causal mask is the point. For a denoiser it is a handicap with no reason: the 16 patch tokens are exchangeable, and token 0 can see only itself, token 15 sees all. It also means the ViT measured in torch (0.809 legibility, bidirectional) is *not* the architecture Bend can express, so the three-arm harness must run its torch arm with the same causal mask to be "the same architecture", and the numbers in <code>docs/AUDIT.md</code> from the bidirectional model are labelled as such.</p>
 <p><strong>Component.</strong> BendTorch (upstream); MLBend works around it.</p>
-<p><strong>Next.</strong> Measure the frozen gate and then M1's legibility with the causal model. If causality costs the 0.75 gate, the options are a mask argument upstream (the natural PR: <code>Attention</code> already builds the <code>t x t</code> block sparsely, so a <code>Bool</code> "causal or not" flag is a small change plus the <code>causal</code> law's sibling) or a second pass over the reversed token order. The second is ours to do and costs 2x compute; the first is the right fix.</p>
+<p><strong>Filed</strong> as <a href="https://github.com/nuxyel/BendTorch/issues/17">nuxyel/BendTorch#17</a> (2026-10-29), with the signature (both lanes), the shape facts, and the twin evidence. The issue states plainly that this is an *expressiveness* gap, not an accuracy bug.</p>
+<p><strong>What the mask costs, measured</strong> (3000 steps, the same 16-token ViT, one head, width 64, the only difference the mask):</p>
+<div class="tablewrap"><table><thead><tr><th>mask</th><th>DDIM 16</th><th>ancestral 64</th></tr></thead><tbody><tr><td>causal (what BendTorch can express)</td><td>0.786</td><td>0.779</td></tr><tr><td>full (upper triangle masked)</td><td>0.754</td><td>0.774</td></tr></tbody></table></div>
+<p>So on this task causality costs nothing measurable — the earlier assumption that it was a handicap is not supported by these runs. The reason to want a mask is that a ViT encoder, a UNet's mid-block attention and cross-attention cannot be written at all without one.</p>
 </section><section class="issue" id="issue-012">
   <header class="ihead">
     <span class="id">ISSUE-012</span>
@@ -256,20 +259,22 @@ def main() -&gt; IO(Unit):
 </section><section class="issue" id="issue-014">
   <header class="ihead">
     <span class="id">ISSUE-014</span>
-    <span class="badge vio">upstream</span>
+    
     <span class="when" title="2026-10-29T14:19:50+05:00">logged 2026-10-29 14:19 UTC</span>
   </header>
-  <h2>BendTorch has no CUDA path in the published package (BendTorch, high)</h2>
+  <h2>"BendTorch has no CUDA path" (ours, high) — WITHDRAWN, the claim was false</h2>
   <p><strong>What.</strong> <code>bendtorch@1.0.1.0</code> resolves to a package of eight files — <code>main.bend</code>, <code>tensor.bend</code>, <code>dtype.bend</code>, <code>spec.bend</code>, <code>PROOF.bend</code>, <code>LAWS.bend</code>, <code>package.bend</code>, <code>LICENSE</code> — and <strong>no <code>torch/gpu.bend</code></strong>. Every layer is written over <code>Array&lt;F32&gt;</code> and runs on the CPU. The source says so itself where it matters: the erf comment reads "the C and JavaScript programs give the same bits (CUDA is not checked yet)". Found 2026-10-29, 14:20.</p>
 <p><strong>How it showed up.</strong> The machine has an RTX 5060 and CUDA 13.4; a 3000-step run of the 100,736-parameter ViT takes <strong>~90 minutes on 28 cores</strong>, while the same architecture in PyTorch on the card is seconds. The reference arms can use the GPU (<code>torch 2.14.1+cu130</code> installed into <code>reference/.venv-lucidrains</code>, which had a CPU-only wheel); the Bend arm cannot, at any model size.</p>
 <p><strong>Why it matters.</strong> The DoD's CIFAR-10 arm asks for "the compute decision (CPU budget against the CUDA lane, whose GPU layers must be verified for attention first)". There is no CUDA lane to verify: the layers are not device-abstracted at all, so <code>Attention</code>, <code>LayerNorm</code> and <code>LinearNB</code> have no GPU mirror to check. M5 stays a CPU-budget decision (10+ h) for Bend, while the comparison's torch arms move to the card.</p>
-<p><strong>Component.</strong> BendTorch (upstream): the published package's file set, and the absence of a device layer under it.</p>
-<p><strong>Next.</strong> Ask upstream for the <code>gpu.bend</code> that the repository carries to be in the published package, or for a device parameter on the layers. Until then the Bend arm is CPU-only and every Bend number in <code>NOTES.md</code> is a CPU number — which is now written next to each run (<code>device</code> in the arm JSONs).</p>
+<p><strong>Correction (2026-10-29, the same day).</strong> The core package is the <strong>law-clean CPU lane by design</strong>; the lanes are separate hub packages, published by <code>scripts/package.sh</code>: <code>bendtorch-fast@1.1.1.0</code> (<code>0x7185f584…</code>), <code>bendtorch-gpu@1.1.1.0</code> (<code>0x3c22148d676c2988827dae103c18f499</code>) and <code>bendtorch-load@1.1.1.0</code> (<code>0x0b2d5749…</code>). <code>torch/gpu.bend</code> at v1.0.1 <strong>and</strong> v1.1.1 exports <code>LinearF</code>, <code>LinearFirstF</code>, <code>LinearNBF</code>, <code>Residual</code> and the same <code>Attention</code>. This ledger entry read the core's file list as the whole story and was wrong; BendTorch#12 was retracted by us for the same reason.</p>
+<p><strong>What is actually true, and ours.</strong> 1. We pin <code>bendtorch@1.0.1.0</code> and import only <code>main.bend</code> — the CPU lane. The lane switch is a dependency change plus <code>Linear -&gt; LinearF</code>, <code>Attention</code> unchanged (<code>#13</code>, closed, documents the naming gap). 2. This machine has <strong>no CUDA toolkit</strong>: <code>bun bend2/main.ts</code> reports "no CUDA toolkit (include/nvrtc.h under $CUDA_HOME, $CUDA_PATH, /usr/local/cuda or /opt/cuda), so ! runs on the CPU", and the GPU lane needs <code>libnvrtc</code> to compile its kernels. That is an environment item (toolkit headers, root), not a package bug.</p>
+<p><strong>Component.</strong> Ours: the dependency and the lane switch, and the machine's toolkit.</p>
+<p><strong>Next.</strong> Try <code>bendtorch@1.1.1.0</code> + <code>bendtorch-gpu@1.1.1.0</code> in a branch, swap the linear family, and measure the ViT on the card; install the CUDA toolkit for the <code>nvrtc.h</code> the RTC lane needs. Until then every Bend number is a CPU number, which is now written next to each run (<code>device</code> in the arm JSONs).</p>
 </section><section class="issue" id="issue-015">
   <header class="ihead">
     <span class="id">ISSUE-015</span>
     <span class="badge grn">fixed</span>
-    
+    <span class="when" title="2026-10-29T14:42:25+05:00">logged 2026-10-29 14:42 UTC</span>
   </header>
   <h2>the minibatch and the timestep cycle were locked, so each chunk saw 4 of 64 timesteps (ours, high)</h2>
   <p><strong>What.</strong> The rotating minibatch took chunk <code>s mod 16</code> of the sixteen 64-digit chunks, and the timestep is <code>t = 1 + s mod 64</code>. Since 16 divides 64, <code>(t - 1) mod 16 = s mod 16 = chunk</code> on <strong>every step</strong>: chunk <code>c</code> was only ever trained at <code>t ∈ {c+1, c+17, c+33, c+49}</code>. At sampling every chunk meets all 64 timesteps, so 60 of them had never been seen for that data. Found 2026-10-29, 14:45, from the numbers rather than the code.</p>
@@ -300,7 +305,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 09:42 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 11:02 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

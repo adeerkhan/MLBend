@@ -28,8 +28,18 @@ Opened from this work, each with its reproduction and numbers in the issue:
 - [nuxyel/BendTorch#15](https://github.com/nuxyel/BendTorch/issues/15) —
   `Conv2d`/`GroupNorm` (ISSUE-008).
 - [nuxyel/bend-ml#26](https://github.com/nuxyel/bend-ml/issues/26) — the value
-  law for `Array.set`/`Array.get`; it needs two Base lemmas, so it is an issue
-  with the analysis rather than a PR. Filed 2026-10-27.
+  law for `Array.set`/`Array.get`. Filed 2026-10-27. **Corrected 2026-10-29:**
+  our "it needs two Base lemmas" was wrong — nuxyel proved all three laws in a
+  plain file (no Base, no `@unsafe`, no axioms) with `Apart` as the right
+  hypothesis; we adopt them.
+- [nuxyel/BendTorch#17](https://github.com/nuxyel/BendTorch/issues/17) —
+  `Attention` has no mask, so every attention is causal on both lanes
+  (ISSUE-011). Filed 2026-10-29.
+- [nuxyel/BendTorch#12](https://github.com/nuxyel/BendTorch/issues/12) —
+  **retracted and closed by us.** The GPU lane is not missing: `package.sh`
+  publishes `bendtorch-fast`, `bendtorch-gpu` and `bendtorch-load` beside the
+  core (`bendtorch-gpu@1.1.1.0` = `0x3c22148d676c2988827dae103c18f499`). The
+  ledger's ISSUE-014 said otherwise and is corrected below.
 
 ## ISSUE-001 — the digits denoiser learned nothing (ours, high) — FIXED
 
@@ -379,7 +389,7 @@ The forward gate went from 0.343 to one ulp of float32.
 
 ---
 
-## ISSUE-011 — BendTorch's only attention is causal, so the ViT attends one way (BendTorch, high) — UPSTREAM
+## ISSUE-011 — BendTorch's only attention is causal, so the ViT attends one way (BendTorch, high) — UPSTREAM (filed #17)
 
 **What.** `bendtorch@1.0.1.0`'s `Attention` has no mask argument, and its
 forward is causal by construction: for query position `i`, `qrow` builds
@@ -405,12 +415,23 @@ such.
 
 **Component.** BendTorch (upstream); MLBend works around it.
 
-**Next.** Measure the frozen gate and then M1's legibility with the causal
-model. If causality costs the 0.75 gate, the options are a mask argument
-upstream (the natural PR: `Attention` already builds the `t x t` block
-sparsely, so a `Bool` "causal or not" flag is a small change plus the
-`causal` law's sibling) or a second pass over the reversed token order. The
-second is ours to do and costs 2x compute; the first is the right fix.
+**Filed** as [nuxyel/BendTorch#17](https://github.com/nuxyel/BendTorch/issues/17)
+(2026-10-29), with the signature (both lanes), the shape facts, and the twin
+evidence. The issue states plainly that this is an *expressiveness* gap, not an
+accuracy bug.
+
+**What the mask costs, measured** (3000 steps, the same 16-token ViT, one head,
+width 64, the only difference the mask):
+
+| mask | DDIM 16 | ancestral 64 |
+|---|---|---|
+| causal (what BendTorch can express) | 0.786 | 0.779 |
+| full (upper triangle masked) | 0.754 | 0.774 |
+
+So on this task causality costs nothing measurable — the earlier assumption
+that it was a handicap is not supported by these runs. The reason to want a
+mask is that a ViT encoder, a UNet's mid-block attention and cross-attention
+cannot be written at all without one.
 
 ## ISSUE-012 — the ViT inherited the digits MLP's learning rate (ours, medium) — FIXED
 
@@ -474,7 +495,7 @@ with the same `x0` and ignored `s` for the batch.
 
 ---
 
-## ISSUE-014 — BendTorch has no CUDA path in the published package (BendTorch, high) — UPSTREAM
+## ISSUE-014 — "BendTorch has no CUDA path" (ours, high) — WITHDRAWN, the claim was false
 
 **What.** `bendtorch@1.0.1.0` resolves to a package of eight files —
 `main.bend`, `tensor.bend`, `dtype.bend`, `spec.bend`, `PROOF.bend`,
@@ -496,12 +517,31 @@ at all, so `Attention`, `LayerNorm` and `LinearNB` have no GPU mirror to check.
 M5 stays a CPU-budget decision (10+ h) for Bend, while the comparison's torch
 arms move to the card.
 
-**Component.** BendTorch (upstream): the published package's file set, and the
-absence of a device layer under it.
+**Correction (2026-10-29, the same day).** The core package is the **law-clean
+CPU lane by design**; the lanes are separate hub packages, published by
+`scripts/package.sh`: `bendtorch-fast@1.1.1.0` (`0x7185f584…`),
+`bendtorch-gpu@1.1.1.0` (`0x3c22148d676c2988827dae103c18f499`) and
+`bendtorch-load@1.1.1.0` (`0x0b2d5749…`). `torch/gpu.bend` at v1.0.1 **and**
+v1.1.1 exports `LinearF`, `LinearFirstF`, `LinearNBF`, `Residual` and the same
+`Attention`. This ledger entry read the core's file list as the whole story and
+was wrong; BendTorch#12 was retracted by us for the same reason.
 
-**Next.** Ask upstream for the `gpu.bend` that the repository carries to be in
-the published package, or for a device parameter on the layers. Until then the
-Bend arm is CPU-only and every Bend number in `NOTES.md` is a CPU number —
+**What is actually true, and ours.**
+1. We pin `bendtorch@1.0.1.0` and import only `main.bend` — the CPU lane. The
+   lane switch is a dependency change plus `Linear -> LinearF`,
+   `Attention` unchanged (`#13`, closed, documents the naming gap).
+2. This machine has **no CUDA toolkit**: `bun bend2/main.ts` reports "no CUDA
+   toolkit (include/nvrtc.h under $CUDA_HOME, $CUDA_PATH, /usr/local/cuda or
+   /opt/cuda), so ! runs on the CPU", and the GPU lane needs `libnvrtc` to
+   compile its kernels. That is an environment item (toolkit headers, root), not
+   a package bug.
+
+**Component.** Ours: the dependency and the lane switch, and the machine's
+toolkit.
+
+**Next.** Try `bendtorch@1.1.1.0` + `bendtorch-gpu@1.1.1.0` in a branch, swap the
+linear family, and measure the ViT on the card; install the CUDA toolkit for the
+`nvrtc.h` the RTC lane needs. Until then every Bend number is a CPU number,
 which is now written next to each run (`device` in the arm JSONs).
 
 ---
