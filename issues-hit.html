@@ -62,7 +62,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>Each entry says what happened, why it happened, how it showed up, and which library or component carries the cause. <code>ours</code> means MLBend (this repository); a package name means the published Bend package; <code>lucidrains</code> means the vendored reference in <code>reference/lucidrains/</code>.</p>
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
-  <span><b>10</b> fixed</span>
+  <span><b>11</b> fixed</span>
   <span><b>0</b> open</span>
   <span><b>1</b> upstream</span>
   <span><b>9</b> other</span>
@@ -329,6 +329,22 @@ def main() -&gt; IO(Unit):
 <p><strong>What this means for the compute decision (and it changes it).</strong> Moving a model to the card buys nothing while the per-step work is row building and list conversion. The next measurement is therefore not "GPU vs CPU" but <strong>where a training step's seconds go</strong>: time <code>init_params</code>, one <code>rows_go</code> build, one <code>Mat.from_list</code>, and one forward separately. If, say, 80% is plumbing, CIFAR on this lane is a plumbing problem, not a CUDA problem — and the fix is to build rows once per shape and reuse, which is also what would make a bigger model affordable.</p>
 <p><strong>Component.</strong> Ours: the per-step data plumbing (and the probe's seven <code>init_params</code> calls).</p>
 <p><strong>Verified by.</strong> The <code>nvidia-smi</code> line above, the bit-identical values, and the unchanged wall time — all three, together, and they only make sense together.</p>
+</section><section class="issue" id="issue-019">
+  <header class="ihead">
+    <span class="id">ISSUE-019</span>
+    <span class="badge grn">fixed</span>
+    
+  </header>
+  <h2>a directory named <code>2d</code> cannot be imported, so the DDIM probe went red (ours, high)</h2>
+  <p><strong>When.</strong> 2026-10-30, on the structure branch before it merged.</p>
+<p><strong>What.</strong> After the examples moved into areas, <code>reference/probe_ddim.bend</code> imported <code>../examples/diffusion/2d/main.bend</code>, and the first full check on the branch failed 91/92:</p>
+<pre class="code"><code>Error:
+- expected : an import path of plain names (letters, digits, _ and -; the hub&#x27;s files import the hub&#x27;s)
+- observed : &#x27;../examples/diffusion/2d/main.bend&#x27;</code></pre>
+<p><strong>Why.</strong> Bend requires every segment of an import path to be a plain name that starts with a letter. <code>2d</code> starts with a digit, so the path is refused before the file is read. <code>digits</code> and <code>vit</code> sat in the same position and imported fine — which is why two of the three probes stayed green and hid the rule until the DDIM probe was the only one importing a digit-leading directory.</p>
+<p><strong>Fix.</strong> The directory is <code>examples/diffusion/two_moons</code>; every live path follows it (<code>experiment.py</code>, the README generator, <code>test_diffusion.py</code>, the probe, both READMEs). The task id stays <code>diffusion-2d</code>.</p>
+<p><strong>Component.</strong> Ours: the directory name. The rule is Bend's.</p>
+<p><strong>Verified by.</strong> A two-file minimal build (<code>sub/2d</code> red, <code>sub/two_moons</code> green), the probe alone at 13/13, then <code>make check</code> <strong>92/92</strong> on the renamed tree.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -352,7 +368,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 17:57 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 20:00 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

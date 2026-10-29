@@ -140,8 +140,8 @@ every package at its hub hash, the machine, the seed and the tolerances.
 
 ## The ledger
 
-[`issues-hit.md`](issues-hit.md) is the memory of the repository: twenty dated
-entries, ten fixed, one upstream, none open, and the rest corrections,
+[`issues-hit.md`](issues-hit.md) is the memory of the repository: twenty-one
+dated entries, eleven fixed, one upstream, none open, and the rest corrections,
 withdrawals and diagnoses. It renders to
 [`issues-hit.html`](issues-hit.html) with `make issues`.
 

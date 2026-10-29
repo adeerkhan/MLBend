@@ -760,6 +760,38 @@ unchanged wall time — all three, together, and they only make sense together.
 
 ---
 
+## ISSUE-019 — a directory named `2d` cannot be imported, so the DDIM probe went red (ours, high) — FIXED
+
+**When.** 2026-10-30, on the structure branch before it merged.
+
+**What.** After the examples moved into areas, `reference/probe_ddim.bend`
+imported `../examples/diffusion/2d/main.bend`, and the first full check on the
+branch failed 91/92:
+
+```
+Error:
+- expected : an import path of plain names (letters, digits, _ and -; the hub's files import the hub's)
+- observed : '../examples/diffusion/2d/main.bend'
+```
+
+**Why.** Bend requires every segment of an import path to be a plain name that
+starts with a letter. `2d` starts with a digit, so the path is refused before
+the file is read. `digits` and `vit` sat in the same position and imported
+fine — which is why two of the three probes stayed green and hid the rule
+until the DDIM probe was the only one importing a digit-leading directory.
+
+**Fix.** The directory is `examples/diffusion/two_moons`; every live path
+follows it (`experiment.py`, the README generator, `test_diffusion.py`, the
+probe, both READMEs). The task id stays `diffusion-2d`.
+
+**Component.** Ours: the directory name. The rule is Bend's.
+
+**Verified by.** A two-file minimal build (`sub/2d` red, `sub/two_moons`
+green), the probe alone at 13/13, then `make check` **92/92** on the renamed
+tree.
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said
