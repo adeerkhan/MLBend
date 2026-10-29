@@ -58,11 +58,30 @@ nearest-digit MSE:**
 |---|---|---|---|---|
 | torch-ViT (causal, 1 head, lr 3e-3, batch 64) | 0.786 | 0.779 | 0.0602 | 0.0633 |
 | lucidrains UNet | 0.932 | 0.940 | 0.0202 | 0.0183 |
+| Bend-ViT, **1200 steps** (committed) | **0.341** | **0.342** | 0.2100 | 0.1988 |
 
-The Bend arm's row was still training when this was written; `reference/vit_results.py
-<log>` writes `results/diffusion-vit/{run.json,loss.svg,grid.svg,REPORT.md}`,
-and `reference/compare_vit.py` gathers all three arms into
-`results/compare/{compare.json,index.html}`.
+**The Bend arm is not converged**: 1200 steps against the comparison's 3000,
+legibility 0.341 — just above random 0.326. `results/diffusion-vit/` and
+`results/compare/` are complete end to end from that run (card, loss curve,
+grid, three-arm JSON and page, each row labelled with its training steps).
+The 3000-step run is `./scripts/vit.sh m1`; when it lands,
+`STEPS=3000 ./scripts/vit.sh m1-results` and `./scripts/vit.sh compare` rewrite
+both, and the legibility gate (`reference/vit_gates.py`, still not a `test_*`
+because 0.341 fails it) can be renamed into `make check` only if the number
+clears 0.75.
+
+**`scripts/vit.sh`** is now the way to run any of it: `m1`, `m1-results`,
+`gates`, `arms`, `compare`, `check`, `status`, `stop`. Each stage runs under
+`setsid nohup` in its own session with `stdbuf -oL` (Bend buffers its stdout)
+and drops a `.done` file with its exit code, because four runs died to process
+management on 2026-10-28 and a killed run cannot be sampled. `STEPS` is
+compiled into a copy placed beside the example, `THREADS=3` for the torch arms.
+
+**A print-position bug found at the end:** `train_go` prints the record's loss
+*before* stepping, so the first line was the initial `0.0` and step 0's loss
+never appeared. It now prints at `i % 25 == 1` (so `i = 1` carries step 0), and
+`vit_results.py` can take a run's step-0 loss from `VIT_FIRST_LOG` (a 30-step
+run) — measured **1.0069675**, which is `twin.loss_at(0)` to the digit.
 
 **The twin's gates, measured** (`reference/vit_gate.py`): frozen `eps` maxabs
 **1.19e-07**, one ancestral step **4.77e-07**, the DDIM cloud **6.38e-06**,
