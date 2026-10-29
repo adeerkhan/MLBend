@@ -66,6 +66,11 @@ POS_MODE = os.environ.get("POS", "learned")
 CAUSAL = os.environ.get("CAUSAL") == "1"
 # DEVICE=cuda on the card; the arm is 64 wide, so on the CPU 3 threads beat 16
 DEVICE = os.environ.get("DEVICE", "cpu")
+# TRAIN=bend reproduces the Bend example's loop instead of the usual one:
+# one timestep for the whole batch, the digit chunk rotating once per sweep,
+# the step index seeding the noise. Everything else stays the same, so a
+# difference in the cloud is attributable to the loop.
+BEND_LOOP = os.environ.get("TRAIN") == "bend"
 
 
 def pos_features():
@@ -197,9 +202,16 @@ def main():
     opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=0.01, betas=(0.9, 0.999))
     losses = []
     for s in range(STEPS):
-        idx = torch.randint(0, N, (BATCH,)).to(dev())
-        t = torch.randint(0, T, (BATCH,)).to(dev())
-        eps = torch.randn(BATCH, D, device=dev())
+        if BEND_LOOP:
+            chunk = (s // 64) % (N // BATCH)
+            idx = torch.arange(chunk * BATCH, (chunk + 1) * BATCH, device=dev())
+            t = torch.full((BATCH,), s % T, dtype=torch.long, device=dev())
+            torch.manual_seed(s)
+            eps = torch.randn(BATCH, D, device=dev())
+        else:
+            idx = torch.randint(0, N, (BATCH,)).to(dev())
+            t = torch.randint(0, T, (BATCH,)).to(dev())
+            eps = torch.randn(BATCH, D, device=dev())
         a = abar[t].unsqueeze(1)
         xt = a * x0[idx] + torch.sqrt(1 - a) * eps
         out = unpatchify(model(patchify(xt), tembs[t]))
@@ -230,7 +242,7 @@ def main():
     if len(sys.argv) > 1:
         out = {"arm": "torch-vit", "params": n_params, "steps": STEPS, "batch": BATCH,
                "lr": LR, "heads": HEADS, "pos": POS_MODE, "causal": CAUSAL,
-               "device": DEVICE,
+               "device": DEVICE, "train_loop": "bend" if BEND_LOOP else "torch",
                "loss": {"first": losses[0], "final": losses[-1]},
                "nearest_mse": None, "per_sampler": report}
         os.makedirs(os.path.dirname(os.path.abspath(sys.argv[1])), exist_ok=True)

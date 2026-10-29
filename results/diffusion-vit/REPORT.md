@@ -6,14 +6,14 @@ sampled by the 16-step DDIM walk with the clamped start.
 | | value |
 |---|---|
 | first loss | 1.006968 |
-| final loss | 0.001328 (minimum 0.001219) |
-| legibility (mean, min, max) | **0.371**, 0.249, 0.593 |
+| final loss | 0.001369 (minimum 0.001052) |
+| legibility (mean, min, max) | **0.358**, 0.240, 0.581 |
 | steps | 3000 (the comparison's arms train 3000) |
-| cloud mean / std | +0.2595 / 0.2799 (data 0.3076 / 0.3767) |
-| pixels in [0,1] | 4091/4096 |
-| nearest-digit MSE | 0.1942 (uniform noise 0.266) |
+| cloud mean / std | +0.2561 / 0.2782 (data 0.3076 / 0.3767) |
+| pixels in [0,1] | 4092/4096 |
+| nearest-digit MSE | 0.1938 (uniform noise 0.266) |
 
-> Run before the ISSUE-015 fix (each chunk saw 4 of 64 timesteps).
+> Fixed chunk/timestep rotation (ISSUE-015): 0.358 against 0.371 before the fix — the lock was not the cause.
 
 Legibility is the best absolute correlation of each sample with any training
 digit, averaged. Random images score 0.326, the digits MLP 0.408, torch's
