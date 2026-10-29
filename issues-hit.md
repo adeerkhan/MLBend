@@ -663,6 +663,52 @@ the same model.
 
 ---
 
+## ISSUE-017 — a Nat product past 2^48-1 fail-stops the run (bendlang/bend, high) — WORKED AROUND
+
+**What.** `m1-img`, the per-image-timestep run, died at **step ~1700 of 3000**
+with
+
+```
+bend: a Nat past the largest immediate 2^48-1
+```
+
+and exit 1 — mid-training, 68 printed steps in, no NaN, no traceback, no
+partially written cloud. The cause was arithmetic, not the model: the per-image
+Weyl mixer computes `(i + s·64) · 2 654 435 761`, and with `s` up to 3000 that
+product is ≈ **5.1e14**, which crosses 2^48−1 = **2.81e14** at **s ≈ 1653**.
+Bend's `Nat` **does not wrap** past the largest immediate: it stops the program.
+Found 2026-10-29, 19:10.
+
+**Why it matters.** The failure is silent about *where* — a step number in a
+loss curve and a message about `Nat` is the whole diagnostic. It is also a
+constraint on library code: a mixing product in `Nat` looks safe because `Nat`
+is arbitrary-precision arithmetic in the abstract, and the runtime is exact
+until it is not. `m1-rand`'s earlier mixer (`s · 2 654 435 761`, s ≤ 3000 →
+7.9e12) stayed under the bound by a factor of 35, which is how the same shape
+passed there and failed here.
+
+**Fix.** `t_img` uses **`U32`** for the mixer, where wrapping is the intent:
+`U32.mul(U32.from_nat(...), 2654435761)`, then `U32.div(x, 2^26)` and
+`U32.mod(..., 64)`. The schedule's **values are bit-identical** to the `Nat`
+version: subtracting a multiple of 2^32 shifts `x >> 26` by a multiple of 64,
+and the result is taken mod 64, so the wrap cannot change it — only the
+overflow goes away. The twin mirrors the wrap so the first-loss comparison is
+unchanged (`loss_at(0)` = 1.0093014 either way).
+
+**Component.** bendlang/bend (the runtime's `Nat` immediate) as a constraint;
+ours (the arithmetic that hit it).
+
+**Next.** Worth an upstream note rather than an issue: the message is good, but
+a `Nat` that *looks* arbitrary-precision and stops the program at a product is a
+footgun for library authors, and `U32` is the intended tool for a mixer. If
+someone reproduces it in ten lines it may deserve an issue of its own; the
+`spin_fault` test already carries the message.
+
+**Verified by.** The run's last line (above), the step where it died against the
+arithmetic (1653), and the relaunched run (`m1-img2`) which passes that step.
+
+---
+
 ## Checked and dismissed
 
 - **`accelerate` "no matching distribution" on Python 3.14.** pip said

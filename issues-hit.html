@@ -65,7 +65,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
   <span><b>9</b> fixed</span>
   <span><b>1</b> open</span>
   <span><b>2</b> upstream</span>
-  <span><b>6</b> other</span>
+  <span><b>7</b> other</span>
 </div>
 <section class="issue" id="upstream-requests">
   <header class="ihead">
@@ -300,6 +300,21 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> The Weyl change (<code>t_of</code>/<code>chunk_of</code>) is kept — it is harmless and it decouples the timestep from the chunk — but it is <strong>not</strong> the fix. The fix is per-image timesteps, and it is the next change to the example.</p>
 <p><strong>Component.</strong> Ours: <code>examples/diffusion_vit/main.bend</code> (the training loop), and the twin's <code>loss_at</code>.</p>
 <p><strong>Verified by.</strong> The corrected six-row table above, each row a 3000-step run of the same model.</p>
+</section><section class="issue" id="issue-017">
+  <header class="ihead">
+    <span class="id">ISSUE-017</span>
+    <span class="badge b0">worked around</span>
+    
+  </header>
+  <h2>a Nat product past 2^48-1 fail-stops the run (bendlang/bend, high)</h2>
+  <p><strong>What.</strong> <code>m1-img</code>, the per-image-timestep run, died at <strong>step ~1700 of 3000</strong> with</p>
+<pre class="code"><code>bend: a Nat past the largest immediate 2^48-1</code></pre>
+<p>and exit 1 — mid-training, 68 printed steps in, no NaN, no traceback, no partially written cloud. The cause was arithmetic, not the model: the per-image Weyl mixer computes <code>(i + s·64) · 2 654 435 761</code>, and with <code>s</code> up to 3000 that product is ≈ <strong>5.1e14</strong>, which crosses 2^48−1 = <strong>2.81e14</strong> at <strong>s ≈ 1653</strong>. Bend's <code>Nat</code> <strong>does not wrap</strong> past the largest immediate: it stops the program. Found 2026-10-29, 19:10.</p>
+<p><strong>Why it matters.</strong> The failure is silent about *where* — a step number in a loss curve and a message about <code>Nat</code> is the whole diagnostic. It is also a constraint on library code: a mixing product in <code>Nat</code> looks safe because <code>Nat</code> is arbitrary-precision arithmetic in the abstract, and the runtime is exact until it is not. <code>m1-rand</code>'s earlier mixer (<code>s · 2 654 435 761</code>, s ≤ 3000 → 7.9e12) stayed under the bound by a factor of 35, which is how the same shape passed there and failed here.</p>
+<p><strong>Fix.</strong> <code>t_img</code> uses <strong><code>U32</code></strong> for the mixer, where wrapping is the intent: <code>U32.mul(U32.from_nat(...), 2654435761)</code>, then <code>U32.div(x, 2^26)</code> and <code>U32.mod(..., 64)</code>. The schedule's <strong>values are bit-identical</strong> to the <code>Nat</code> version: subtracting a multiple of 2^32 shifts <code>x &gt;&gt; 26</code> by a multiple of 64, and the result is taken mod 64, so the wrap cannot change it — only the overflow goes away. The twin mirrors the wrap so the first-loss comparison is unchanged (<code>loss_at(0)</code> = 1.0093014 either way).</p>
+<p><strong>Component.</strong> bendlang/bend (the runtime's <code>Nat</code> immediate) as a constraint; ours (the arithmetic that hit it).</p>
+<p><strong>Next.</strong> Worth an upstream note rather than an issue: the message is good, but a <code>Nat</code> that *looks* arbitrary-precision and stops the program at a product is a footgun for library authors, and <code>U32</code> is the intended tool for a mixer. If someone reproduces it in ten lines it may deserve an issue of its own; the <code>spin_fault</code> test already carries the message.</p>
+<p><strong>Verified by.</strong> The run's last line (above), the step where it died against the arithmetic (1653), and the relaunched run (<code>m1-img2</code>) which passes that step.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -323,7 +338,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 14:02 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 15:43 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>
