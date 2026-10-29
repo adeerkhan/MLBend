@@ -155,7 +155,8 @@ sampled by the 16-step DDIM walk with the clamped start.
 | first loss | {losses[0]:.6f} |
 | final loss | {final:.6f} (minimum {min(losses):.6f}) |
 | legibility (mean, min, max) | **{m:.3f}**, {lo:.3f}, {hi:.3f} |
-| cloud mean / std | {run['cloud']['mean']:+.4f} / {run['cloud']['std']:.4f} (data {DATA_MEAN} / {DATA_STD}) |
+| steps | {run['steps']} (the comparison's arms train 3000) |
+| cloud mean / std | {run['cloud']['mean']:+.4f} / {run['cloud']['std']:.4f} (data {DATA_MEAN:.4f} / {DATA_STD:.4f}) |
 | pixels in [0,1] | {unit}/{len(clouds["ddim"])} |
 | nearest-digit MSE | {run["nearest_mse"].get("ddim", float("nan")):.4f} (uniform noise 0.266) |
 
