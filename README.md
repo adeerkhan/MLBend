@@ -103,7 +103,7 @@ that is the slow part.
 |---|---|---|---|
 | `diffusion/vit` | optdigits, 1024 × 8×8 | legibility of 4096 samples, three arms | **0.783 / 0.807** (torch 0.790 / 0.779) |
 | `diffusion/digits` | optdigits, 1024 × 8×8 | first loss against the twin; cloud statistics | 1.0039 (twin agrees to 2.9e-8) |
-| `diffusion/2d` | two moons, 128 × 2 | loss curve, cloud mean and std | 152.95 → 0.065 |
+| `diffusion/two_moons` | two moons, 128 × 2 | loss curve, cloud mean and std | 152.95 → 0.065 |
 | `transformers/periodic` | periodic 0…7, 32 × 8 | loss and next-token accuracy | 2.359 → 0.002, accuracy 1.00 |
 | `transformers/attention` | synthetic 4 × 8 | every output against NumPy | checksum 1.76295, Δ 3.3e-9 |
 | `classification/crossval` | iris, 150 × 4 | five stratified folds, no leakage | 0.9307 ± 0.006 (sklearn 0.9307) |

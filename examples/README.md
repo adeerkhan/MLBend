@@ -12,7 +12,7 @@ and a `plot.svg`.
 | [`classification/naive_bayes`](classification/naive_bayes) | the Gaussian baseline over breast cancer: the gradient-free reference point |
 | [`classification/naive_bayes_heart`](classification/naive_bayes_heart) | the same baseline on heart failure: a second dataset |
 | [`classification/crossval`](classification/crossval) | the whole chain: a scaler fitted on each training fold, logistic regression, stratified folds, no leakage |
-| [`diffusion/2d`](diffusion/2d) | a DDPM denoiser trained and sampled on two moons |
+| [`diffusion/two_moons`](diffusion/two_moons) | a DDPM denoiser trained and sampled on two moons |
 | [`diffusion/digits`](diffusion/digits) | the same over 1024 real 8×8 optdigits images |
 | [`diffusion/vit`](diffusion/vit) | a transformer denoiser on the same digits, against a PyTorch twin and the lucidrains UNet |
 | [`transformers/attention`](transformers/attention) | a single-head self-attention block in plain Bend, checked against NumPy |

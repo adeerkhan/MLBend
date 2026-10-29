@@ -317,7 +317,7 @@ TASKS = {
     },
     "diffusion-2d": {
         "description": "a DDPM denoiser trained and sampled on two moons, BendTorch against NumPy",
-        "program": "examples/diffusion/2d/main.bend",
+        "program": "examples/diffusion/two_moons/main.bend",
         "dataset": {"name": "two-moons", "rows": 128, "features": 2,
                     "source": "generated: two interleaved half-circles on a fixed grid"},
         "seed": 0,

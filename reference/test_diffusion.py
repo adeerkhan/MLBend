@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/test_diffusion.py
 
-`examples/diffusion/2d/main.bend` trains a three-linear-layer denoiser with
+`examples/diffusion/two_moons/main.bend` trains a three-linear-layer denoiser with
 SiLU, by AdamW, to predict the noise of a DDPM forward process over a
 two-moons dataset of 128 points, then samples two ways: the ancestral
 loop over all 64 rungs and DDIM over every 4th rung (issue #12).
@@ -291,7 +291,7 @@ def stats(x):
 
 def run_bend():
     binary = os.path.join(tempfile.mkdtemp(), "mlbend-diffusion-test")
-    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/diffusion/2d/main.bend")],
+    build = subprocess.run([BEND, "-o", binary, os.path.join(ROOT, "examples/diffusion/two_moons/main.bend")],
                            capture_output=True, text=True, env=ENV, cwd=ROOT)
     if build.returncode != 0:
         raise SystemExit("the Bend program did not build:\n" + build.stdout + build.stderr)
@@ -424,7 +424,7 @@ def main():
     scatter_svg(os.path.join(res, "scatter.svg"), x0, bend_samples, xs, bend_ddim)
     loss_svg(os.path.join(res, "loss.svg"), idx, losses, want)
     json.dump({"created_at": datetime.now(timezone.utc).isoformat(),
-               "example": "examples/diffusion/2d/main.bend",
+               "example": "examples/diffusion/two_moons/main.bend",
                "architecture": "linear(10,32), SiLU, linear(32,32), SiLU, linear(32,2)",
                "process": f"DDPM, T={T}, linear beta 0.0001..0.3, eps-prediction; "
                           "DDIM eta=0, every 4th rung (16 model calls)",

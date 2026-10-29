@@ -5,7 +5,7 @@
 # data, the schedule, the model — and its `main` does not run, because
 # this file is the entry point.
 import Base
-import ../examples/diffusion/2d/main.bend as D
+import ../examples/diffusion/two_moons/main.bend as D
 
 def show_fs_go(xs: List<&2, F32>) -> String:
   match xs:

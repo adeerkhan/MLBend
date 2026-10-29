@@ -263,11 +263,11 @@ def main():
     # the two diffusion examples: their saved picture beside their report's numbers
     src = os.path.join(ROOT, "results/diffusion/scatter.svg")
     if os.path.exists(src):
-        open(os.path.join(ROOT, "examples/diffusion/2d/plot.svg"), "w").write(open(src).read())
+        open(os.path.join(ROOT, "examples/diffusion/two_moons/plot.svg"), "w").write(open(src).read())
     bend = latest("diffusion-2d")["metrics"]
     first = bend["first_loss"]["bend"]
     final = bend["final_loss"]["bend"]
-    write("diffusion/2d", "A DDPM denoiser on two moons",
+    write("diffusion/two_moons", "A DDPM denoiser on two moons",
           "A three-linear-layer SiLU denoiser on `bendtorch@1.0.1.0`, trained by AdamW for "
           "4000 steps to predict the noise of a 64-step linear-β forward process over two "
           "moons, then sampled two ways: the ancestral loop over all 64 rungs, and DDIM "
@@ -275,7 +275,7 @@ def main():
           "no noise at all. Every random number is a pure function of a counter "
           "(murmur3's fmix32 over the step salt and the index, Box-Muller over 24-bit "
           "uniforms), so the NumPy twin draws the same ones.\n\n"
-          "```console\n$ bendenv run -- bend examples/diffusion/2d/main.bend\n```\n\n"
+          "```console\n$ bendenv run -- bend examples/diffusion/two_moons/main.bend\n```\n\n"
           f"First loss **{first:.4f}** against the twin's — the gate — and final loss "
           f"**{final:.4f}**, reported. Both clouds' statistics are report-mode: the "
           "optimizers round differently and a 64-step loop amplifies a ulp. The curve, "
