@@ -254,6 +254,24 @@ def bend_init(seed=1):
     return from_flat(flat)
 
 
+def loss_at(s, seed=1):
+    """The loss Bend's step `s` prints: chunk `s mod 16` of the digits, the
+    timestep 1 + s mod 64, the noise of seed s, and the model's MSE against it.
+    `loss_at(0)` is `first_loss()` — the gate checks that too."""
+    from test_diffusion_digits import ALPHAS, noise_of, load
+    x0 = load()
+    chunk = (s % 16) * 64
+    batch = x0[chunk:chunk + 64]
+    t = 1 + s % 64
+    nz = noise_of(s, 4096).reshape(64, 64)
+    a = F(np.sqrt(ALPHAS[t - 1]).astype(F))
+    b = F(np.sqrt(F(1.0) - ALPHAS[t - 1]).astype(F))
+    mixed = F(F(a * batch) + F(b * nz))
+    out = forward(bend_init(seed), tokens_of(mixed, t))
+    tgt = target_of(nz)
+    return float(np.mean(F(out - tgt) ** 2))
+
+
 def first_loss(seed=1):
     """The loss of step 0, on Bend's exact window: t = 1, the first 64 digits,
     and noise_of(0)'s first 4096 values."""

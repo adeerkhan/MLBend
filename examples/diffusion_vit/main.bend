@@ -419,9 +419,11 @@ def do_step(+s: Nat, tr: T.Train<ModelP()>, +x0: List<&2, F32>) -> T.Train<Model
     ~TA.Mat<RW(), PX()>(), ~Model(), ~mse, cfg(), tr,
     step_in(s, t, x0), step_tgt(s))
 
+# `l` is the loss of the step before the call, so i = 1 carries step 0's loss —
+# printing at i = 0 prints the record's initial 0.0 instead (which is how the
+# first loss went missing until 2026-10-29).
 def should_print(+i: Nat) -> Bool:
-  Bool.or(Bool.or(Nat.is_eq(i, 0n), Nat.is_eq(Nat.mod(i, 25n), 0n)),
-    Nat.is_eq(i, 199n))
+  Bool.or(Nat.is_eq(Nat.mod(i, 25n), 1n), Nat.is_eq(i, 199n))
 
 def print_or(sp: Bool, +l: F32) -> IO(Unit):
   match sp:
@@ -659,7 +661,7 @@ def print_cloud(st: VS, tag: String) -> IO(ModelP()):
       do IO<ModelP()>:
         IO.print(String.append("sample_mean: ", F32.show(D.mean_of(px, 4096n))))
         IO.print(String.append("sample_std: ", F32.show(D.std_of(px, 4096n))))
-        IO.print(String.append(tag, show_cloud(px)))
+        IO.print(String.append(tag, String.append(" ", show_cloud(px))))
         return p
 
 # Both walks from the one trained model, on the one starting cloud: the

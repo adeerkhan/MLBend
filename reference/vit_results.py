@@ -41,7 +41,7 @@ def parse(text):
             vals[k] = float(m.group(1))
     clouds = {}
     for key, tag in (("ddim", "samples"), ("ddpm", "samples_ddpm")):
-        m = re.search(rf"^{tag}: (.+)$", text, re.M)
+        m = re.search(rf"^{tag}:\s*(.+)$", text, re.M)
         if m:
             clouds[key] = np.array([float(v) for v in m.group(1).split()], dtype=np.float32)
     if not losses or not clouds:
@@ -97,6 +97,18 @@ def main():
         raise SystemExit(__doc__.strip().splitlines()[2].strip())
     text = open(sys.argv[1]).read()
     losses, final, vals, clouds = parse(text)
+    # the step-0 loss is measurable on its own, deterministically (the init is
+    # seeded): a 30-step run's first print is exactly it, so `VIT_FIRST_LOG`
+    # lets a long run's report carry it even if that run was built before the
+    # print position was fixed.
+    first_log = os.environ.get("VIT_FIRST_LOG")
+    if first_log and os.path.exists(first_log):
+        for line in open(first_log):
+            if line.startswith("loss: "):
+                v = float(line.split(": ", 1)[1])
+                if v > 0.0:
+                    losses = [v] + [x for x in losses if x > 0.0]
+                    break
     data = load()
     DATA_MEAN, DATA_STD = float(data.mean()), float(data.std())
     m, lo, hi = legibility(clouds["ddim"], data)
@@ -104,6 +116,7 @@ def main():
     run = {
         "task": "diffusion-vit",
         "program": "examples/diffusion_vit/main.bend",
+        "steps": int(os.environ.get("VIT_STEPS", 0) or 0),
         "loss_points": len(losses),
         "first_loss": losses[0],
         "final_loss": final,

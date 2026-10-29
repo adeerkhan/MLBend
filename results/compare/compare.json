@@ -1,0 +1,116 @@
+{
+  "task": "compare-vit",
+  "data": "optdigits, first 1024 rows (sha256 pinned)",
+  "starting_cloud": "noise_of(2000000, 4096)",
+  "arms": {
+    "bend-vit": {
+      "what": "Bend, examples/diffusion_vit (causal attention, pre-LN, 100,736 params)",
+      "source": "results/diffusion-vit/run.json",
+      "train_steps": 1200,
+      "loss": {
+        "first": 1.0069675,
+        "final": 0.0032849999
+      },
+      "samplers": {
+        "ddim": {
+          "steps": 16,
+          "cloud": null,
+          "legibility": 0.3410858605681112,
+          "legibility_min": null,
+          "legibility_max": null,
+          "nearest_mse": 0.2100175264684566
+        },
+        "ddpm": {
+          "steps": 64,
+          "cloud": null,
+          "legibility": 0.3415599052314118,
+          "legibility_min": null,
+          "legibility_max": null,
+          "nearest_mse": 0.1987857794744414
+        }
+      }
+    },
+    "torch-vit": {
+      "what": "PyTorch, the same architecture and hyperparameters",
+      "source": "results/compare/torch-vit.json",
+      "train_steps": 3000,
+      "loss": {
+        "first": 1.461523175239563,
+        "final": 0.07192322611808777
+      },
+      "samplers": {
+        "ddim": {
+          "steps": 16,
+          "cloud": {
+            "mean": 0.26893705129623413,
+            "std": 0.31033337116241455,
+            "min": 0.0,
+            "max": 1.0,
+            "in_unit": 4096,
+            "n": 4096
+          },
+          "legibility": 0.7858015467600863,
+          "legibility_min": 0.6751990743360762,
+          "legibility_max": 0.8744116011743073,
+          "nearest_mse": 0.0602221047099336
+        },
+        "ddpm": {
+          "steps": 64,
+          "cloud": {
+            "mean": 0.2704935669898987,
+            "std": 0.33625006675720215,
+            "min": 0.0,
+            "max": 0.9999977350234985,
+            "in_unit": 4096,
+            "n": 4096
+          },
+          "legibility": 0.778908508190803,
+          "legibility_min": 0.6459217128261044,
+          "legibility_max": 0.8564084950043069,
+          "nearest_mse": 0.06326394096417172
+        }
+      }
+    },
+    "lucidrains-unet": {
+      "what": "the vendored lucidrains UNet",
+      "source": "results/lucidrains-diffusion/run.json",
+      "train_steps": 3000,
+      "loss": {
+        "first": 0.9633966088294983,
+        "final": 0.07796917110681534
+      },
+      "samplers": {
+        "ddim": {
+          "steps": 16,
+          "cloud": {
+            "mean": 0.275334894657135,
+            "std": 0.33746904134750366,
+            "min": 0.0,
+            "max": 1.0,
+            "in_unit": 4096,
+            "n": 4096
+          },
+          "legibility": 0.9321803245032413,
+          "legibility_min": 0.8464200822613881,
+          "legibility_max": 0.9712732650086714,
+          "nearest_mse": 0.020217949259913645
+        },
+        "ddpm": {
+          "steps": 64,
+          "cloud": {
+            "mean": 0.28373104333877563,
+            "std": 0.35231447219848633,
+            "min": 0.0,
+            "max": 1.0,
+            "in_unit": 4096,
+            "n": 4096
+          },
+          "legibility": 0.9401984095591389,
+          "legibility_min": 0.8786640892800957,
+          "legibility_max": 0.9786058248809383,
+          "nearest_mse": 0.018293164532119276
+        }
+      }
+    }
+  }
+}

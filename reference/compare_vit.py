@@ -83,7 +83,8 @@ def main():
             continue
         raw = json.load(open(path))
         entry = {"what": blurb, "source": os.path.relpath(path, ROOT),
-                 "loss": losses(raw, arm), "samplers": {}}
+                 "train_steps": raw.get("steps"), "loss": losses(raw, arm),
+                 "samplers": {}}
         for name, v in per_sampler(raw, arm).items():
             entry["samplers"][name] = {
                 "steps": 16 if name == "ddim" else 64,
@@ -113,7 +114,8 @@ def main():
                 continue
             c = s.get("cloud") or {}
             rows.append(
-                f"<tr><td>{arm}</td><td>{name} ({s['steps']} steps)</td>"
+                f"<tr><td>{arm} <span class=dim>· {entry.get('train_steps')} train</span></td>"
+                f"<td>{name} ({s['steps']} steps)</td>"
                 f"<td class=num>{cell(entry['loss'].get('first'), '{:.4f}')}</td>"
                 f"<td class=num>{cell(entry['loss'].get('final'), '{:.4f}')}</td>"
                 f"<td class=num>{cell(s.get('legibility'))}</td>"

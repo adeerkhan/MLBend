@@ -69,7 +69,8 @@ m1)
   ;;
 m1-results)
   finish "m1$STAGE" || exit 1
-  OUT="$LOG/results$STAGE" "$PY" "$ROOT/reference/vit_results.py" "$LOG/m1$STAGE.log"
+  OUT="${OUT:-$ROOT/results/diffusion-vit}" VIT_STEPS="$STEPS" \
+    "$PY" "$ROOT/reference/vit_results.py" "$LOG/m1$STAGE.log"
   ;;
 gates)
   start gates "'$PY' '$ROOT/reference/vit_gate.py'"
