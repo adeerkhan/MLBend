@@ -610,7 +610,7 @@ is still chunk 0 (`loss_at(0)` unchanged at 1.0069675). A fresh 3000-step run
 
 ---
 
-## ISSUE-016 — one timestep per batch, not per image, costs ~0.36 legibility (ours, high) — OPEN
+## ISSUE-016 — one timestep per batch, not per image, costs ~0.36 legibility (ours, high) — FIXED
 
 **What.** The training loop draws **one timestep for the whole 64-digit batch**
 (`t = t_of(s)`), where the reference draws a timestep **per image**. That single
@@ -656,9 +656,13 @@ today appends one `te` to every row). That is a real but contained change:
 twin's `loss_at` mirrors it. Step 0 is still `t = 1`, so the first-loss gate is
 unchanged.
 
-**Status.** The Weyl change (`t_of`/`chunk_of`) is kept — it is harmless and it
-decouples the timestep from the chunk — but it is **not** the fix. The fix is
-per-image timesteps, and it is the next change to the example.
+**Fixed 2026-10-29.** Per-image timesteps are in the example: a level per image
+from a Weyl sequence over `(s, i)`, a per-image `a`/`b` in the input mix
+(`mix_img`) and a per-image 8-value time embedding (`rows_img`). The 3000-step
+run then reached **0.783 DDIM / 0.807 ancestral** (nearest-digit MSE
+0.0618/0.0569, cloud +0.3007/0.3450 against the data's 0.3076/0.3767), landing
+on the torch arm's 0.790/0.779 exactly as the table predicted. The Weyl
+schedule stayed; it was harmless and it decouples the level from the chunk.
 
 **Component.** Ours: `examples/diffusion_vit/main.bend` (the training loop), and
 the twin's `loss_at`.
@@ -714,49 +718,45 @@ arithmetic (1653), and the relaunched run (`m1-img2`) which passes that step.
 
 ---
 
-## ISSUE-018 — linking libnvrtc is not proof the model runs on the card (ours, high) — OPEN
+## ISSUE-018 — the model runs on the card, and it does not get faster (ours, high) — DIAGNOSED
 
-**What.** The ViT was switched to the GPU lane (`bendtorch@1.1.1.0` +
-`bendtorch-gpu@1.1.1.0`, eight `LinearNBF` and one `F.Attention`), built with
-`CUDA_HOME=~/.local/cuda-nvrtc`, and `ldd` says **it links `libnvrtc`**. Then:
+**What.** The ViT switched to the GPU lane (`bendtorch@1.1.1.0` +
+`bendtorch-gpu@1.1.1.0`, eight `LinearNBF`, one `F.Attention`), built with
+`CUDA_HOME=~/.local/cuda-nvrtc`. Three measurements, in the order they were
+taken, and the third is the one that counts:
 
-| | |
+| measurement | result |
 |---|---|
-| `eps`, `ddim` from the GPU build | **bit-identical** to the CPU build, every printed digit |
-| wall time | **5m44s**, the same as the CPU build (≈5m) |
+| `ldd` on the binary | links `libnvrtc` |
+| frozen `eps` / `ddim` | **bit-identical** to the CPU lane, every printed digit |
+| wall time | 5m44s, the same as the CPU lane |
+| **`nvidia-smi --query-compute-apps` during the run** | **`3553191, 104 MiB`** — it is on the card, twice, 45 s apart |
 
-No speedup at all. So whatever the binary links, the model's work is not moving
-to the device. Measured 2026-10-29, 20:40.
+So my first reading ("linking is not execution") was **wrong**, and the witness
+is what corrected it. The device executes; the numbers are exactly the host's;
+and the time does not move.
 
-**Why this is not a surprise in hindsight.** BendTorch's own device proof,
-`make gpu`, exercises **programs that call the bangs directly**
-(`demo/gpu_test.bend`, `demo/gpu_layers_test.bend`). Our model calls the same
-layer defs through `T.Seq`/`T.Residual` **closures**, and the compiler's
-"this program uses `!`" detection (and/or the runtime's dispatch) evidently does
-not follow a layer record's closures to the bang underneath. The project's own
-comment says as much for the JS lane: *"`bend -o` … so `!` runs on the CPU"* was
-the warning we saw when no CUDA toolkit was found — with the toolkit present the
-warning is silent, and silence is not execution.
+**Why the time does not move.** The probe's cost is not the matmuls. Each run
+calls `init_params()` seven times (a 100,736-parameter model built through
+`fill_go`/`Layer.load` over lists), builds 1024 rows per forward with
+`rows_go`/`Mat.from_list`, and converts back with `Mat.to_list`. Those are host
+list operations, and they dominate a 1024×64 forward on an 8 GB card by orders
+of magnitude. The device is idle most of the wall clock.
 
-**What is still true and useful.** The bump from `1.0.1.0` to `1.1.1.0` did not
-change the mathematics: the frozen `eps`/`ddim` values are **bit-identical** to
-the CPU lane's, so the whole gate suite carries over (the twin tolerances stay
-where they were). The port is correct; the *dispatch* is what is missing.
+**What this means for the compute decision (and it changes it).** Moving a model
+to the card buys nothing while the per-step work is row building and list
+conversion. The next measurement is therefore not "GPU vs CPU" but **where a
+training step's seconds go**: time `init_params`, one `rows_go` build, one
+`Mat.from_list`, and one forward separately. If, say, 80% is plumbing, CIFAR on
+this lane is a plumbing problem, not a CUDA problem — and the fix is to build
+rows once per shape and reuse, which is also what would make a bigger model
+affordable.
 
-**Next.** Two candidate mechanisms, both cheap to test: (1) the compiler's
-`uses` scan does not see through `Layer` closures, so a model must call at least
-one bang directly for the binary to be built for the device — test by adding one
-direct bang call and re-timing; (2) the layer closures *are* compiled for the
-device but dispatch per tensor, and the `Mat` we hand them is a host array, so
-no work is offloaded — test with `nvidia-smi --query-compute-apps` **during** a
-run, which is the only witness that cannot lie. Until one of those is answered,
-every "GPU" number we publish is a CPU number, and the ledger says so.
+**Component.** Ours: the per-step data plumbing (and the probe's seven
+`init_params` calls).
 
-**Component.** Ours (how we call the lane) and possibly BendTorch's dispatch;
-to be attributed after the two experiments.
-
-**Verified by.** The bit-identical outputs, the wall time, and the earlier
-`make gpu` proof that the *demos* do execute on the card.
+**Verified by.** The `nvidia-smi` line above, the bit-identical values, and the
+unchanged wall time — all three, together, and they only make sense together.
 
 ---
 

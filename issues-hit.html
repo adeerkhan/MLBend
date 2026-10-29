@@ -62,10 +62,10 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>Each entry says what happened, why it happened, how it showed up, and which library or component carries the cause. <code>ours</code> means MLBend (this repository); a package name means the published Bend package; <code>lucidrains</code> means the vendored reference in <code>reference/lucidrains/</code>.</p>
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
-  <span><b>9</b> fixed</span>
-  <span><b>2</b> open</span>
+  <span><b>10</b> fixed</span>
+  <span><b>0</b> open</span>
   <span><b>1</b> upstream</span>
-  <span><b>8</b> other</span>
+  <span><b>9</b> other</span>
 </div>
 <section class="issue" id="upstream-requests">
   <header class="ihead">
@@ -287,7 +287,7 @@ def main() -&gt; IO(Unit):
 </section><section class="issue" id="issue-016">
   <header class="ihead">
     <span class="id">ISSUE-016</span>
-    <span class="badge ora">open</span>
+    <span class="badge grn">fixed</span>
     <span class="when" title="2026-10-29T16:15:58+05:00">logged 2026-10-29 16:15 UTC</span>
   </header>
   <h2>one timestep per batch, not per image, costs ~0.36 legibility (ours, high)</h2>
@@ -297,7 +297,7 @@ def main() -&gt; IO(Unit):
 <p>So: randomness and period are <strong>not</strong> the cause (0.359 → 0.409 across three different schedules, all one-t-per-batch), and the step from one t per batch to one t per image is <strong>+0.36</strong>.</p>
 <p><strong>Why it matters mathematically.</strong> With one t per batch, every one of the 3000 updates is a gradient at a single noise level; the model is asked to be a different function at each step, and each level gets 3000/64 ≈ 47 updates. The reference's per-image t gives 64 levels *per step* — every update is an average over the whole schedule — which is what makes a denoiser learn one function for all levels. The loss curve says the same thing: Bend's per-step loss is ~1.0 at low t and ~0.002 at high t (the level, not instability), while the torch arm's printed number is an average over levels.</p>
 <p><strong>The fix, and what it touches.</strong> <code>step_in</code> must build the batch with a timestep <strong>per image</strong>: per-image <code>a = sqrt(ᾱ_t)</code>, <code>b = sqrt(1-ᾱ_t)</code> in <code>mix_go</code>, and a per-image 8-value time embedding appended by <code>rows_go</code> (which today appends one <code>te</code> to every row). That is a real but contained change: <code>mix_go</code> and <code>rows_go</code> take one entry per image instead of one for all, and the twin's <code>loss_at</code> mirrors it. Step 0 is still <code>t = 1</code>, so the first-loss gate is unchanged.</p>
-<p><strong>Status.</strong> The Weyl change (<code>t_of</code>/<code>chunk_of</code>) is kept — it is harmless and it decouples the timestep from the chunk — but it is <strong>not</strong> the fix. The fix is per-image timesteps, and it is the next change to the example.</p>
+<p><strong>Fixed 2026-10-29.</strong> Per-image timesteps are in the example: a level per image from a Weyl sequence over <code>(s, i)</code>, a per-image <code>a</code>/<code>b</code> in the input mix (<code>mix_img</code>) and a per-image 8-value time embedding (<code>rows_img</code>). The 3000-step run then reached <strong>0.783 DDIM / 0.807 ancestral</strong> (nearest-digit MSE 0.0618/0.0569, cloud +0.3007/0.3450 against the data's 0.3076/0.3767), landing on the torch arm's 0.790/0.779 exactly as the table predicted. The Weyl schedule stayed; it was harmless and it decouples the level from the chunk.</p>
 <p><strong>Component.</strong> Ours: <code>examples/diffusion_vit/main.bend</code> (the training loop), and the twin's <code>loss_at</code>.</p>
 <p><strong>Verified by.</strong> The corrected six-row table above, each row a 3000-step run of the same model.</p>
 </section><section class="issue" id="issue-017">
@@ -318,18 +318,17 @@ def main() -&gt; IO(Unit):
 </section><section class="issue" id="issue-018">
   <header class="ihead">
     <span class="id">ISSUE-018</span>
-    <span class="badge ora">open</span>
     
+    <span class="when" title="2026-10-29T22:48:31+05:00">logged 2026-10-29 22:48 UTC</span>
   </header>
-  <h2>linking libnvrtc is not proof the model runs on the card (ours, high)</h2>
-  <p><strong>What.</strong> The ViT was switched to the GPU lane (<code>bendtorch@1.1.1.0</code> + <code>bendtorch-gpu@1.1.1.0</code>, eight <code>LinearNBF</code> and one <code>F.Attention</code>), built with <code>CUDA_HOME=~/.local/cuda-nvrtc</code>, and <code>ldd</code> says <strong>it links <code>libnvrtc</code></strong>. Then:</p>
-<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>eps</code>, <code>ddim</code> from the GPU build</td><td><strong>bit-identical</strong> to the CPU build, every printed digit</td></tr><tr><td>wall time</td><td><strong>5m44s</strong>, the same as the CPU build (≈5m)</td></tr></tbody></table></div>
-<p>No speedup at all. So whatever the binary links, the model's work is not moving to the device. Measured 2026-10-29, 20:40.</p>
-<p><strong>Why this is not a surprise in hindsight.</strong> BendTorch's own device proof, <code>make gpu</code>, exercises <strong>programs that call the bangs directly</strong> (<code>demo/gpu_test.bend</code>, <code>demo/gpu_layers_test.bend</code>). Our model calls the same layer defs through <code>T.Seq</code>/<code>T.Residual</code> <strong>closures</strong>, and the compiler's "this program uses <code>!</code>" detection (and/or the runtime's dispatch) evidently does not follow a layer record's closures to the bang underneath. The project's own comment says as much for the JS lane: *"<code>bend -o</code> … so <code>!</code> runs on the CPU"* was the warning we saw when no CUDA toolkit was found — with the toolkit present the warning is silent, and silence is not execution.</p>
-<p><strong>What is still true and useful.</strong> The bump from <code>1.0.1.0</code> to <code>1.1.1.0</code> did not change the mathematics: the frozen <code>eps</code>/<code>ddim</code> values are <strong>bit-identical</strong> to the CPU lane's, so the whole gate suite carries over (the twin tolerances stay where they were). The port is correct; the *dispatch* is what is missing.</p>
-<p><strong>Next.</strong> Two candidate mechanisms, both cheap to test: (1) the compiler's <code>uses</code> scan does not see through <code>Layer</code> closures, so a model must call at least one bang directly for the binary to be built for the device — test by adding one direct bang call and re-timing; (2) the layer closures *are* compiled for the device but dispatch per tensor, and the <code>Mat</code> we hand them is a host array, so no work is offloaded — test with <code>nvidia-smi --query-compute-apps</code> <strong>during</strong> a run, which is the only witness that cannot lie. Until one of those is answered, every "GPU" number we publish is a CPU number, and the ledger says so.</p>
-<p><strong>Component.</strong> Ours (how we call the lane) and possibly BendTorch's dispatch; to be attributed after the two experiments.</p>
-<p><strong>Verified by.</strong> The bit-identical outputs, the wall time, and the earlier <code>make gpu</code> proof that the *demos* do execute on the card.</p>
+  <h2>the model runs on the card, and it does not get faster (ours, high) — DIAGNOSED</h2>
+  <p><strong>What.</strong> The ViT switched to the GPU lane (<code>bendtorch@1.1.1.0</code> + <code>bendtorch-gpu@1.1.1.0</code>, eight <code>LinearNBF</code>, one <code>F.Attention</code>), built with <code>CUDA_HOME=~/.local/cuda-nvrtc</code>. Three measurements, in the order they were taken, and the third is the one that counts:</p>
+<div class="tablewrap"><table><thead><tr><th>measurement</th><th>result</th></tr></thead><tbody><tr><td><code>ldd</code> on the binary</td><td>links <code>libnvrtc</code></td></tr><tr><td>frozen <code>eps</code> / <code>ddim</code></td><td><strong>bit-identical</strong> to the CPU lane, every printed digit</td></tr><tr><td>wall time</td><td>5m44s, the same as the CPU lane</td></tr><tr><td><strong><code>nvidia-smi --query-compute-apps</code> during the run</strong></td><td><strong><code>3553191, 104 MiB</code></strong> — it is on the card, twice, 45 s apart</td></tr></tbody></table></div>
+<p>So my first reading ("linking is not execution") was <strong>wrong</strong>, and the witness is what corrected it. The device executes; the numbers are exactly the host's; and the time does not move.</p>
+<p><strong>Why the time does not move.</strong> The probe's cost is not the matmuls. Each run calls <code>init_params()</code> seven times (a 100,736-parameter model built through <code>fill_go</code>/<code>Layer.load</code> over lists), builds 1024 rows per forward with <code>rows_go</code>/<code>Mat.from_list</code>, and converts back with <code>Mat.to_list</code>. Those are host list operations, and they dominate a 1024×64 forward on an 8 GB card by orders of magnitude. The device is idle most of the wall clock.</p>
+<p><strong>What this means for the compute decision (and it changes it).</strong> Moving a model to the card buys nothing while the per-step work is row building and list conversion. The next measurement is therefore not "GPU vs CPU" but <strong>where a training step's seconds go</strong>: time <code>init_params</code>, one <code>rows_go</code> build, one <code>Mat.from_list</code>, and one forward separately. If, say, 80% is plumbing, CIFAR on this lane is a plumbing problem, not a CUDA problem — and the fix is to build rows once per shape and reuse, which is also what would make a bigger model affordable.</p>
+<p><strong>Component.</strong> Ours: the per-step data plumbing (and the probe's seven <code>init_params</code> calls).</p>
+<p><strong>Verified by.</strong> The <code>nvidia-smi</code> line above, the bit-identical values, and the unchanged wall time — all three, together, and they only make sense together.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -353,7 +352,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 17:48 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-29 17:57 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>
