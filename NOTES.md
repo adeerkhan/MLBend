@@ -3,6 +3,55 @@
 Every finding, every measurement and every discarded hypothesis, by date. Read the
 relevant entry before changing performance-sensitive code or a law.
 
+## 2026-10-29 (later) — the ViT reaches the gate, and the card is not the bottleneck
+
+- **M1 is met.** The ViT denoiser, with **one timestep per image** (the
+  reference's training distribution) and the Weyl schedule kept, reaches
+  **0.783 DDIM / 0.807 ancestral** nearest-digit legibility in 3000 steps at
+  batch 64, nearest-digit MSE 0.0618 / 0.0569, cloud mean/std
+  **+0.3007 / 0.3450** against the data's 0.3076 / 0.3767. The torch arm of the
+  comparison, same architecture and budget, is **0.790 / 0.779**; the lucidrains
+  UNet is 0.932 / 0.940. The gap that remains is the convolution, not the
+  training.
+- **The last variable was the loop, and the isolation table said so.** One
+  timestep per batch: 0.359 / 0.344 (deterministic), 0.392 / 0.441 (random),
+  0.409 (Weyl). One timestep per image: 0.770 / 0.778. The first attempt at that
+  table was **miswired** — the "random" arm drew a timestep *per image* — which
+  is why ISSUE-016's first version is in the ledger with a correction above the
+  table. Read the arm's code before its number.
+- **The gate moved into `make check`**: `reference/test_diffusion_vit.py`, six
+  measured checks (first loss tol 1e-3 from the 1.27e-4 delta between the twin's
+  `loss_at(0)` and the run; forward 1.19e-07; step 4.77e-07; DDIM 6.38e-06;
+  eta = 0 exactly 0; legibility ≥ 0.75; cloud within 1e-6 of [0,1]). **92/92.**
+- **`Nat` fail-stops past 2^48−1; it does not wrap** (ISSUE-017). The per-image
+  Weyl product `(i + s·64)·a` crossed it at `s ≈ 1653` and killed a 3000-step run
+  with `bend: a Nat past the largest immediate 2^48-1` and no location. `U32` is
+  the right type for a mixer, and the wrap is bit-free: `(x − k·2^32) >> 26`
+  differs from `x >> 26` by a multiple of 64.
+- **The GPU lane executes, and buys nothing here** (ISSUE-018). `bendtorch@1.1.1.0`
+  + `bendtorch-gpu@1.1.1.0`, eight `LinearNBF` and one `F.Attention`: the binary
+  links `libnvrtc`, `nvidia-smi` shows the process with **104 MiB on the card**
+  during the run, the frozen values are **bit-identical** to the CPU lane — and
+  the wall time is **unchanged** (5m44 both ways). The reason is where the time
+  goes: seven `init_params()` calls, 1024 rows built per forward, and the list
+  conversions are host work the card cannot touch. **A training step's seconds
+  need splitting before any CIFAR decision**: plumbing against matmul.
+- **Flow matching is much smaller than DDPM.** `reference/flow_probe.py`
+  (rectified flow on two moons, 2×128×128×2, batch 256, 6000 steps, Euler 32):
+  loss **2.1253 → 0.8662**, samples mean [-0.111, 0.150] / std [0.546, 0.745]
+  against the data's [-0.002, -0.000] / [0.583, 0.741], 465/512 inside the data's
+  box. The method is four lines — `x_t = noise·(1−t) + data·t`, `v = data −
+  noise`, MSE, Euler — with no schedule, posterior, sigma, eta, clamp or rungs.
+- **`#1894` closed as a known limit**, not a bug: the JS run path is bounded by
+  the host engine's call stack, the native build is the path for data-sized
+  recursion, and replacing host recursion in the JS emitter is not planned. The
+  house rule stands: data-sized recursion runs from a native binary, under
+  `setsid`, with `stdbuf`.
+- **Two claims of mine were wrong and are corrected where they were made:**
+  ISSUE-014 (the GPU lane is a separate package, not absent) and ISSUE-018's
+  first version ("linking is not execution" — the witness says it is). Both
+  corrections are above the original text, not replacements of it.
+
 ## 2026-10-28 — the ViT denoiser: the residual, causality, and the gates
 
 - **The twin disagreed with Bend at O(1), and the ladder named the operation.**
