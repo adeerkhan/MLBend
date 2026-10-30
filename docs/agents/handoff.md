@@ -80,22 +80,37 @@ time was unchanged (5m44 both ways) against the old data path. After the
 builder fix a step is 131 ms and 95% of it is forward and backward, so the
 card is worth re-measuring.
 
+**Papers and 64x64 (2026-10-30).** The TEM entry is closed as a negative
+result: the 64x64 contrastive arm collapses to a constant energy, the score
+arm needs 12.8M images rather than 32k, and a faithful Bend port needs full
+attention, RoPE and adaLN. The 16x16 lite score arm trains (loss 10.76,
+nearest-test 13.72) but is texture, not a 64x64 result. The next Bend-native
+64x64 target is a rectified-flow ViT on flowers: 64 tokens, width 128, three
+blocks, existing layers only. The device lane is verified on current main
+(104 MiB on the card, CPU and GPU probe outputs bit-identical) and the data
+path is proven: 512 images read in 44 ms and fill an array in 45 ms at depth
+23 (ISSUE-027). The 512-image export is pinned at
+`02385f3ae6c9aa9c0cbe294b45e9758e347cb04abda529352952cd8b7b7075a8`.
+
 ## What is next, in order
 
-1. **Second migration** — package sources under `packages/`, `reference/` under
+1. **64x64 flowers flow on the GPU lane** — the rectified-flow ViT above, the
+   Euler-step comparison at 8/16/32, and a sample grid. The data path and the
+   device lane are ready; the model is not written.
+2. **Second migration** — package sources under `packages/`, `reference/` under
    `apparatus/`; `bend.toml`'s members, the intra-package imports,
    `check_all.py`'s package list and the Makefile. One commit, `make check`
    behind it.
-2. **Flow matching's frozen gate**: a `probe_flow.bend` at the fixed init and
+3. **Flow matching's frozen gate**: a `probe_flow.bend` at the fixed init and
    a `twin_flow.py` for one forward and one Euler step, the way the ViT gates
    work. Then flowers at batch 32 / 11k steps, dataset pinned by sha256.
-3. **`FullAttention`** — the PR we accepted on BendTorch#17: separate def, share
+4. **`FullAttention`** — the PR we accepted on BendTorch#17: separate def, share
    `qrow`/`prow` with the key length, its own three laws over all t,
    `demo/ops_test.bend` + `reference/test_ops.py` against
    `F.scaled_dot_product_attention`, `Attention`'s bits untouched. Then
    `Im2col` (#15: `Im2col(n,h,w,c,k,s,p)`, gather backward, device bangs).
-4. **CIFAR-10** only behind (1), a real step time and a re-measured device lane.
-5. **Ledger hygiene**: 22 entries — 12 fixed, **0 open**, 1 upstream, 9 other.
+5. **CIFAR-10** only behind (1), a real step time and a re-measured device lane.
+6. **Ledger hygiene**: 22 entries — 12 fixed, **0 open**, 1 upstream, 9 other.
    Collapse resolved-and-reported entries to one line in an archive; ISSUE-014
    and ISSUE-018 keep their corrections above the original text on purpose.
 
