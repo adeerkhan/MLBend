@@ -18,10 +18,11 @@ OUT = os.path.join(ROOT, "examples/diffusion/flowers_flow/config.bend")
 # blocks is 1 for every preset: the example's model composition is three blocks
 # only in `full`, and no machine measured here builds that. See config.bend.
 PRESETS = {
-    "tiny":   {"B": 1, "W": 64,  "STEPS": 200,  "EULER": 32},
-    "small":  {"B": 1, "W": 96,  "STEPS": 2000, "EULER": 32},
-    "medium": {"B": 2, "W": 128, "STEPS": 2000, "EULER": 32},
-    "full":   {"B": 8, "W": 128, "STEPS": 2000, "EULER": 32},
+    "tiny":   {"B": 1, "W": 64,  "STEPS": 200,  "EULER": 32, "RES": 64},
+    "small":  {"B": 1, "W": 96,  "STEPS": 2000, "EULER": 32, "RES": 64},
+    "medium": {"B": 2, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64},
+    "full":   {"B": 8, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64},
+    "hi":     {"B": 1, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 256},
 }
 
 HEAD = """# The 64x64 flow's shape, fixed before the compile: every number here is a
@@ -44,8 +45,15 @@ def B() -> Nat:
   {B}n
 
 # one token per 64-pixel row, so the image is read in raster order
+def RES() -> Nat:
+  {RES}n
+
+def DATA() -> String:
+  "/home/adeerkhan/.cache/bend-lab/flowers/flowers{RES}-512-gray.u8"
+
+# one token per row of pixels, so RES tokens per image
 def TK() -> Nat:
-  64n
+  RES()
 
 def W() -> Nat:
   {W}n
@@ -97,7 +105,7 @@ def main():
         return
     open(OUT, "w").write(text)
     print(f"flow-config: {name}  images/step {p['B']}  width {p['W']}  "
-          f"rows {p['B'] * 64}  -> {os.path.relpath(OUT, ROOT)}")
+          f"rows {p['B'] * p['RES']}  -> {os.path.relpath(OUT, ROOT)}")
 
 
 if __name__ == "__main__":

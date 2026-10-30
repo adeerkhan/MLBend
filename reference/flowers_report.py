@@ -28,7 +28,10 @@ import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.expanduser("~/.cache/bend-lab/flowers/flowers64-512-gray.u8")
-DATA_SHA = "6b9c4c66ad5c03939875557d8a77af02845bf924849b4964bcd46b69300a4956"
+DATA_SHA = {
+    64: "6b9c4c66ad5c03939875557d8a77af02845bf924849b4964bcd46b69300a4956",
+    256: "c58eab331d8dddf6b45426c95654755e672020631e18349c03e9c8909b25220e",
+}
 EDGE = 64          # overwritten from the sample block
 IMAGES = 8
 
@@ -50,10 +53,11 @@ def png(path, arr):
         f.write(out)
 
 
-def data_stats():
-    if not os.path.exists(DATA):
+def data_stats(size=64):
+    path = os.path.expanduser(f"~/.cache/bend-lab/flowers/flowers{size}-512-gray.u8")
+    if not os.path.exists(path):
         return None
-    blob = open(DATA, "rb").read()
+    blob = open(path, "rb").read()
     got = hashlib.sha256(blob).hexdigest()
     x = np.frombuffer(blob, dtype=np.uint8).astype(np.float32)
     x = x / np.float32(127.5) - np.float32(1.0)
@@ -126,13 +130,13 @@ def main():
           f"min {v.min():+.4f}  max {v.max():+.4f}  in [-1,1]: "
           f"{int(((v >= -1) & (v <= 1)).sum())}/{v.size}")
 
-    st = data_stats()
+    st = data_stats(EDGE)
     if st is None:
         print(f"data: {DATA} not found, no comparison")
         sha_ok = False
     else:
         got, x = st
-        sha_ok = got == DATA_SHA
+        sha_ok = got == DATA_SHA.get(EDGE)
         print(f"data: mean {x.mean():+.4f}  std {x.std():.4f}  "
               f"min {x.min():+.4f}  max {x.max():+.4f}  sha256 {got[:16]}… "
               f"{'pinned' if sha_ok else 'NOT the pinned export'}")

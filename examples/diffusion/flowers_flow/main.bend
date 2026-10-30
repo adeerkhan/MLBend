@@ -60,7 +60,7 @@ def EULER() -> Nat:
   C.EULER()
 
 def path() -> String:
-  "/home/adeerkhan/.cache/bend-lab/flowers/flowers64-512-gray.u8"
+  C.DATA()
 
 def M(r: Nat, c: Nat) -> Type:
   TA.Mat<r, c>
@@ -254,13 +254,13 @@ def tp_go(fs: List<&2, F32>, +u: F32, +acc: List<&2, F32>) -> List<&2, F32>:
         F32.cos((6.2831855 * f * u : F32)), acc))
 
 def feat(t: F32, k: Nat) -> List<&2, F32>:
-  tp_go(freqs(), t, tp_go(freqs(), (F32.from_nat(k) / 64.0 : F32), Nil{}))
+  tp_go(freqs(), t, tp_go(freqs(), (F32.from_nat(k) / F32.from_nat(TK()) : F32), Nil{}))
 
 type RS is Type:
   RS{data: List<&2, U32>, noise: List<&2, F32>, inp: List<&2, F32>, tgt: List<&2, F32>}
 
 def feats(+t: F32, +k: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
-  tp_go(freqs(), t, tp_go(freqs(), (F32.from_nat(k) / 64.0 : F32), acc))
+  tp_go(freqs(), t, tp_go(freqs(), (F32.from_nat(k) / F32.from_nat(TK()) : F32), acc))
 
 # one pass over the batch: image, row, column; one pixel per call
 def tok_go(+left: Nat, +img: Nat, +row: Nat, +col: Nat, data: List<&2, U32>,
