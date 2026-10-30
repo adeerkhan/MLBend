@@ -29,4 +29,4 @@ The rule for every entry:
 
 | paper | venue | Python | Bend | state |
 |---|---|---|---|---|
-| [TEM](TEM) | arXiv 2610.31889 | negative result | blocked | collapse recorded; Bend blocked on full attention, RoPE and adaLN |
+| [TEM](TEM) | arXiv 2610.31889 | negative result + lite arm | port specified | 64x64 collapses; 16x16 lite score arm trains; Bend port next |

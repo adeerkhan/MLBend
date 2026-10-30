@@ -1,4 +1,5 @@
 *.pt
 *.npy
 *-samples.png
+lite-samples.png
 *-samples-fig.*

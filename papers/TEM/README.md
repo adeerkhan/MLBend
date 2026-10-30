@@ -128,6 +128,42 @@ samples stay noise.
 reduced protocol, the collapse, the denoising variants and the compute wall.
 It does not claim the paper's numbers.
 
+## TEM-lite: the shared model
+
+The 64x64 arm cannot be ported faithfully, and its field does not work. The
+lite arm is the shared model that both languages can train: 16x16 images, 4x4
+patches, 16 tokens, width 64, two blocks, causal attention, fixed sinusoidal
+position and label codes, and a per-patch score head. Every piece maps to a
+BendTorch layer.
+
+Trained for 20k steps at batch 64 with denoising score matching:
+
+| | value |
+|---|---|
+| loss, first | 25.30 |
+| loss, last 50 | 10.76 |
+| nearest test image, noise | 20.96 |
+| nearest test image, samples | 13.72 |
+| steps | 20000 in 145 s on CPU |
+
+![TEM-lite samples](results/lite-samples.webp)
+
+The samples are texture, not flowers, which is expected at 16x16 and this
+budget. The point of the lite arm is the Python/Bend comparison, not image
+quality.
+
+### The Bend port (specified, not started)
+
+- `T.LinearFirst(16, 48, 64)` for the patch embedding.
+- An add layer for the fixed position and label codes, no parameters.
+- Two blocks, each `T.Residual` around `T.LN` plus `T.Attention` (causal) and
+  `T.Residual` around `T.LN` plus a SiLU MLP.
+- `T.Linear(16, 64, 48)` for the score head.
+- Training: `T.Train.step` with MSE against `-eps/sigma` (first-order, so the
+  ordinary autodiff is enough).
+- Data: a pinned export of 256 train and 64 test 16x16 flowers.
+- Sampling: forward passes only, Langevin at `alpha = sigma^2`.
+
 ## The Bend arm
 
 Not started, and the reason is not portability. A faithful port needs four
