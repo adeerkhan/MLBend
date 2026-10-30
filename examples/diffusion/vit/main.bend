@@ -43,6 +43,16 @@ def at_go(xs: List<&2, F32>, +k: Nat, +i: Nat) -> F32:
 def at(xs: List<&2, F32>, k: Nat) -> F32:
   at_go(xs, k, 0n)
 
+# prepend a list's values in their own order: the result is that list
+# reversed, on the front of acc. Builders cons and reverse once at the end;
+# appending into a growing list is O(n^2) and was most of a training step.
+def con_go(xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+  match xs:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      con_go(t, Con{h, acc})
+
 def B() -> Nat:
   64n
 
@@ -279,32 +289,57 @@ def drop64_go(xs: List<&2, F32>, left: Nat) -> List<&2, F32>:
 def drop64(xs: List<&2, F32>) -> List<&2, F32>:
   drop64_go(xs, 64n)
 
-# token k of one digit: rows 2r, 2r+1, columns 2c, 2c+1
-def tok_go(+x: List<&2, F32>, left: Nat, +k: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
-  match left:
+# one token per 2x2 block: the top row's pair, then the bottom row's pair.
+# A linear walk of the sixteen pixels, not sixteen at() scans of the digit.
+def tok16(+p0: F32, +p1: F32, +p2: F32, +p3: F32, +p4: F32, +p5: F32, +p6: F32, +p7: F32, +p8: F32, +p9: F32, +p10: F32, +p11: F32, +p12: F32, +p13: F32, +p14: F32, +p15: F32, +acc: List<&2, F32>) -> List<&2, F32>:
+  r0 = List.append(&2, F32, acc, Con{p0, Con{p1, Con{p8, Con{p9, Nil{}}}}})
+  r1 = List.append(&2, F32, r0, Con{p2, Con{p3, Con{p10, Con{p11, Nil{}}}}})
+  r2 = List.append(&2, F32, r1, Con{p4, Con{p5, Con{p12, Con{p13, Nil{}}}}})
+  List.append(&2, F32, r2, Con{p6, Con{p7, Con{p14, Con{p15, Nil{}}}}})
+
+# a digit is 64 pixels; a short tail is padded with 0.0, which is what the
+# old at()-based tokeniser did (mix_img can hand back 4033 values, not 4096).
+def zeros_go(+k: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match k:
     case 0n:
       acc
-    case 1n+rest:
-      +i = (Nat.add(Nat.mul(16n, Nat.div(k, 4n)), Nat.mul(2n, Nat.mod(k, 4n))) : Nat)
-      tok_go(x, rest, (1n + k : Nat),
-        List.append(&2, F32, acc,
-          Con{at(x, i), Con{at(x, (1n + i : Nat)),
-            Con{at(x, (8n + i : Nat)), Con{at(x, (9n + i : Nat)), Nil{}}}}}))
-    case _:
+    case 1n+q:
+      zeros_go(q, Con{0.0, acc})
+
+def pad64_go(xs: List<&2, F32>, +k: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match xs k:
+    case Con{h, t} 1n+q:
+      pad64_go(t, q, Con{h, acc})
+    case _ 1n+q:
+      zeros_go(k, acc)
+    case _ 0n:
+      acc
+
+def pad64(xs: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, pad64_go(xs, 64n, Nil{}))
+
+def patch_go(xs: List<&2, F32>, left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match xs left:
+    case Con{p0, Con{p1, Con{p2, Con{p3, Con{p4, Con{p5, Con{p6, Con{p7, Con{p8, Con{p9, Con{p10, Con{p11, Con{p12, Con{p13, Con{p14, Con{p15, t}}}}}}}}}}}}}}}} 1n+rest:
+      patch_go(t, rest, tok16(p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, acc))
+    case _ _:
       acc
 
 def patch(x: List<&2, F32>) -> List<&2, F32>:
-  tok_go(x, 16n, 0n, Nil{})
+  patch_go(pad64(x), 4n, Nil{})
 
 # every digit of the batch, patched, in order
-def patch_all(left: Nat, +xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+def patch_rev(left: Nat, +xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
   match left:
     case 0n:
       acc
     case 1n+rest:
-      patch_all(rest, drop64(xs), List.append(&2, F32, acc, patch(xs)))
+      patch_rev(rest, drop64(xs), con_go(patch(xs), acc))
     case _:
       acc
+
+def patch_all(left: Nat, +xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, patch_rev(left, xs, acc))
 
 # the position embedding: sin/cos of k * f, f = 0.001, 0.01, 0.1, 1
 def pos_go(+k: F32, fs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
@@ -356,7 +391,7 @@ def abar_below(+t: Nat) -> F32:
   Bool.pick(F32, Nat.is_eq(t, 1n), 1.0, at(G.lin_alphas(64n), Nat.sub(t, 2n)))
 
 
-def take_go(left: Nat, xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+def take_rev(left: Nat, xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
   match left:
     case 0n:
       acc
@@ -365,7 +400,10 @@ def take_go(left: Nat, xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
         case Nil{}:
           acc
         case Con{h, t}:
-          take_go(rest, t, List.append(&2, F32, acc, Con{h, Nil{}}))
+          take_rev(rest, t, Con{h, acc})
+
+def take_go(left: Nat, xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, take_rev(left, xs, acc))
 
 def mix_go(xs: List<&2, F32>, ys: List<&2, F32>, +a: F32, +b: F32,
   +acc: List<&2, F32>) -> List<&2, F32>:
@@ -426,21 +464,27 @@ def batch_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
 def t_img(+s: Nat, +i: Nat) -> Nat:
   (1n + U32.to_nat(U32.mod(U32.div(U32.mul(U32.from_nat(Nat.add(i, Nat.mul(s, 64n))), 2654435761), 67108864), 64)) : Nat)
 
-def ab_img(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+def ab_rev(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
   match i:
     case 0n:
       acc
     case 1n+q:
-      ab_img(s, q, List.append(&2, F32, acc,
-        Con{F32.sqrt(abar(t_img(s, q))),
-          Con{F32.sqrt((1.0 - abar(t_img(s, q)) : F32)), Nil{}}}))
+      ab_rev(s, q,
+        Con{F32.sqrt((1.0 - abar(t_img(s, q)) : F32)),
+          Con{F32.sqrt(abar(t_img(s, q))), acc}})
+
+def ab_img(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, ab_rev(s, i, acc))
+
+def te_rev(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match i:
+    case 0n:
+      acc
+    case 1n+q:
+      te_rev(s, q, con_go(G.temb_of(t_img(s, q), 64n, 4n), acc))
 
 def te_img(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
-  match i:
-    case 0n:
-      acc
-    case 1n+q:
-      te_img(s, q, cat_go(G.temb_of(t_img(s, q), 64n, 4n), acc))
+  List.reverse(&2, F32, te_rev(s, i, acc))
 
 def skip(+n: Nat, xs: List<&2, F32>) -> List<&2, F32>:
   match n:
@@ -468,7 +512,7 @@ def te8(tes: List<&2, F32>, +off: Nat) -> List<&2, F32>:
   take8(8n, skip(off, tes), Nil{})
 
 # 64 pixels per image, a fresh (a, b) pair every 64
-def mix_img(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
+def mix_rev(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
   +a: F32, +b: F32, +left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
   match xs ys:
     case Con{h, t} Con{e, u}:
@@ -476,21 +520,25 @@ def mix_img(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
         case Con{+a2, Con{+b2, rest}}:
           match left:
             case 0n:
-              mix_img(t, u, rest, a2, b2, 63n,
-                List.append(&2, F32, acc, Con{((a2 * h : F32) + (b2 * e : F32) : F32), Nil{}}))
+              mix_rev(t, u, rest, a2, b2, 63n,
+                Con{((a2 * h : F32) + (b2 * e : F32) : F32), acc})
             case 1n+q:
-              mix_img(t, u, Con{a2, Con{b2, rest}}, a, b, q,
-                List.append(&2, F32, acc, Con{((a * h : F32) + (b * e : F32) : F32), Nil{}}))
+              mix_rev(t, u, Con{a2, Con{b2, rest}}, a, b, q,
+                Con{((a * h : F32) + (b * e : F32) : F32), acc})
         case _:
           acc
     case _ _:
       acc
 
+def mix_img(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
+  +a: F32, +b: F32, +left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, mix_rev(xs, ys, ps, a, b, left, acc))
+
 def row_of(+k: Nat, +te: List<&2, F32>, +a: F32, +b: F32, +c: F32, +d: F32) -> List<&2, F32>:
   cat_go(pos_of(k), cat_go(te, snoc(snoc(snoc(snoc(Nil{}, a), b), c), d)))
 
 # 16 tokens per image; a fresh 8-value time embedding every 16
-def rows_img(patched: List<&2, F32>, +tes: List<&2, F32>,
+def rows_rev(patched: List<&2, F32>, +tes: List<&2, F32>,
   +img: Nat, +left: Nat, +k: Nat, +te: List<&2, F32>,
   +acc: List<&2, F32>) -> List<&2, F32>:
   match patched:
@@ -500,24 +548,29 @@ def rows_img(patched: List<&2, F32>, +tes: List<&2, F32>,
       match left:
         case 0n:
           +nt = te8(tes, Nat.mul(img, 8n))
-          rows_img(t, tes, (1n + img : Nat), 15n, Nat.mod((1n + k : Nat), 16n), nt,
-            List.append(&2, F32, acc, row_of(k, nt, a, b, c, d)))
+          rows_rev(t, tes, (1n + img : Nat), 15n, Nat.mod((1n + k : Nat), 16n), nt,
+            con_go(row_of(k, nt, a, b, c, d), acc))
         case 1n+q:
-          rows_img(t, tes, img, q, Nat.mod((1n + k : Nat), 16n), te,
-            List.append(&2, F32, acc, row_of(k, te, a, b, c, d)))
+          rows_rev(t, tes, img, q, Nat.mod((1n + k : Nat), 16n), te,
+            con_go(row_of(k, te, a, b, c, d), acc))
     case _:
       acc
 
+def rows_img(patched: List<&2, F32>, +tes: List<&2, F32>,
+  +img: Nat, +left: Nat, +k: Nat, +te: List<&2, F32>,
+  +acc: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, rows_rev(patched, tes, img, left, k, te, acc))
+
 def step_in(+s: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
   +batch = batch_of(s, x0)
-  +noise = take_go(4096n, G.noise_of(s, 65536n), Nil{})
+  +noise = G.noise_of(s, 4096n)
   TA.Mat.from_list(RW(), FE(),
     rows_img(patch_all(64n, mix_img(batch, noise, ab_img(s, 64n, Nil{}), 0.0, 0.0, 0n, Nil{}), Nil{}),
       te_img(s, 64n, Nil{}), 0n, 0n, 0n, Nil{}, Nil{}))
 
 def step_tgt(+s: Nat) -> TA.Mat<RW(), PX()>:
   TA.Mat.from_list(RW(), PX(),
-    patch_all(64n, take_go(4096n, G.noise_of(s, 65536n), Nil{}), Nil{}))
+    patch_all(64n, G.noise_of(s, 4096n), Nil{}))
 
 def do_step(+s: Nat, tr: T.Train<ModelP()>, +x0: List<&2, F32>) -> T.Train<ModelP()>:
   T.Train.step(~ModelP(), ~TA.Mat<RW(), FE()>, ~TA.Mat<RW(), PX()>(), ~ModelS(),
@@ -559,12 +612,15 @@ def train_go(left: Nat, +i: Nat, +x0: List<&2, F32>,
 
 # ---- the starting weights: random, loaded through the layer's own loader ----
 
-def scale_go(xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+def scale_rev(xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
   match xs:
     case Nil{}:
       acc
     case Con{h, t}:
-      scale_go(t, List.append(&2, F32, acc, Con{(0.1 * h : F32), Nil{}}))
+      scale_rev(t, Con{(0.1 * h : F32), acc})
+
+def scale_go(xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, scale_rev(xs, acc))
 
 def fill_go(left: Nat, xs: List<&2, F32>, +i: U32, arr: Array<F32>) -> Array<F32>:
   match left xs:
@@ -661,7 +717,7 @@ def sample_go(t: Nat, st: VS) -> VS:
 
 # the cloud starts in token order and stays there
 def sample(p: ModelP()) -> VS:
-  sample_go(64n, VS{p, patch_all(64n, take_go(4096n, G.noise_of(2000000n, 65536n), Nil{}), Nil{})})
+  sample_go(64n, VS{p, patch_all(64n, G.noise_of(2000000n, 4096n), Nil{})})
 
 # pixel order for the grid and the legibility statistic
 def unpatch1(left: Nat, +t: List<&2, F32>, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
@@ -757,7 +813,7 @@ def ddim_go(abars: List<&2, F32>, ts: List<&2, Nat>, st: VS) -> VS:
 
 def ddim_sample(p: ModelP()) -> VS:
   ddim_go(rung_abars(4n), rung_ts(4n), VS{p,
-    patch_all(64n, take_go(4096n, G.noise_of(2000000n, 65536n), Nil{}), Nil{})})
+    patch_all(64n, G.noise_of(2000000n, 4096n), Nil{})})
 
 def print_cloud(st: VS, tag: String) -> IO(ModelP()):
   match st:

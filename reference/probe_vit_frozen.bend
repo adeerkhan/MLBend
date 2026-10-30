@@ -25,7 +25,7 @@ def show(tag: String, xs: List<&2, F32>) -> String:
   String.append(tag, String.append(" ", show_go(xs)))
 
 def start() -> List<&2, F32>:
-  M.patch_all(64n, M.take_go(4096n, G.noise_of(2000000n, 65536n), Nil{}), Nil{})
+  M.patch_all(64n, G.noise_of(2000000n, 4096n), Nil{})
 
 def show_ve(ve: M.VE) -> IO(Unit):
   match ve:
