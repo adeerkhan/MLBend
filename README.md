@@ -4,31 +4,33 @@
 
 # bend-lab
 
-**Machine learning, built in Bend.** I write models from scratch in
-[Bend](https://github.com/bendlang/bend) and train them on
-[BendTorch](https://github.com/nuxyel/BendTorch). This is an experiment corpus,
-not a library. bend-ml owns the tensors and the laws, BendTorch owns the
-training, and this repository uses them, measures them and writes down what
-happened.
+**Machine learning, built in Bend.** Models are written from scratch in
+[Bend](https://github.com/bendlang/bend) and trained on
+[BendTorch](https://github.com/nuxyel/BendTorch). The repository is an
+experiment corpus, not a library. bend-ml owns the tensors and the laws,
+BendTorch owns the training, and this repository uses them, measures them and
+records the results.
 
-Every number below comes from a program in this repository. I check each one
-three ways: against a NumPy twin written at the same operation order, against
-an outside implementation where one exists (scikit-learn, PyTorch, the
-lucidrains UNet), and against an earlier version of itself through frozen
-probes. When they disagree, the disagreement is the finding. If I did not
-measure a number, I do not write it down.
+Every number comes from a program in the repository and is checked three ways:
+against a NumPy twin written at the same operation order, against an outside
+implementation where one exists (scikit-learn, PyTorch, the lucidrains UNet),
+and against an earlier version of itself through frozen probes. When the three
+disagree, the disagreement is the result. A number that was not measured is not
+written down.
 
 <p align="center">
   <a href="https://github.com/adeerkhan/bend-lab/actions/workflows/ci.yml"><img src="https://github.com/adeerkhan/bend-lab/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
-## What it shows
+## Results
+
+![Legibility by arm](docs/figures/legibility.webp)
 
 The diffusion track is complete through a ViT denoiser: 2×2 patches, 16 tokens,
-three pre-LN blocks, 100,736 parameters, 3000 steps on the first 1024 optdigits
-images. Legibility is the mean best absolute correlation of a sample with any
-training digit. Random images score 0.326, the digits MLP scores 0.408, and the
-gate is 0.75.
+three pre-LN blocks, 100,736 parameters and 3000 steps on the first 1024
+optdigits images. Legibility is the mean best absolute correlation of a sample
+with any training digit. Random images score 0.326, the digits MLP scores 0.408,
+and the gate is 0.75.
 
 | arm (same data, sampler and starting noise) | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
 |---|---:|---:|---:|---:|
@@ -43,8 +45,45 @@ standard deviation are 0.2957 / 0.3395 against the data's 0.3076 / 0.3767, and
 
 The gap closed in the training loop, not in the architecture. Bend drew one
 timestep per batch while the reference draws one per image, worth +0.36
-legibility. The evidence is in `results/diffusion-vit/`, and the three-arm page
-is `results/compare/index.html`.
+legibility. The evidence is in `results/diffusion-vit/`, and the three-arm
+comparison is `results/compare/index.html`.
+
+## Diffusion
+
+![ViT loss](docs/figures/loss.webp)
+
+The loss falls from 1.009 to 0.071 over 3000 steps, with a minimum of 0.058.
+The frozen probe pins the forward pass, one ancestral step, the 16-step DDIM
+cloud and the eta=0 invariance to the NumPy twin; the legibility gate is 0.75.
+The same task also runs on a dense MLP over real digits, and on two moons with
+an ancestral sampler and DDIM.
+
+![DDIM samples](docs/figures/samples.webp)
+
+## Flow matching
+
+![Rectified flow loss](docs/figures/flow.webp)
+
+Rectified flow replaces the diffusion chain with one vector field and an Euler
+ODE: `x_t = noise*(1-t) + data*t`, target `v = data - noise`, MSE loss, and a
+sample integrated over 32 steps of `linspace(0, 1)`. The 2D example uses three
+linear layers with SiLU, full batch, 6000 AdamW steps, and reaches a last-100
+loss of 0.886. Its samples have mean 0.049 / -0.048 and standard deviation
+0.610 / 0.675 against the data's 0.000 / 0.000 and 0.577 / 0.659, with 112 of
+128 inside the data's box. A frozen probe and NumPy twin for this example are
+still to be added.
+
+## Where the time goes
+
+![One training step before and after](docs/figures/plumbing.webp)
+
+A training step used to take 543 ms, of which 418 ms built the input and the
+target, and `init_params` cost 25.3 s. The builders appended into a growing
+list, which is O(n²), and the tokeniser scanned each digit. Rebuilt with cons
+and one reverse, and with a linear tokeniser, a step takes 131 ms (7 build, 53
+forward, 71 loss, backward and optimizer) and `init_params` takes 6 ms. The
+values are bit-identical. The step is now compute-bound, so the device lane is
+worth re-measuring.
 
 ## Layout
 
@@ -57,17 +96,16 @@ examples/          what is run: one directory per task, with main.bend, README.m
 {metrics,hf,datasets,preprocess,split,select,cluster,pipeline,report,generative}/
                    the ten packages published to BendHub
 reference/         what proves it: twins, probes, gates, comparisons, the task registry
-results/           what it proved: run.json, REPORT.md, plots, the three-arm compare page
-docs/              PLAN, AUDIT, the agent handoff
+results/           what it proved: run.json, REPORT.md, plots, the three-arm comparison
+docs/              PLAN, AUDIT, the agent handoff, the generated figures
 bench/             compute-only benchmarks
 ```
 
-The rule for the tree: the package directories are what I publish, `examples/`
-is what I run, `reference/` is what proves it, `results/` is what it proved.
-Moving the packages under `packages/` and the verification layer under
-`apparatus/` is the next structural step. Those moves are mechanical but touch
-`bend.toml` and many paths, so they go in one commit with `make check` behind
-them.
+The rule for the tree: the package directories are what gets published,
+`examples/` is what runs, `reference/` is what proves it, and `results/` is what
+it proved. Moving the packages under `packages/` and the verification layer
+under `apparatus/` is the next structural step. Those moves touch `bend.toml`
+and many paths, so they go in one commit with `make check` behind them.
 
 ## Quickstart
 
@@ -82,7 +120,7 @@ make check                                               # the gate: proofs, ker
 `make check` is the gate. It checks the proofs and the kernel with Lean, runs
 the programs that must be refused, and compares every measured number with a
 NumPy or scikit-learn reference. On a cold machine it builds each program once,
-and that is the slow part.
+which is the slow part.
 
 ## The corpus
 
@@ -93,7 +131,7 @@ and that is the slow part.
 | `diffusion/two_moons` | two moons, 128 × 2 | loss curve, cloud mean and std | 152.95 → 0.065 |
 | `diffusion/flow_matching` | two moons, 128 × 2 | last-100 loss, sample mean/std, box | 0.886, 112/128 in the box |
 | `transformers/periodic` | periodic 0…7, 32 × 8 | loss and next-token accuracy | 2.359 → 0.002, accuracy 1.00 |
-| `transformers/attention` | synthetic 4 × 8 | every output against NumPy | checksum 1.76295, Δ 3.3e-9 |
+| `transformers/attention` | synthetic 4 × 8 | every output against NumPy | checksum 1.76295, delta 3.3e-9 |
 | `classification/crossval` | iris, 150 × 4 | five stratified folds, no leakage | 0.9307 ± 0.006 (sklearn 0.9307) |
 | `classification/knn` | breast cancer, 683 × 9 | accuracy on the same split | 0.978102 (sklearn 0.978102) |
 | `classification/naive_bayes` | breast cancer, 683 × 9 | accuracy on the same split | 0.985401 (sklearn 0.985401) |
@@ -103,11 +141,11 @@ and that is the slow part.
 | `unsupervised/kmeans` | wine, 6497 × 11 | inertia and cluster sizes | 50645.64, [2384, 990, 3123] |
 | `unsupervised/pca` | wine, 6497 × 11 | explained variance ratio | 0.275443 (sklearn 0.275443) |
 
-`make results` writes the full table, with the delta and the tolerance of every
+`make results` writes the full table, with the delta and tolerance of every
 task, to `results/RESULTS.md`. The dataset, seed, hub hashes and git state of
 each run are in `results/latest/`.
 
-## How a result gets here
+## Method
 
 1. An example in `examples/<area>/<task>/main.bend` trains and prints its
    numbers.
@@ -127,7 +165,8 @@ reference/.venv/bin/python reference/experiment.py --task iris-crossval
 ```
 
 Each run writes a report card and a manifest: the git commit, the Bend version,
-every package at its hub hash, the machine, the seed and the tolerances.
+every package at its hub hash, the machine, the seed and the tolerances. The
+README figures are generated from those result files with `make figures`.
 
 ## The GPU lane
 
@@ -136,25 +175,19 @@ with eight `LinearNBF` and one `F.Attention`, links `libnvrtc`, and executes on
 an RTX 5060. `nvidia-smi` shows the process with 104 MiB on the card, and the
 frozen values are bit-identical to the CPU lane.
 
-The earlier 5m44 either way was measured against the data path, not the
-device. A step used to take 543 ms: 77% was building the input and the target,
-and `init_params` cost 25 s, because the builders appended into a growing list
-and the tokeniser scanned the digit 64 times. Rebuilt with cons and one
-reverse, and with a linear tokeniser, the step is 131 ms: 40% forward, 54%
-loss and backward, 5% input and target. `init_params` is 6 ms, and the values
-are bit-identical. The card is worth re-measuring now. The split is in
+The earlier 5m44 either way was measured against the data path, not the device.
+After the builder fix the step is 131 ms and 95% of it is forward and backward,
+so the device lane is worth re-measuring. The split is in
 `results/PLUMBING.md`.
 
 ## Status
 
 `make check` is 92/92. Diffusion is complete through the ViT, with the gate at
-0.75 and the Bend model measured at 0.787 and 0.811. The row builder is fixed:
-a step fell from 543 ms to 131 ms with identical values, and `init_params` from
-25 s to 6 ms. Flow matching has a measured 2D example (last-100 0.886, 112/128
-in the box); its frozen gate is still owed. CIFAR-10 waits on a real step time
-and a re-measured device lane. The UNet in
-Bend waits on `Im2col` and `GroupNorm` upstream. Upstream, `FullAttention` for
-BendTorch and `Im2col` come next.
+0.75 and the Bend model measured at 0.787 and 0.811. Flow matching has a
+measured 2D example, with its frozen gate still to be added. CIFAR-10 waits on
+a real step time and a re-measured device lane. The UNet in Bend waits on
+`Im2col`; GroupNorm has landed upstream, and a faithful reference arm also
+needs the full and linear attention variants.
 
 ## Licence
 
