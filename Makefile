@@ -8,7 +8,7 @@ BEND := $(or $(BEND_BIN),$(HOME)/.bend/bin/bend)
 BEND_VERSION := 2.0.38
 BEND_REF := ../bend-ref
 
-.PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench plumbing flow figures select plots sweep sweep-agent
+.PHONY: setup check laws sync-bend clean lint env env-check release experiment experiments results bench plumbing flow flow64 doctor figures select plots sweep sweep-agent
 
 setup:            ## Bend, Lean and the Python venv
 	scripts/setup.sh
@@ -51,6 +51,20 @@ flow:             ## train the 2D flow matching example, saved under results/flo
 	BEND_LIB=$(CURDIR)/.bend/env $(BEND) -o .scratch/flow.bin examples/diffusion/flow_matching/main.bend
 	.scratch/flow.bin > .scratch/flow.log
 	$(PY) reference/flow_results.py .scratch/flow.log
+
+doctor:           ## what this machine can compile: RAM, cores, GPU, build budget, flow preset
+	$(PY) scripts/system-profile.py
+
+# The 64x64 flow: pick the preset the machine can pay for, build it under a
+# memory cgroup, run it, and report the loss and the samples. MEM is the
+# cgroup's ceiling: the build dies at it and the desktop does not.
+flow64:           ## build and run the 64x64 flow (PRESET=tiny MEM=6G)
+	@mkdir -p .scratch
+	$(PY) scripts/flow-config.py --preset $(or $(PRESET),tiny)
+	BEND_MEM=$(or $(MEM),6G) scripts/bend-guard.sh env BEND_LIB=$(CURDIR)/.bend/env $(BEND) -o .scratch/flow64 examples/diffusion/flowers_flow/main.bend
+	.scratch/flow64 > .scratch/flow64.log
+	$(PY) reference/flowers_report.py .scratch/flow64.log
+
 
 select:           ## model selection and a classification report (kNN)
 	$(PY) reference/select_models.py

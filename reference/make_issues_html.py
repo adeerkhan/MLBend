@@ -100,6 +100,11 @@ def blocks(lines):
                 and not lines[i].lstrip().startswith(("|", "- ", "```", "#")):
             para.append(lines[i].strip())
             i += 1
+        if not para:
+            # a line no branch above claimed (a `#` in wrapped text): render it, and
+            # move on, so the loop can always advance
+            para.append(lines[i].lstrip("#").strip())
+            i += 1
         out.append("<p>" + inline(" ".join(para)) + "</p>")
     return "\n".join(out)
 
@@ -117,6 +122,7 @@ def main():
         intro = intro.replace(m.group(0), "", 1)
 
     cards, counts = [], {"FIXED": 0, "OPEN": 0, "UPSTREAM": 0, "other": 0}
+    months = []
     for sec in sections:
         head, _, body = sec.partition("\n")
         heading = head[3:].strip()
@@ -139,6 +145,7 @@ def main():
                     seen_html = f'<span class="when" title="{seen}">logged {dt:%Y-%m-%d %H:%M} UTC</span>'
                 except ValueError:
                     seen_html = f'<span class="when">{html.escape(seen)}</span>'
+        months.append(seen[:10] if len(seen) >= 10 else "undated")
         cards.append(f'''<section class="issue" id="{re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")}">
   <header class="ihead">
     <span class="id">{inline(name)}</span>
@@ -148,6 +155,24 @@ def main():
   {f'<h2>{inline(desc)}</h2>' if desc else ''}
   {blocks(body.splitlines())}
 </section>''')
+
+    buckets = {}
+    for month, card in zip(months, cards):
+        buckets.setdefault(month, []).append(card)
+    order = sorted((m for m in buckets if m != "undated"), reverse=True)
+    if "undated" in buckets:
+        order.append("undated")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    body = []
+    for month in order:
+        n = len(buckets[month])
+        label = month
+        if month == today:
+            label += " · today"
+        body.append(f'<h2 class="month">{html.escape(label)}'
+                    f'<span>{n} entr{"y" if n == 1 else "ies"}</span></h2>')
+        body.extend(buckets[month])
+    body = "\n".join(body)
 
     now = datetime.now(timezone.utc)
     page = f'''<!doctype html>
@@ -181,6 +206,10 @@ header.top{{display:flex;justify-content:space-between;align-items:baseline;
 header.top .home{{color:var(--b02);font-weight:600}}
 header.top .meta{{color:var(--b0);font-size:.82rem}}
 .lede{{color:var(--b01);max-width:78ch;margin:1.2rem 0 0}}
+.month{{display:flex;align-items:baseline;gap:.8rem;margin:2.6rem 0 .2rem;
+  padding-bottom:.35rem;border-bottom:1px solid var(--b12);font-size:.82rem;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--b02);font-weight:600}}
+.month span{{font-size:.7rem;letter-spacing:.04em;text-transform:none;color:var(--b04);font-weight:400}}
 .counts{{display:flex;gap:1.2rem;flex-wrap:wrap;margin:1.4rem 0 2.4rem;
          color:var(--b0);font-size:.85rem}}
 .counts b{{color:var(--b02);font-weight:600}}
@@ -217,7 +246,7 @@ footer{{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
   <span><b>{counts["UPSTREAM"]}</b> upstream</span>
   <span><b>{counts["other"]}</b> other</span>
 </div>
-{"".join(cards)}
+{body}
 <footer>
   <span>generated from the local ledger at {now:%Y-%m-%d %H:%M} UTC</span>
   <span>theme: bend-lang.com</span>

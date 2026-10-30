@@ -73,17 +73,40 @@ loss of 0.886. Its samples have mean 0.049 / -0.048 and standard deviation
 128 inside the data's box. A frozen probe and NumPy twin for this example are
 still to be added.
 
-## Where the time goes
+## Running on your machine
 
-![One training step before and after](docs/assets/figures/plumbing.webp)
+A Bend program's shapes are type-level constants, so the model is chosen before
+the compile. Two commands make that choice explicit instead of accidental:
 
-A training step used to take 543 ms, of which 418 ms built the input and the
-target, and `init_params` cost 25.3 s. The builders appended into a growing
-list, which is O(n²), and the tokeniser scanned each digit. Rebuilt with cons
-and one reverse, and with a linear tokeniser, a step takes 131 ms (7 build, 53
-forward, 71 loss, backward and optimizer) and `init_params` takes 6 ms. The
-values are bit-identical. The step is now compute-bound, so the device lane is
-worth re-measuring.
+```
+make doctor                 # RAM, cores, GPU, the build budget, the preset that fits
+make flow64 PRESET=tiny    # build and run the 64x64 flow inside that budget
+```
+
+`make doctor` reads the machine and prints a build budget (55% of RAM, capped at
+12 GB). Every build runs under `scripts/bend-guard.sh`, which puts it in a memory
+cgroup with swap off: a compile that grows past `BEND_MEM` (default 6 GB) is
+killed with a message, and the desktop stays up. That guard exists because it
+did not, twice: `bend -o` on the 64x64 flow reached 9.3 GB and took the session
+into swap with it. The measured costs and the bisect are in `docs/NOTES.md`.
+
+The preset is a property of the program, not a runtime flag:
+
+| preset | images/step | width | rows | compile memory |
+|---|---|---|---|---|
+| `tiny` | 1 | 64 | 64 | over 7.5 GB, not yet buildable |
+| `small` | 1 | 96 | 64 | not measured |
+| `medium` | 2 | 128 | 128 | not measured |
+| `full` | 8 | 128 | 512 | past 8 GB, killed |
+
+None of them builds on a 15 GB machine yet. The cost is not the model's size:
+a one-block, 64-wide model costs more to compile than the 512-row three-block
+one did before the file was split, which points at the number of large recursive
+functions in one program rather than at the dimensions. The ViT example, the
+same architecture at 512 rows, does build in 82 s under 8 GB, so the target is
+reachable; splitting training and sampling into two programs is the next
+experiment. Nothing here is hidden behind a default that silently OOMs.
+
 
 ## Layout
 

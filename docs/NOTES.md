@@ -1259,3 +1259,57 @@ relevant entry before changing performance-sensitive code or a law.
   scikit-learn's copies (which come from UCI). A hub package is one file, so
   the data lives with the program that uses it, not in the package: the loaders
   take a path.
+
+## The 64x64 build's memory wall (2026-10-30)
+
+`bend -o examples/diffusion/flowers_flow/main.bend` does not finish. On a 15 GB
+machine it reached **9.3 GB RSS at 29 s** and was still climbing when a 15-minute
+timeout killed it; the desktop went into swap and froze twice.
+
+Measured with a cgroup (`MemoryMax=10G`, `MemorySwapMax=0`) and a 1 s RSS
+sampler, bisecting the file by prefix:
+
+| prefix | result |
+|---|---|
+| model only (up to the data section) | 0.6 s, builds |
+| model + data (512 rows, 3 blocks) | **4.3 GB peak**, 7 s |
+| + `cfg`, `mse`, `init_params`, `load_p` | past 6 GB, OOM-killed |
+| + the training step | past 8 GB, OOM-killed |
+
+The control is `examples/diffusion/vit/main.bend`, the same architecture at the
+same 512 rows: it builds in **82 s under 8 GB**, into a 7.8 MB binary. So the
+shape is buildable on this machine and ours is heavier by more than 2x, with the
+training step's instantiation the largest single term.
+
+`ulimit -v` is not a usable guard: Bun reserves address space, so a 4 GB cap
+aborts the compiler at 2.3 GB RSS and the abort looks like a program bug. A
+cgroup with swap disabled is the guard that works; `scripts/bend-guard.sh` wraps
+any command in one (`BEND_MEM`, default 6G) and was verified to kill a 1 GB
+overflow while the host stayed up.
+
+Nothing was trained. The data export, the typecheck verdict, the example source
+and `reference/flowers_report.py` all predate the wall and are unaffected.
+
+### After the config split, and the guard (2026-10-30, later)
+
+The example now takes its shapes from `config.bend`, the data is one grayscale
+byte per pixel (`reference/flowers_export.py`, sha256 `6b9c4c66…`), and every
+build runs under `scripts/bend-guard.sh`. The wall did not move with the model:
+
+| build | result |
+|---|---|
+| `tiny` (1 image, 64 wide, 1 block), full program | **past 7.5 GB in 11 s**, killed |
+| `tiny`, training only (sampler removed from the file) | past 7.5 GB in 10 s, killed |
+| `tiny`, model + data + the sampler-input builders | 7.0–7.5 GB, 13 s, builds |
+| `tiny` via the interpreter (`bend file.bend`, no `-o`) | past 4 GB, killed |
+| ViT control, 512 rows, 3 blocks | **82 s under 8 GB**, 7.8 MB binary |
+
+So shrinking the model 8x did not shrink the compile: the cost tracks how many
+large recursive builders sit in one program, not the dimensions. The 4.3 GB
+figure above is the pre-split file, whose model+data prefix stopped before the
+sampler-input builders; adding those is what takes it to 7 GB at one block.
+
+The next experiment is therefore structural, not numerical: **one program per
+phase**, training and sampling built separately, each with only the builders it
+uses. The ViT example proves the architecture fits in 8 GB when the program is
+shaped that way.
