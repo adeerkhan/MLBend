@@ -21,5 +21,5 @@ The result is in `results/PLUMBING.md`. Before the fix, input and target
 construction were 77% of a 543 ms step and `init_params` was 25.3 s: the
 builders appended into a growing list (O(n²)) and the tokeniser scanned the
 digit 64 times. With cons + one reverse and a linear tokeniser the step is
-128 ms, the build is 3 ms, `init_params` is 5 ms, and the values are
+131 ms, the build is 7 ms, `init_params` is 6 ms, and the values are
 bit-identical. The step is now forward and backward.
