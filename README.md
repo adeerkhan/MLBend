@@ -98,6 +98,7 @@ examples/          what is run: one directory per task, with main.bend, README.m
 reference/         what proves it: twins, probes, gates, comparisons, the task registry
 results/           what it proved: run.json, REPORT.md, plots, the three-arm comparison
 docs/              PLAN, AUDIT, the agent handoff, the generated figures
+papers/            paper comparisons: the claim, the reduced protocol, the two arms
 bench/             compute-only benchmarks
 ```
 
@@ -179,6 +180,14 @@ The earlier 5m44 either way was measured against the data path, not the device.
 After the builder fix the step is 131 ms and 95% of it is forward and backward,
 so the device lane is worth re-measuring. The split is in
 `results/PLUMBING.md`.
+
+## Papers
+
+Paper comparisons live in `papers/`, one folder per paper, with the paper's
+claims, the reduced protocol used here, and the Python and Bend arms. The first
+entry, TEM, is a negative result: the 64x64 contrastive protocol collapses to a
+constant energy, and the folder records the diagnosis and the blocked Bend
+port. Paper numbers are never presented as reproduced.
 
 ## Status
 
