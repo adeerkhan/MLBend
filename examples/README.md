@@ -15,6 +15,7 @@ and a `plot.svg`.
 | [`diffusion/two_moons`](diffusion/two_moons) | a DDPM denoiser trained and sampled on two moons |
 | [`diffusion/digits`](diffusion/digits) | the same over 1024 real 8×8 optdigits images |
 | [`diffusion/vit`](diffusion/vit) | a transformer denoiser on the same digits, against a PyTorch twin and the lucidrains UNet |
+| [`diffusion/flow_matching`](diffusion/flow_matching) | rectified flow on two moons: one vector field and an Euler ODE, no noise schedule |
 | [`transformers/attention`](transformers/attention) | a single-head self-attention block in plain Bend, checked against NumPy |
 | [`transformers/periodic`](transformers/periodic) | a one-block causal transformer trained on a periodic sequence |
 | [`unsupervised/kmeans`](unsupervised/kmeans) | k-means over wine, through `mlbend-cluster` |
