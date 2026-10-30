@@ -1354,3 +1354,21 @@ medium (2 images, 128 wide, 1 block), 2000 steps, 32 Euler
 
 `legibility` is the best absolute correlation of a sample with any training
 flower: 0.419 is a blurred flower, not noise. The run takes 2m03s on 28 cores.
+
+### The 8-image run (2026-10-30)
+
+`make flow64 PRESET=full` (8 images per step, 128 wide, one block, 2000 steps,
+32 Euler) builds at 926 MB in 19 s and runs in 12m on 28 cores:
+
+```
+loss 1.369 -> 0.203 (min 0.185)
+samples  mean -0.165  std 0.355   against the data's -0.204 / 0.453
+         32466 of 32768 in [-1, 1]
+legibility 0.344 (worst 0.233)    random baseline 0.049
+```
+
+Note the two runs disagree on the legibility proxy in the direction the loss
+does not: the 2-image run reaches 0.419 with a final loss of 0.328, the 8-image
+run 0.344 with 0.203. More images per step gives the better loss and the less
+memorised samples, which is what a legibility proxy built on the training set
+should do. Neither is a quality measurement beyond "these are blurred flowers".
