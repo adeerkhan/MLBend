@@ -4,29 +4,29 @@
   "starting_cloud": "noise_of(2000000, 4096)",
   "arms": {
     "bend-vit": {
-      "what": "Bend, examples/diffusion_vit (causal attention, pre-LN, 100,736 params)",
+      "what": "Bend, examples/diffusion/vit (causal attention, pre-LN, 100,736 params)",
       "source": "results/diffusion-vit/run.json",
       "train_steps": 3000,
       "loss": {
-        "first": 1.0091743,
-        "final": 0.08959652
+        "first": 1.0091865,
+        "final": 0.07115337
       },
       "samplers": {
         "ddim": {
           "steps": 16,
           "cloud": null,
-          "legibility": 0.782920973743742,
+          "legibility": 0.7874875365862705,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.061798512915715004
+          "nearest_mse": 0.05977098867948624
         },
         "ddpm": {
           "steps": 64,
           "cloud": null,
-          "legibility": 0.8070025656986233,
+          "legibility": 0.8110061314343021,
           "legibility_min": null,
           "legibility_max": null,
-          "nearest_mse": 0.05686975154919721
+          "nearest_mse": 0.05612807450888311
         }
       }
     },

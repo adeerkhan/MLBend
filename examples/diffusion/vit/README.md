@@ -54,13 +54,13 @@ The three arms, same data, same starting noise, same sampler step counts:
 
 | arm | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
 |---|---|---|---|---|
-| **Bend-ViT, 3000 steps** | **0.783** | **0.807** | 0.0618 | 0.0569 |
+| **Bend-ViT, 3000 steps** | **0.787** | **0.811** | 0.0598 | 0.0561 |
 | torch-ViT, same architecture | 0.790 | 0.779 | 0.0583 | 0.0633 |
 | lucidrains UNet, 3000 steps | 0.932 | 0.940 | 0.0202 | 0.0183 |
 
-The Bend model is within 0.007 of the PyTorch twin on DDIM and ahead of it on
-the ancestral sampler. Its cloud is mean/std **+0.3007 / 0.3450** against the
-data's **+0.3076 / 0.3767**, with 4082 of 4096 pixels in `[0, 1]`. The UNet is
+The Bend model is within 0.003 of the PyTorch twin on DDIM and ahead of it on
+the ancestral sampler. Its cloud is mean/std **+0.2957 / 0.3395** against the
+data's **+0.3076 / 0.3767**, with 4087 of 4096 pixels in `[0, 1]`. The UNet is
 still the better denoiser on 8×8 digits — it has the convolutions and the
 group norms that this model does not.
 

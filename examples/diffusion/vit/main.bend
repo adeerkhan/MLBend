@@ -464,14 +464,21 @@ def batch_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
 def t_img(+s: Nat, +i: Nat) -> Nat:
   (1n + U32.to_nat(U32.mod(U32.div(U32.mul(U32.from_nat(Nat.add(i, Nat.mul(s, 64n))), 2654435761), 67108864), 64)) : Nat)
 
+def ab64_rev(+s: Nat, +i: Nat, +k: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
+  match k:
+    case 0n:
+      acc
+    case 1n+q:
+      ab64_rev(s, i, q,
+        Con{F32.sqrt((1.0 - abar(t_img(s, i)) : F32)),
+          Con{F32.sqrt(abar(t_img(s, i))), acc}})
+
 def ab_rev(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
   match i:
     case 0n:
       acc
     case 1n+q:
-      ab_rev(s, q,
-        Con{F32.sqrt((1.0 - abar(t_img(s, q)) : F32)),
-          Con{F32.sqrt(abar(t_img(s, q))), acc}})
+      ab_rev(s, q, ab64_rev(s, q, 64n, acc))
 
 def ab_img(+s: Nat, +i: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
   List.reverse(&2, F32, ab_rev(s, i, acc))
@@ -511,28 +518,21 @@ def take8(+n: Nat, xs: List<&2, F32>, +acc: List<&2, F32>) -> List<&2, F32>:
 def te8(tes: List<&2, F32>, +off: Nat) -> List<&2, F32>:
   take8(8n, skip(off, tes), Nil{})
 
-# 64 pixels per image, a fresh (a, b) pair every 64
-def mix_rev(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
-  +a: F32, +b: F32, +left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
-  match xs ys:
-    case Con{h, t} Con{e, u}:
-      match ps:
-        case Con{+a2, Con{+b2, rest}}:
-          match left:
-            case 0n:
-              mix_rev(t, u, rest, a2, b2, 63n,
-                Con{((a2 * h : F32) + (b2 * e : F32) : F32), acc})
-            case 1n+q:
-              mix_rev(t, u, Con{a2, Con{b2, rest}}, a, b, q,
-                Con{((a * h : F32) + (b * e : F32) : F32), acc})
-        case _:
-          acc
-    case _ _:
+# 64 pixels per image, one (a, b) pair repeated for its 64 pixels. The old
+# loop required a pair to be present for the 63 pixels that reuse it, so it
+# lost them when the last pair was consumed (ISSUE-020): mixing three flat
+# lists in step removes the boundary state entirely.
+def mix_flat(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
+  +acc: List<&2, F32>) -> List<&2, F32>:
+  match xs ys ps:
+    case Con{h, t} Con{e, u} Con{+a, Con{+b, rest}}:
+      mix_flat(t, u, rest, Con{((a * h : F32) + (b * e : F32) : F32), acc})
+    case _ _ _:
       acc
 
 def mix_img(xs: List<&2, F32>, ys: List<&2, F32>, ps: List<&2, F32>,
-  +a: F32, +b: F32, +left: Nat, +acc: List<&2, F32>) -> List<&2, F32>:
-  List.reverse(&2, F32, mix_rev(xs, ys, ps, a, b, left, acc))
+  +acc: List<&2, F32>) -> List<&2, F32>:
+  List.reverse(&2, F32, mix_flat(xs, ys, ps, acc))
 
 def row_of(+k: Nat, +te: List<&2, F32>, +a: F32, +b: F32, +c: F32, +d: F32) -> List<&2, F32>:
   cat_go(pos_of(k), cat_go(te, snoc(snoc(snoc(snoc(Nil{}, a), b), c), d)))
@@ -565,7 +565,7 @@ def step_in(+s: Nat, +x0: List<&2, F32>) -> TA.Mat<RW(), FE()>:
   +batch = batch_of(s, x0)
   +noise = G.noise_of(s, 4096n)
   TA.Mat.from_list(RW(), FE(),
-    rows_img(patch_all(64n, mix_img(batch, noise, ab_img(s, 64n, Nil{}), 0.0, 0.0, 0n, Nil{}), Nil{}),
+    rows_img(patch_all(64n, mix_img(batch, noise, ab_img(s, 64n, Nil{}), Nil{}), Nil{}),
       te_img(s, 64n, Nil{}), 0n, 0n, 0n, Nil{}, Nil{}))
 
 def step_tgt(+s: Nat) -> TA.Mat<RW(), PX()>:

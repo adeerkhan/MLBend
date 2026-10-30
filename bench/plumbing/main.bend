@@ -32,7 +32,7 @@ def rows_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
   +batch = M.batch_of(s, x0)
   +noise = G.noise_of(s, 4096n)
   M.rows_img(M.patch_all(64n,
-      M.mix_img(batch, noise, M.ab_img(s, 64n, Nil{}), 0.0, 0.0, 0n, Nil{}), Nil{}),
+      M.mix_img(batch, noise, M.ab_img(s, 64n, Nil{}), Nil{}), Nil{}),
     M.te_img(s, 64n, Nil{}), 0n, 0n, 0n, Nil{}, Nil{})
 
 def take_fwd(f: T.Fwd<M.ModelP, TA.Mat<M.RW(), M.PX()>, M.ModelS>) -> M.ModelP:
