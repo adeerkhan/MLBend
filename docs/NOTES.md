@@ -1372,3 +1372,27 @@ does not: the 2-image run reaches 0.419 with a final loss of 0.328, the 8-image
 run 0.344 with 0.203. More images per step gives the better loss and the less
 memorised samples, which is what a legibility proxy built on the training set
 should do. Neither is a quality measurement beyond "these are blurred flowers".
+
+### The 256x256 attempt is void (2026-10-30, corrected the same hour)
+
+`PRESET=hi` builds in 940 MB / 18 s and ran 2000 steps in 2m33, but the run
+does not measure a 256x256 model. The token builders advance on the literal
+`64n`:
+
+```bend
+match img col:
+  case _ 64n:   # the row is full
+```
+
+A pattern cannot be `TK()` (patterns are constructors and literals), so the row
+length is baked into the builder, and at RES=256 the builder takes 64 pixels per
+row and 64 rows per image: a quarter of each row, a quarter of the image. The
+sample printer is hardcoded the same way, which is why the block came back as
+256 lines of 64 numbers instead of 256 of 256.
+
+The legibility 0.060 and the std 1.02 in the commit before this one are therefore
+about a miscut sample block, not about 256x256. The build number (940 MB) is
+real and is the useful part: resolution does not move the compile.
+
+The fix for a real 256 preset is a builder that never matches a resolution: count
+down from `TK()` and match only `0n`, and print with `TK()`.
