@@ -63,7 +63,7 @@ footer{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 <p>The reference is <code>github.com/lucidrains/denoising-diffusion-pytorch</code> at <code>c8155b1dc622e3f1ef0d53dc6e5a570ca105bcec</code>, copied verbatim (see <code>reference/lucidrains/VENDORED.md</code>). It is run by <code>reference/lucidrains_compare.py</code> on the same 1024 optdigits rows, the same T = 64 and the same noise-prediction task as the Bend example.</p></div>
 <div class="counts">
   <span><b>11</b> fixed</span>
-  <span><b>0</b> open</span>
+  <span><b>1</b> open</span>
   <span><b>1</b> upstream</span>
   <span><b>9</b> other</span>
 </div>
@@ -328,6 +328,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Why the time does not move.</strong> The probe's cost is not the matmuls. Each run calls <code>init_params()</code> seven times (a 100,736-parameter model built through <code>fill_go</code>/<code>Layer.load</code> over lists), builds 1024 rows per forward with <code>rows_go</code>/<code>Mat.from_list</code>, and converts back with <code>Mat.to_list</code>. Those are host list operations, and they dominate a 1024×64 forward on an 8 GB card by orders of magnitude. The device is idle most of the wall clock.</p>
 <p><strong>What this means for the compute decision (and it changes it).</strong> Moving a model to the card buys nothing while the per-step work is row building and list conversion. The next measurement is therefore not "GPU vs CPU" but <strong>where a training step's seconds go</strong>: time <code>init_params</code>, one <code>rows_go</code> build, one <code>Mat.from_list</code>, and one forward separately. If, say, 80% is plumbing, CIFAR on this lane is a plumbing problem, not a CUDA problem — and the fix is to build rows once per shape and reuse, which is also what would make a bigger model affordable.</p>
 <p><strong>Measured 2026-10-30</strong> (<code>make plumbing</code>, three runs, median). One training step is <strong>543 ms</strong>. <code>step_in</code> (279 ms) and <code>step_tgt</code> (139 ms) are <strong>77%</strong> of it, the forward is 52 ms (10%), loss + backward + optimizer are 73 ms (13%), and <code>Mat.from_list</code> is 3 ms. <code>init_params</code> costs <strong>25.0 s</strong> once per process. The row build is O(n²): <code>rows_img</code>, <code>mix_img</code>, <code>patch_all</code>, <code>ab_img</code> and <code>te_img</code> all append into a growing list, and <code>init_params</code> pays the same pattern over 100,736 parameters. So the first fix is the list builder (cons and reverse, or build into an array once), before CIFAR or the device.</p>
+<p><strong>Fixed 2026-10-30.</strong> The builders now cons and reverse once (<code>take_go</code>, <code>patch_all</code>, <code>mix_img</code>, <code>ab_img</code>, <code>te_img</code>, <code>rows_img</code>, <code>scale_go</code>), and the 2×2 tokeniser reads sixteen pixels linearly instead of calling <code>at()</code> 64 times per digit. A step falls from <strong>543 ms to 128 ms</strong>: input and target construction 3 ms (2%), forward 51 ms (40%), loss + backward + optimizer 74 ms (58%). <code>init_params</code> falls from 25.3 s to <strong>5 ms</strong>. The values are bit-identical: the full 20,480-value row list and the first three losses match the old binary exactly. The step is now arithmetic, so the device lane is worth re-measuring.</p>
 <p><strong>Component.</strong> Ours: the per-step data plumbing (and the probe's seven <code>init_params</code> calls).</p>
 <p><strong>Verified by.</strong> The <code>nvidia-smi</code> line above, the bit-identical values, and the unchanged wall time — all three, together, and they only make sense together.</p>
 </section><section class="issue" id="issue-019">
@@ -346,6 +347,19 @@ def main() -&gt; IO(Unit):
 <p><strong>Fix.</strong> The directory is <code>examples/diffusion/two_moons</code>; every live path follows it (<code>experiment.py</code>, the README generator, <code>test_diffusion.py</code>, the probe, both READMEs). The task id stays <code>diffusion-2d</code>.</p>
 <p><strong>Component.</strong> Ours: the directory name. The rule is Bend's.</p>
 <p><strong>Verified by.</strong> A two-file minimal build (<code>sub/2d</code> red, <code>sub/two_moons</code> green), the probe alone at 13/13, then <code>make check</code> <strong>92/92</strong> on the renamed tree.</p>
+</section><section class="issue" id="issue-020">
+  <header class="ihead">
+    <span class="id">ISSUE-020</span>
+    <span class="badge ora">open</span>
+    
+  </header>
+  <h2>the last digit of every batch is 63 zeros (ours, high)</h2>
+  <p><strong>What.</strong> <code>mix_img</code> is asked for 64 images of 64 pixels but returns <strong>4033</strong> values, not 4096: the last image has its first pixel and 63 zeros. Measured with <code>List.length</code> on the batch, the mix and the patch on 2026-10-30. Everything after it pads: the old tokeniser's <code>at()</code> returned 0.0 past the end, and the new one pads explicitly so the values stay bit-identical.</p>
+<p><strong>Why.</strong> The <code>(a, b)</code> pair for an image is matched on every pixel but consumed only when the 64-pixel counter reaches zero. At pixel 4032, the start of the last image, the counter is zero and the last pair is consumed; the next pixel needs <code>ps</code> to be non-empty again, but it is now <code>Nil</code>, so the function returns after one pixel. Sixty-three images are whole; one is not.</p>
+<p><strong>Why it matters.</strong> One of every 64 training images and one of every 64 samples is 63/64 zeros. The model is asked to denoise it anyway. Fixing it changes the batch, so it needs a retrain and fresh numbers.</p>
+<p><strong>Next.</strong> Restructure the pixel loop so the pair is matched only at the image boundary (a 64-pixel inner walk with the current <code>a</code>, <code>b</code>), then retrain and re-measure legibility. Do not fold it into a performance commit.</p>
+<p><strong>Component.</strong> Ours: <code>mix_img</code>.</p>
+<p><strong>Verified by.</strong> <code>List.length(...)</code>: batch 4096, noise 4096, ab 128, <strong>mixed 4033</strong>, patched 4096, and the old and new binaries agree value for value.</p>
 </section><section class="issue" id="checked-and-dismissed">
   <header class="ihead">
     <span class="id">Checked and dismissed</span>
@@ -369,7 +383,7 @@ def main() -&gt; IO(Unit):
 <p><strong>Status.</strong> Filed as <a href="https://github.com/nuxyel/BendTorch/issues/15">nuxyel/BendTorch#15</a>. Interim route: a ViT-style denoiser from <code>Attention</code> + <code>LayerNorm</code>, which do exist; <code>Conv2d</code> later. <strong>Measured</strong> (<code>reference/digits_vit_probe.py</code>): 16 tokens of 2×2 patches, dim 64, 4 heads, 3 blocks, 103k parameters, 3000 steps — nearest-digit <code>|corr|</code> <strong>0.798</strong> (min 0.676), cloud <strong>0.260/0.299</strong>, 4096/4096 in [0,1]. The route works; the port is <a href="https://github.com/adeerkhan/MLBend/issues/16">adeerkhan/MLBend#16</a>.</p>
 </section>
 <footer>
-  <span>generated from <code>issues-hit.md</code> at 2026-10-29 20:37 UTC</span>
+  <span>generated from <code>issues-hit.md</code> at 2026-10-30 06:58 UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

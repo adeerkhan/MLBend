@@ -23,13 +23,20 @@ imported: Bend refuses an import segment that starts with a digit, and
 generated example commands and the result links the move had broken were
 regenerated, and the ViT example README now carries the committed 0.783/0.807.
 
-**The plumbing split is measured (2026-10-30).** `make plumbing`: one training
-step is **544 ms**, of which **77%** is input and target construction, 10% is
-the forward, and 12% is loss, backward and optimizer. `init_params` is
-**25.3 s** once per process. The row build appends into a growing list, so it
-is O(n²). The first fix is the list builder, not CIFAR and not the GPU.
-`results/PLUMBING.md` has the table and `bench/plumbing/main.bend` reproduces
-it.
+**The plumbing split, and the fix (2026-10-30).** A step was **543 ms**, with
+77% in input and target construction and `init_params` at 25.3 s. The builders
+appended into a growing list (O(n²)) and the tokeniser scanned each digit with
+`at()` 64 times. Cons + one reverse and a linear 16-pixel tokeniser bring a
+step to **128 ms** (40% forward, 58% loss and backward, 2% build) and
+`init_params` to **5 ms**, with the full row list and the first three losses
+bit-identical. `results/PLUMBING.md` and `bench/plumbing/main.bend`.
+
+**New open issue: ISSUE-020.** `mix_img` returns 4033 values for 64×64, so the
+last digit in every batch is its first pixel and 63 zeros. The old tokeniser
+padded it with `at()` and the new one pads it explicitly, so the current
+numbers are reproducible but one of every 64 images is corrupt. Fix the pixel
+loop at the image boundary and retrain; do not fold it into the performance
+commit.
 
 **The measured state (unchanged, 2026-10-29).** The diffusion objective's
 M1–M4 are done on measured numbers; M5 (CIFAR) and M6 (UNet) are not.
@@ -69,11 +76,10 @@ time is unchanged (5m44 both ways). The time goes to **plumbing**: seven
    `apparatus/`; `bend.toml`'s members, the intra-package imports,
    `check_all.py`'s package list and the Makefile. One commit, `make check`
    behind it.
-2. **Fix the row builder** — `rows_img`, `mix_img`, `patch_all`, `ab_img`,
-   `te_img` and `init_params` all append into a growing list, which is O(n²).
-   Build with cons and reverse once (or into an array), keep the row order, and
-   re-run `make plumbing` plus the frozen probes. This is what makes CIFAR, and
-   any bigger model, affordable.
+2. **ISSUE-020, the last digit** — `mix_img` loses 63 pixels of the last image
+   in every batch. Fix the pixel loop so the pair is matched only at the image
+   boundary, then retrain the ViT and re-measure legibility. It may close part
+   of the gap to the UNet.
 3. **`examples/flow_matching/main.bend`**: 2D first, on the lane (`F.LinearNBF`,
    build gate `ldd | grep libnvrtc`), against `reference/flow_probe.py`'s
    targets (loss 2.1253 -> 0.8662; samples mean [-0.111, 0.150] / std
@@ -109,5 +115,7 @@ a computed value, and a binder cannot be matched after a later one; `List`s are
 affine unless the parameter is `+`; stdout is block-buffered (use `stdbuf -oL`
 and `setsid`, as `scripts/vit.sh` does); linking `libnvrtc` is not proof of
 execution — `nvidia-smi --query-compute-apps` is; a GPU run is only faster
-if the work is matmul and not plumbing; and an import path segment must start
-with a letter, so a directory named `2d` cannot be imported (`two_moons` can).
+if the work is matmul and not plumbing; an import path segment must start
+with a letter, so a directory named `2d` cannot be imported (`two_moons` can);
+and `List.append` into a growing list is O(n²), as is an `at()` scan inside a
+loop — cons and reverse once, and walk the list linearly.

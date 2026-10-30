@@ -761,6 +761,16 @@ The row build is O(n²): `rows_img`, `mix_img`, `patch_all`, `ab_img` and
 pattern over 100,736 parameters. So the first fix is the list builder (cons and
 reverse, or build into an array once), before CIFAR or the device.
 
+**Fixed 2026-10-30.** The builders now cons and reverse once (`take_go`,
+`patch_all`, `mix_img`, `ab_img`, `te_img`, `rows_img`, `scale_go`), and the
+2×2 tokeniser reads sixteen pixels linearly instead of calling `at()` 64 times
+per digit. A step falls from **543 ms to 128 ms**: input and target
+construction 3 ms (2%), forward 51 ms (40%), loss + backward + optimizer 74 ms
+(58%). `init_params` falls from 25.3 s to **5 ms**. The values are
+bit-identical: the full 20,480-value row list and the first three losses match
+the old binary exactly. The step is now arithmetic, so the device lane is worth
+re-measuring.
+
 **Component.** Ours: the per-step data plumbing (and the probe's seven
 `init_params` calls).
 
@@ -798,6 +808,36 @@ probe, both READMEs). The task id stays `diffusion-2d`.
 **Verified by.** A two-file minimal build (`sub/2d` red, `sub/two_moons`
 green), the probe alone at 13/13, then `make check` **92/92** on the renamed
 tree.
+
+---
+
+## ISSUE-020 — the last digit of every batch is 63 zeros (ours, high) — OPEN
+
+**What.** `mix_img` is asked for 64 images of 64 pixels but returns **4033**
+values, not 4096: the last image has its first pixel and 63 zeros. Measured
+with `List.length` on the batch, the mix and the patch on 2026-10-30.
+Everything after it pads: the old tokeniser's `at()` returned 0.0 past the
+end, and the new one pads explicitly so the values stay bit-identical.
+
+**Why.** The `(a, b)` pair for an image is matched on every pixel but consumed
+only when the 64-pixel counter reaches zero. At pixel 4032, the start of the
+last image, the counter is zero and the last pair is consumed; the next pixel
+needs `ps` to be non-empty again, but it is now `Nil`, so the function returns
+after one pixel. Sixty-three images are whole; one is not.
+
+**Why it matters.** One of every 64 training images and one of every 64
+samples is 63/64 zeros. The model is asked to denoise it anyway. Fixing it
+changes the batch, so it needs a retrain and fresh numbers.
+
+**Next.** Restructure the pixel loop so the pair is matched only at the image
+boundary (a 64-pixel inner walk with the current `a`, `b`), then retrain and
+re-measure legibility. Do not fold it into a performance commit.
+
+**Component.** Ours: `mix_img`.
+
+**Verified by.** `List.length(...)`: batch 4096, noise 4096, ab 128,
+**mixed 4033**, patched 4096, and the old and new binaries agree value for
+value.
 
 ---
 

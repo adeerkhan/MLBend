@@ -135,21 +135,24 @@ with eight `LinearNBF` and one `F.Attention`, links `libnvrtc`, and executes on
 an RTX 5060. `nvidia-smi` shows the process with 104 MiB on the card, and the
 frozen values are bit-identical to the CPU lane.
 
-It buys no speed yet, and `make plumbing` shows why. One training step is
-543 ms: 77% is building the input and the target, 10% is the forward, and 13%
-is loss, backward and optimizer. `init_params` costs 25 s once per process.
-The row build appends into a growing list, which is O(n²), so the host work
-dwarfs the matmul. Moving the layers to the card cannot help until that data
-path is fixed. The split is in `results/PLUMBING.md`.
+The earlier 5m44 either way was measured against the data path, not the
+device. A step used to take 543 ms: 77% was building the input and the target,
+and `init_params` cost 25 s, because the builders appended into a growing list
+and the tokeniser scanned the digit 64 times. Rebuilt with cons and one
+reverse, and with a linear tokeniser, the step is 128 ms: 40% forward, 58%
+loss and backward, 2% input and target. `init_params` is 5 ms, and the values
+are bit-identical. The card is worth re-measuring now. The split is in
+`results/PLUMBING.md`.
 
 ## Status
 
 `make check` is 92/92. Diffusion is complete through the ViT, with the gate at
-0.75 and the Bend model measured at 0.783 and 0.807. The plumbing split is
-measured, and the next fix is the row builder. Flow matching has a measured
-probe and needs its 2D example. CIFAR-10 waits on the row builder and a real
-step time. The UNet in Bend waits on `Im2col` and `GroupNorm` upstream.
-Upstream, `FullAttention` for BendTorch and `Im2col` come next.
+0.75 and the Bend model measured at 0.783 and 0.807. The row builder is fixed:
+a step fell from 543 ms to 128 ms with identical values, and `init_params` from
+25 s to 5 ms. Flow matching has a measured probe and needs its 2D example.
+CIFAR-10 waits on a real step time and a re-measured device lane. The UNet in
+Bend waits on `Im2col` and `GroupNorm` upstream. Upstream, `FullAttention` for
+BendTorch and `Im2col` come next.
 
 ## Licence
 
