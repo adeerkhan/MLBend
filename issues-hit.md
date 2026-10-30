@@ -764,9 +764,9 @@ reverse, or build into an array once), before CIFAR or the device.
 **Fixed 2026-10-30.** The builders now cons and reverse once (`take_go`,
 `patch_all`, `mix_img`, `ab_img`, `te_img`, `rows_img`, `scale_go`), and the
 2×2 tokeniser reads sixteen pixels linearly instead of calling `at()` 64 times
-per digit. A step falls from **543 ms to 128 ms**: input and target
-construction 3 ms (2%), forward 51 ms (40%), loss + backward + optimizer 74 ms
-(58%). `init_params` falls from 25.3 s to **5 ms**. The values are
+per digit. A step falls from **543 ms to 131 ms**: input and target
+construction 7 ms (5%), forward 53 ms (40%), loss + backward + optimizer 71 ms
+(54%). `init_params` falls from 25.3 s to **6 ms**. The values are
 bit-identical: the full 20,480-value row list and the first three losses match
 the old binary exactly. The step is now arithmetic, so the device lane is worth
 re-measuring.
@@ -811,7 +811,7 @@ tree.
 
 ---
 
-## ISSUE-020 — the last digit of every batch is 63 zeros (ours, high) — OPEN
+## ISSUE-020 — the last digit of every batch is 63 zeros (ours, high) — FIXED
 
 **What.** `mix_img` is asked for 64 images of 64 pixels but returns **4033**
 values, not 4096: the last image has its first pixel and 63 zeros. Measured
@@ -838,6 +838,12 @@ re-measure legibility. Do not fold it into a performance commit.
 **Verified by.** `List.length(...)`: batch 4096, noise 4096, ab 128,
 **mixed 4033**, patched 4096, and the old and new binaries agree value for
 value.
+
+**Fixed 2026-10-30.** `mix_img` now repeats each image's `(a, b)` pair for its
+64 pixels and mixes three flat lists in step (`mix_flat`), so there is no
+boundary state to lose. Retrained 3000 steps: legibility **0.7875** (was
+0.7829), ancestral **0.8110** (was 0.8070), final loss 0.0712 (was 0.0896),
+first loss 1.00919. The gate passes at a 1.15e-4 first-loss delta.
 
 ---
 

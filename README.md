@@ -32,14 +32,14 @@ gate is 0.75.
 
 | arm (same data, sampler and starting noise) | DDIM 16 | ancestral 64 | DDIM MSE | ancestral MSE |
 |---|---:|---:|---:|---:|
-| **Bend-ViT** | **0.783** | **0.807** | 0.0618 | 0.0569 |
+| **Bend-ViT** | **0.787** | **0.811** | 0.0598 | 0.0561 |
 | PyTorch, same architecture | 0.790 | 0.779 | 0.0583 | 0.0633 |
 | lucidrains UNet (reference) | 0.932 | 0.940 | 0.0202 | 0.0183 |
 
-The Bend model is within 0.007 of the PyTorch twin on DDIM and ahead of it on
+The Bend model is within 0.003 of the PyTorch twin on DDIM and ahead of it on
 the ancestral sampler, with the same 4096 starting samples. Its cloud mean and
-standard deviation are 0.3007 / 0.3450 against the data's 0.3076 / 0.3767, and
-4082 of 4096 pixels land in [0, 1].
+standard deviation are 0.2957 / 0.3395 against the data's 0.3076 / 0.3767, and
+4087 of 4096 pixels land in [0, 1].
 
 The gap closed in the training loop, not in the architecture. Bend drew one
 timestep per batch while the reference draws one per image, worth +0.36
@@ -88,7 +88,7 @@ and that is the slow part.
 
 | example | data | what is checked | result |
 |---|---|---|---|
-| `diffusion/vit` | optdigits, 1024 × 8×8 | legibility of 4096 samples, three arms | **0.783 / 0.807** (torch 0.790 / 0.779) |
+| `diffusion/vit` | optdigits, 1024 × 8×8 | legibility of 4096 samples, three arms | **0.787 / 0.811** (torch 0.790 / 0.779) |
 | `diffusion/digits` | optdigits, 1024 × 8×8 | first loss against the twin, cloud statistics | 1.0039 (twin agrees to 2.9e-8) |
 | `diffusion/two_moons` | two moons, 128 × 2 | loss curve, cloud mean and std | 152.95 → 0.065 |
 | `transformers/periodic` | periodic 0…7, 32 × 8 | loss and next-token accuracy | 2.359 → 0.002, accuracy 1.00 |
@@ -139,17 +139,17 @@ The earlier 5m44 either way was measured against the data path, not the
 device. A step used to take 543 ms: 77% was building the input and the target,
 and `init_params` cost 25 s, because the builders appended into a growing list
 and the tokeniser scanned the digit 64 times. Rebuilt with cons and one
-reverse, and with a linear tokeniser, the step is 128 ms: 40% forward, 58%
-loss and backward, 2% input and target. `init_params` is 5 ms, and the values
+reverse, and with a linear tokeniser, the step is 131 ms: 40% forward, 54%
+loss and backward, 5% input and target. `init_params` is 6 ms, and the values
 are bit-identical. The card is worth re-measuring now. The split is in
 `results/PLUMBING.md`.
 
 ## Status
 
 `make check` is 92/92. Diffusion is complete through the ViT, with the gate at
-0.75 and the Bend model measured at 0.783 and 0.807. The row builder is fixed:
-a step fell from 543 ms to 128 ms with identical values, and `init_params` from
-25 s to 5 ms. Flow matching has a measured probe and needs its 2D example.
+0.75 and the Bend model measured at 0.787 and 0.811. The row builder is fixed:
+a step fell from 543 ms to 131 ms with identical values, and `init_params` from
+25 s to 6 ms. Flow matching has a measured probe and needs its 2D example.
 CIFAR-10 waits on a real step time and a re-measured device lane. The UNet in
 Bend waits on `Im2col` and `GroupNorm` upstream. Upstream, `FullAttention` for
 BendTorch and `Im2col` come next.
