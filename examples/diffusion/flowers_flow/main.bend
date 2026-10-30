@@ -53,6 +53,12 @@ def BATCH() -> Nat:
 def NIMG() -> Nat:
   C.NIMG()
 
+def STEPS() -> Nat:
+  C.STEPS()
+
+def EULER() -> Nat:
+  C.EULER()
+
 def path() -> String:
   "/home/adeerkhan/.cache/bend-lab/flowers/flowers64-512-gray.u8"
 
@@ -264,16 +270,15 @@ def tok_go(+left: Nat, +img: Nat, +row: Nat, +col: Nat, data: List<&2, U32>,
     case 0n:
       RS{data, noise, inp, tgt}
     case 1n+rest:
-      match img row col:
-        case 8n _ _:
+      # one value matched, not three: `match img row col` costs 4.8 GB of
+      # codegen, `match img col` costs 6 MB for the same work (2026-10-30)
+      match img col:
+        case 8n _:
           RS{data, noise, inp, tgt}
-        case _ 64n _:
-          tok_go(rest, (1n + img : Nat), 0n, 0n, data, noise, inp, tgt,
-            level(s, (1n + img : Nat)), s)
-        case _ _ 64n:
+        case _ 64n:
           tok_go(rest, img, (1n + row : Nat), 0n, data, noise, feats(t, row, inp),
             tgt, t, s)
-        case _ _ _:
+        case _ _:
           match data noise:
             case Con{b, dt} Con{+x0, nt}:
               +x1 = (((F32.from_nat(U32.to_nat(b)) / 127.5 : F32) - 1.0) : F32)
@@ -306,14 +311,12 @@ def stok_go(+left: Nat, +img: Nat, +row: Nat, +col: Nat, x: List<&2, F32>,
     case 0n:
       XS{x, acc}
     case 1n+rest:
-      match img row col:
-        case 8n _ _:
+      match img col:
+        case 8n _:
           XS{x, acc}
-        case _ 64n _:
-          stok_go(rest, (1n + img : Nat), 0n, 0n, x, t, acc)
-        case _ _ 64n:
+        case _ 64n:
           stok_go(rest, img, (1n + row : Nat), 0n, x, t, feats(t, row, acc))
-        case _ _ _:
+        case _ _:
           match x:
             case Con{h, xt}:
               stok_go(rest, img, row, (1n + col : Nat), xt, t, Con{h, acc})
@@ -449,7 +452,7 @@ def ve_step(ve: VE, x: List<&2, F32>) -> VS:
 def step_vs(+i: Nat, st: VS) -> VS:
   match st:
     case VS{p, +x}:
-      +t = (F32.from_nat(i) / 32.0 : F32)
+      +t = (F32.from_nat(i) / F32.from_nat(EULER()) : F32)
       ve_step(fwd_v(p, sample_input(t, x)), x)
 
 def euler_go(+left: Nat, +i: Nat, st: VS) -> VS:
@@ -513,7 +516,7 @@ def report(x: List<&2, F32>) -> IO(Unit):
 def main() -> IO(Unit):
   do IO<Unit>:
     T.OptCfg.check(cfg())
-    tr : T.Train<ModelP()> <- loop(200n, 0n,
+    tr : T.Train<ModelP()> <- loop(STEPS(), 0n,
       T.Train.new(~ModelP(), ~X(), ~Y(), ~ModelS(), ~Model(), cfg(), init_params()))
     p : ModelP() <- IO.pure(ModelP(), train_params(tr))
-    report(sample_x(euler_go(32n, 0n, VS{p, G.noise_of(2000000n, BATCH())})))
+    report(sample_x(euler_go(EULER(), 0n, VS{p, G.noise_of(2000000n, BATCH())})))

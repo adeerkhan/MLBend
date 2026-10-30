@@ -18,10 +18,10 @@ OUT = os.path.join(ROOT, "examples/diffusion/flowers_flow/config.bend")
 # blocks is 1 for every preset: the example's model composition is three blocks
 # only in `full`, and no machine measured here builds that. See config.bend.
 PRESETS = {
-    "tiny":   {"B": 1, "W": 64},
-    "small":  {"B": 1, "W": 96},
-    "medium": {"B": 2, "W": 128},
-    "full":   {"B": 8, "W": 128},
+    "tiny":   {"B": 1, "W": 64,  "STEPS": 200,  "EULER": 32},
+    "small":  {"B": 1, "W": 96,  "STEPS": 2000, "EULER": 32},
+    "medium": {"B": 2, "W": 128, "STEPS": 2000, "EULER": 32},
+    "full":   {"B": 8, "W": 128, "STEPS": 2000, "EULER": 32},
 }
 
 HEAD = """# The 64x64 flow's shape, fixed before the compile: every number here is a
@@ -71,6 +71,12 @@ def PX() -> Nat:
 # 64 pixels, 8 time features, 8 position features
 def FE() -> Nat:
   Nat.add(PX(), 16n)
+
+def STEPS() -> Nat:
+  {STEPS}n
+
+def EULER() -> Nat:
+  {EULER}n
 """
 
 

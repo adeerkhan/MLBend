@@ -10,17 +10,17 @@
 # which presets fit the machine. The compile is what costs memory, not the step:
 # `bend -o` reached 4.3 GB on the 3-block model's data half alone and passed
 # 8 GB once the training step was added, which is why the preset is chosen
-# before the build and not at runtime. This file is the `tiny` preset.
+# before the build and not at runtime. This file is the `medium` preset.
 
 def B() -> Nat:
-  1n
+  2n
 
 # one token per 64-pixel row, so the image is read in raster order
 def TK() -> Nat:
   64n
 
 def W() -> Nat:
-  64n
+  128n
 
 def HI() -> Nat:
   Nat.mul(W(), 2n)
@@ -43,3 +43,9 @@ def PX() -> Nat:
 # 64 pixels, 8 time features, 8 position features
 def FE() -> Nat:
   Nat.add(PX(), 16n)
+
+def STEPS() -> Nat:
+  2000n
+
+def EULER() -> Nat:
+  32n

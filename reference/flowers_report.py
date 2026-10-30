@@ -27,9 +27,9 @@ import zlib
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA = os.path.expanduser("~/.cache/bend-lab/flowers/flowers64-512.u8")
-DATA_SHA = "02385f3ae6c9aa9c0cbe294b45e9758e347cb04abda529352952cd8b7b7075a8"
-EDGE = 64
+DATA = os.path.expanduser("~/.cache/bend-lab/flowers/flowers64-512-gray.u8")
+DATA_SHA = "6b9c4c66ad5c03939875557d8a77af02845bf924849b4964bcd46b69300a4956"
+EDGE = 64          # overwritten from the sample block
 IMAGES = 8
 
 
@@ -79,9 +79,14 @@ def grid(images, scale=4):
     for img in images:
         up = np.repeat(np.repeat(img, scale, 0), scale, 1)
         tiles.append(up)
-    row1 = np.concatenate(tiles[:4], axis=1)
-    row2 = np.concatenate(tiles[4:8], axis=1)
-    return np.concatenate([row1, row2], axis=0)
+    if len(tiles) == 1:
+        return tiles[0]
+    half = (len(tiles) + 1) // 2
+    top = np.concatenate(tiles[:half], axis=1)
+    if len(tiles) == half:
+        return top
+    bottom = np.concatenate(tiles[half:] + [np.zeros_like(tiles[0])] * (half - len(tiles[half:])), axis=1)
+    return np.concatenate([top, bottom], axis=0)
 
 
 def main():
@@ -104,11 +109,17 @@ def main():
         raise SystemExit("no sample block: did the run reach the sampler?")
 
     rows = [r for r in block.group(1).splitlines() if r.strip()]
-    if len(rows) != IMAGES * EDGE:
-        raise SystemExit(f"{len(rows)} sample rows, expected {IMAGES * EDGE}")
     v = np.array([[float(x) for x in r.split()] for r in rows], dtype=np.float32)
-    if v.shape[1] != EDGE:
-        raise SystemExit(f"{v.shape[1]} columns, expected {EDGE}")
+    # the block is one row of pixels per token: columns are EDGE, and 64 rows
+    # make one image. Both are read from the run, so a preset change needs no
+    # edit here.
+    if v.shape[1] not in (32, 64):
+        raise SystemExit(f"{v.shape[1]} columns, expected 32 or 64")
+    global EDGE, IMAGES
+    EDGE = v.shape[1]
+    if len(rows) % EDGE:
+        raise SystemExit(f"{len(rows)} rows is not a whole number of {EDGE}-row images")
+    IMAGES = len(rows) // EDGE
 
     images = v.reshape(IMAGES, EDGE, EDGE)
     print(f"samples: n {v.size}  mean {v.mean():+.4f}  std {v.std():.4f}  "

@@ -1313,3 +1313,44 @@ The next experiment is therefore structural, not numerical: **one program per
 phase**, training and sampling built separately, each with only the builders it
 uses. The ViT example proves the architecture fits in 8 GB when the program is
 shaped that way.
+
+### The wall was a three-value match (2026-10-30, found)
+
+`tok_go`'s state machine matched three values at once:
+
+```bend
+match img row col:
+  case 8n _ _:      ...
+  case _ 64n _:     ...
+  case _ _ 64n:     ...
+  case _ _ _:       ...
+```
+
+That one shape costs **4.8 GB** of codegen. The same function with `match img
+col:` (two values, three cases, same behaviour, `row` still a parameter) costs
+**6 MB**. Measured on the same file with a `main` that prints `hi`, in a cgroup:
+
+| build | peak |
+|---|---|
+| model + data, `match img row col` | 4.8 GB, 7 s |
+| model + data, `match img col` | 6 MB, 1 s |
+| full program, three-value match | past 9.5 GB, killed |
+| full program, two-value match | **926 MB, 19 s** |
+
+The cost is in the number of values a `match` scrutinises, not in the model
+depth (1 and 3 blocks cost the same), not in the image size (32x32 dies like
+64x64), not in the fuel (a runtime-equal fuel changes nothing), and not in the
+feature builder (~400 MB of the 4.8).
+
+With the two-value match the flow trains and samples:
+
+```
+medium (2 images, 128 wide, 1 block), 2000 steps, 32 Euler
+  loss 1.316 -> 0.328
+  samples  mean -0.128  std 0.363   against the data's -0.204 / 0.453
+           8136 of 8192 in [-1, 1]
+  legibility 0.419 (random baseline 0.048)
+```
+
+`legibility` is the best absolute correlation of a sample with any training
+flower: 0.419 is a blurred flower, not noise. The run takes 2m03s on 28 cores.
