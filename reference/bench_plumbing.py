@@ -108,17 +108,22 @@ Shares of the step: input and target construction **{plumbing / step:.0%}**,
 forward {m['forward_ms'] / step:.0%}, loss + backward + optimizer
 {backward / step:.0%}.
 
-The step is plumbing. `step_in` and `step_tgt` together are
-{plumbing:.0f} ms of {step:.0f} ms, and most of that is the list build: the
-rows are assembled with `List.append` into a growing list, which is O(n²) in
-the number of values, so it dominates even the forward. `init_params` pays the
-same pattern over 100,736 parameters and costs {m['init_params_ms'] / 1000:.1f} s
-once per process.
+The step is now arithmetic. `step_in` and `step_tgt` together are
+{plumbing:.0f} ms of {step:.0f} ms ({plumbing / step:.0%}); the forward is
+{m['forward_ms']:.0f} ms and loss + backward + optimizer are {backward:.0f} ms.
+`init_params` costs {m['init_params_ms']:.0f} ms once per process.
 
-That is why the device buys no speed: a matmul moved to the card is 10% of the
-step, and the {plumbing / step:.0%} around it stays on the host. It also reframes CIFAR: the
-first fix is the row builder (cons and reverse, or build into an array once),
-not the GPU.
+Before the builder fix (2026-10-30, the same program) a step was 543 ms, with
+77% in the input and target build, and `init_params` was 25.3 s. The builders
+appended into a growing list (O(n²)) and the tokeniser called `at()` 64 times
+per digit. With cons + one reverse and a linear 16-pixel tokeniser the build
+falls to {plumbing:.0f} ms, and the values are bit-identical: the full 20,480
+value row list and the first three losses were compared against the old
+version.
+
+The device is worth re-measuring now: the forward and backward are
+{(m['forward_ms'] + backward) / step:.0%} of the step, and the host no longer
+hides them.
 """
     with open(os.path.join(ROOT, "results/PLUMBING.md"), "w") as f:
         f.write(card)

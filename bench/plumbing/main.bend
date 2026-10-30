@@ -30,7 +30,7 @@ def show_ms(name: String, total: Nat) -> IO(Unit):
 # the 1024 rows of one step, exactly as step_in builds them, before the matrix
 def rows_of(+s: Nat, x0: List<&2, F32>) -> List<&2, F32>:
   +batch = M.batch_of(s, x0)
-  +noise = M.take_go(4096n, G.noise_of(s, 65536n), Nil{})
+  +noise = G.noise_of(s, 4096n)
   M.rows_img(M.patch_all(64n,
       M.mix_img(batch, noise, M.ab_img(s, 64n, Nil{}), 0.0, 0.0, 0n, Nil{}), Nil{}),
     M.te_img(s, 64n, Nil{}), 0n, 0n, 0n, Nil{}, Nil{})

@@ -8,27 +8,32 @@ Machine: Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43 · 28 CPUs · Bend 2.
 
 | phase | ms |
 |---|---:|
-| `init_params` (once per process) | 25029 |
-| `rows` (1024 rows before the matrix) | 276 |
-| `step_in` (batch, noise, mix, rows, matrix) | 279 |
-| `Mat.from_list` (derived: step_in - rows) | 3 |
-| `forward` (the model on that matrix) | 52 |
-| `step_tgt` (noise, patches, matrix) | 139 |
+| `init_params` (once per process) | 5 |
+| `rows` (1024 rows before the matrix) | 3 |
+| `step_in` (batch, noise, mix, rows, matrix) | 3 |
+| `Mat.from_list` (derived: step_in - rows) | 0 |
+| `forward` (the model on that matrix) | 51 |
+| `step_tgt` (noise, patches, matrix) | 0 |
 | `train_new` (grad and optimizer buffers) | 0 |
-| **one full step** | **543** |
+| **one full step** | **128** |
 
-Shares of the step: input and target construction **77%**,
-forward 10%, loss + backward + optimizer
-13%.
+Shares of the step: input and target construction **2%**,
+forward 40%, loss + backward + optimizer
+58%.
 
-The step is plumbing. `step_in` and `step_tgt` together are
-418 ms of 543 ms, and most of that is the list build: the
-rows are assembled with `List.append` into a growing list, which is O(n²) in
-the number of values, so it dominates even the forward. `init_params` pays the
-same pattern over 100,736 parameters and costs 25.0 s
-once per process.
+The step is now arithmetic. `step_in` and `step_tgt` together are
+3 ms of 128 ms (2%); the forward is
+51 ms and loss + backward + optimizer are 74 ms.
+`init_params` costs 5 ms once per process.
 
-That is why the device buys no speed: a matmul moved to the card is 10% of the
-step, and the 77% around it stays on the host. It also reframes CIFAR: the
-first fix is the row builder (cons and reverse, or build into an array once),
-not the GPU.
+Before the builder fix (2026-10-30, the same program) a step was 543 ms, with
+77% in the input and target build, and `init_params` was 25.3 s. The builders
+appended into a growing list (O(n²)) and the tokeniser called `at()` 64 times
+per digit. With cons + one reverse and a linear 16-pixel tokeniser the build
+falls to 3 ms, and the values are bit-identical: the full 20,480
+value row list and the first three losses were compared against the old
+version.
+
+The device is worth re-measuring now: the forward and backward are
+98% of the step, and the host no longer
+hides them.

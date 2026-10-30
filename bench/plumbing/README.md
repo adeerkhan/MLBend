@@ -17,7 +17,9 @@ A caveat paid for here: a phase that returns `Unit` is erased as unused and
 times as 0. Every measured value is printed after its timer, so the compiler
 cannot drop the work.
 
-The result is in `results/PLUMBING.md`. In short: the input and target
-construction dominate the step, the forward is about a tenth of it, and the
-row build is O(n²) because it appends into a growing list. That is why moving
-the matmul to the GPU changed nothing.
+The result is in `results/PLUMBING.md`. Before the fix, input and target
+construction were 77% of a 543 ms step and `init_params` was 25.3 s: the
+builders appended into a growing list (O(n²)) and the tokeniser scanned the
+digit 64 times. With cons + one reverse and a linear tokeniser the step is
+128 ms, the build is 3 ms, `init_params` is 5 ms, and the values are
+bit-identical. The step is now forward and backward.
