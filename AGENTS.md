@@ -26,7 +26,7 @@ engine. The only models that live here are gradient-free baselines.
   three examples on it were retired on 2026-10-24.
 - `docs/PLAN.md`: the layer, the roadmap and the stop criteria.
 - `docs/AUDIT.md`: what is proved, what is tested, what is trusted.
-- `NOTES.md`: every finding and every discarded hypothesis, by date.
+- `docs/NOTES.md`: every finding and every discarded hypothesis, by date.
 - `reference/`: the NumPy and scikit-learn comparisons, the per-task tests,
   and `experiment.py`, the runner that writes the reports.
 - `reports/`: the generated report cards (ignored by git).
@@ -41,14 +41,14 @@ engine. The only models that live here are gradient-free baselines.
 
 1. **Read, in this order**: this file, `docs/agents/handoff.md`, the issue the
    handoff names, `docs/PLAN.md`, `docs/agents/domain.md`, then
-   `NOTES.md` for the part of the code you are about to touch.
+   `docs/NOTES.md` for the part of the code you are about to touch.
 2. **One issue per work item**, on `main`, in small commits. The acceptance
    criteria go in the issue (`docs/agents/issue-tracker.md`).
 3. **Run `make check` before you believe anything.** It checks the proofs, the
    kernel, the programs that must be refused, and the numbers against NumPy and
    scikit-learn. A number you did not run is not a number.
 4. **Say what you ran and what you did not**, in the pull request and in
-   `NOTES.md`. The kernel check (`--verdict`) needs Lean 4.34.0: if your machine
+   `docs/NOTES.md`. The kernel check (`--verdict`) needs Lean 4.34.0: if your machine
    has no Lean, the law is *checked* but not *proved*, and the pull request
    must say so.
 5. **A law that cannot be proved yet is an issue**, not a package.
@@ -87,10 +87,10 @@ publishes to BendHub and tags the released commit `<name>-v<version>`.
    bend-ml's; this repository adapts them. Gradient-free baselines are the
    exception, because a baseline needs no trainer.
 1. Bend is pinned to **2.0.38** (and Lean 4.34.0 for `--verdict`). A version
-   bump is its own change, with an entry in `NOTES.md`.
+   bump is its own change, with an entry in `docs/NOTES.md`.
 2. Run the checker on every change; it takes a fraction of a second.
 3. **Every proof is real.** No `@unsafe`, no `?TODO`, no axioms. A law that
-   cannot be proved yet is recorded in `NOTES.md` as debt and left out of the
+   cannot be proved yet is recorded in `docs/NOTES.md` as debt and left out of the
    package.
 4. **Prove structure, test numbers.** Sizes, partitions and composition belong
    in the types and the laws; `F32` results are checked against NumPy and
@@ -103,8 +103,8 @@ publishes to BendHub and tags the released commit `<name>-v<version>`.
    losses and the noise, not only the best run.
 8. Everything in the repository is in English. Commits are small, with clear
    messages and no attribution lines.
-9. Public text (READMEs, `NOTES.md`, `docs/`) is written in the first person
-   singular: "I measured", "my PR", never "we".
+9. Public text (READMEs, `docs/`) is written in a neutral, professional voice:
+   no first person, no dash dividers, no private ledger links.
 
 ## Bend 2.0.38 pitfalls we paid for
 

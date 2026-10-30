@@ -43,7 +43,7 @@ bench:            ## a compute-only kernel benchmark, saved under results/
 plumbing:         ## the time split of one ViT training step, saved under results/
 	$(PY) reference/bench_plumbing.py
 
-figures:          ## rebuild the README figures from results/, saved under docs/figures/
+figures:          ## rebuild the README figures from results/, saved under docs/assets/figures/
 	$(PY) reference/make_readme_figures.py
 
 flow:             ## train the 2D flow matching example, saved under results/flow-matching/
@@ -58,7 +58,7 @@ select:           ## model selection and a classification report (kNN)
 plots:            ## write examples/<name>/README.md and plot.svg for every example
 	$(PY) reference/make_example_readmes.py
 
-issues:          ## render issues-hit.md as issues-hit.html (bend-lang theme)
+issues:          ## render .local/issues-hit.md as .local/issues-hit.html (bend-lang theme)
 	$(PY) reference/make_issues_html.py
 
 sweep:            ## start the W&B sweep defined in reference/wandb_sweep.yaml

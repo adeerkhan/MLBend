@@ -64,5 +64,5 @@ $ cd reference/lucidrains && sha256sum -c VENDORED.sha256
 
 The package's `__init__.py` does not re-export `version.py`'s `__version__`,
 so `import denoising_diffusion_pytorch as d; d.__version__` raises
-`AttributeError` (ISSUE-004 in `issues-hit.md`). The copy stays verbatim;
+`AttributeError` (ISSUE-004 in the local issue ledger). The copy stays verbatim;
 provenance is the commit above, not that attribute.

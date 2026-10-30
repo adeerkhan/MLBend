@@ -294,7 +294,7 @@ def main():
           "ways: the ancestral loop over all 64 rungs and DDIM over every 4th. Both "
           "samplers reconstruct the model's implied start, clamp it to [0, 1], and form "
           "the posterior mean from that start — without the clamp the chain walks away "
-          "from the data even when the denoiser predicts noise well (`issues-hit.md`, "
+          "from the data even when the denoiser predicts noise well (the local issue ledger, "
           "ISSUE-005).\n\n"
           "```console\n$ bendenv run -- bend examples/diffusion/digits/main.bend\n```\n\n"
           f"First loss **{first:.4f}** against the NumPy twin's — the gate — and the data "

@@ -1,4 +1,4 @@
-"""Render issues-hit.md as issues-hit.html, in the bend-lang.com theme.
+"""Render .local/issues-hit.md as .local/issues-hit.html, in the bend-lang.com theme.
 
   reference/.venv/bin/python reference/make_issues_html.py
 
@@ -7,9 +7,9 @@ script turns it into a page with the palette of https://bend-lang.com (`--bg`
 #f2eee7, `--line` #e4dfd5, `--b01` #69665f, and the four accents), the same
 monospace stack, and a thin rule per section.
 
-Each issue carries the time it entered the log: the commit that first added
-its heading to the markdown, read with `git log -S`. The footer records when
-the page was generated. Nothing here is a gate; `make check` does not run it.
+Each issue carries the date in its own text when it has one; the ledger is
+local and untracked, so git history is not used. The footer records when the
+page was generated. Nothing here is a gate; `make check` does not run it.
 """
 import html
 import os
@@ -19,8 +19,8 @@ import sys
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC = os.path.join(ROOT, "issues-hit.md")
-OUT = os.path.join(ROOT, "issues-hit.html")
+SRC = os.path.join(ROOT, ".local", "issues-hit.md")
+OUT = os.path.join(ROOT, ".local", "issues-hit.html")
 
 STATUS_TONE = {
     "FIXED": "grn",
@@ -31,19 +31,10 @@ STATUS_TONE = {
 }
 
 
-def first_seen(heading):
-    """When this heading first appeared in the log (the commit that added it)."""
-    key = heading.split("—")[0].strip()
-    try:
-        out = subprocess.run(
-            ["git", "log", "-S", key, "--format=%cI", "-1", "--", "issues-hit.md"],
-            cwd=ROOT, capture_output=True, text=True, timeout=30)
-        stamp = out.stdout.strip().splitlines()
-        if stamp:
-            return stamp[0]
-    except Exception:
-        pass
-    return ""
+def first_seen(heading, body=""):
+    """The date the entry itself gives, or nothing."""
+    m = re.search(r"(20[0-9]{2}-[0-9]{2}-[0-9]{2})", body)
+    return m.group(1) if m else ""
 
 
 def inline(text):
@@ -137,14 +128,17 @@ def main():
         counts["FIXED" if status == "FIXED" else
                "UPSTREAM" if status == "UPSTREAM" else
                "OPEN" if status == "OPEN" else "other"] += 1
-        seen = first_seen(heading)
+        seen = first_seen(heading, body)
         seen_html = ""
         if seen:
-            try:
-                dt = datetime.fromisoformat(seen)
-                seen_html = f'<span class="when" title="{seen}">logged {dt:%Y-%m-%d %H:%M} UTC</span>'
-            except ValueError:
-                seen_html = f'<span class="when">{html.escape(seen)}</span>'
+            if len(seen) == 10:
+                seen_html = f'<span class="when">logged {seen}</span>'
+            else:
+                try:
+                    dt = datetime.fromisoformat(seen)
+                    seen_html = f'<span class="when" title="{seen}">logged {dt:%Y-%m-%d %H:%M} UTC</span>'
+                except ValueError:
+                    seen_html = f'<span class="when">{html.escape(seen)}</span>'
         cards.append(f'''<section class="issue" id="{re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")}">
   <header class="ihead">
     <span class="id">{inline(name)}</span>
@@ -161,7 +155,7 @@ def main():
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)} — MLBend</title>
+<title>{html.escape(title)} — bend-lab</title>
 <style>
 :root {{
   --bg:#f2eee7; --bg2:#e9e4db; --line:#e4dfd5;
@@ -225,7 +219,7 @@ footer{{border-top:1px solid var(--line);margin-top:3rem;padding-top:1rem;
 </div>
 {"".join(cards)}
 <footer>
-  <span>generated from <code>issues-hit.md</code> at {now:%Y-%m-%d %H:%M} UTC</span>
+  <span>generated from the local ledger at {now:%Y-%m-%d %H:%M} UTC</span>
   <span>theme: bend-lang.com</span>
 </footer>
 </body>

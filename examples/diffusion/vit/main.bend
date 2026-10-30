@@ -139,7 +139,7 @@ def Att() -> T.Layer<AttP, A(W()), A(W()), AttS>:
 # The pre-LN block: the norm goes INSIDE the residual, so the path x is kept:
 # x + att(ln(x)). Written the other way round -- Seq(ln, Residual(att)) -- the
 # residual is taken on the normalized value, ln(x) + att(ln(x)), and the stream
-# loses its identity path (ISSUE-010 in issues-hit.md).
+# loses its identity path (ISSUE-010 in the local issue ledger).
 def AttBlkP() -> Type:
   T.Two<T.Two<Unit, T.Two<T.LN<W()>, AttP>>, Unit>
 

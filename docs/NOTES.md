@@ -117,7 +117,7 @@ relevant entry before changing performance-sensitive code or a law.
   is per-image timesteps (a per-image time embedding and per-image `a`/`b` in
   the input mix), not randomness. Bend's Weyl run measures 0.409, with the
   schedule randomized and the loop unchanged — the number the corrected table
-  predicts. `ISSUE-016` in `issues-hit.md` carries the corrected table and says
+  predicts. `ISSUE-016` in the local issue ledger carries the corrected table and says
   plainly that the first version of the entry was wrong.
 - **The loss curve is a sawtooth, and that is the timestep, not the optimiser.**
   The example draws **one t for the whole 64-digit batch** (`t = 1 + s mod 64`),

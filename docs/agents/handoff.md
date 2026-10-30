@@ -13,7 +13,7 @@ leaves the next one blind.
 merged tree. PR #17 landed the structure: thirteen flat examples became four
 areas, every path followed, and the local folder is now
 `~/github/bend/bend-lab` with `origin` at `adeerkhan/bend-lab`. The README is
-rewritten around `bend-hero.png`, the measured three-arm table and the real
+rewritten around `docs/assets/bend-hero.png`, the measured three-arm table and the real
 layout; `examples/README.md` is a 13-task index instead of a stale second copy.
 
 **The one red, and its fix (ISSUE-019).** `examples/diffusion/2d` could not be

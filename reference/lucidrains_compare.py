@@ -19,7 +19,7 @@ What it prints, in the order the comparison needs it:
      64), their statistics, and the same statistics Bend's run.json holds.
 
 Writes results/lucidrains-diffusion/: loss.tsv, grid.svg (data left, DDIM
-right, drawn with the cell offset fixed -- see issues-hit.md), run.json.
+right, drawn with the cell offset fixed -- see the local issue ledger), run.json.
 
 The reference is a reference: the Bend layer does not import it, and
 `make check` does not run it. It is here to answer "what does the paper's

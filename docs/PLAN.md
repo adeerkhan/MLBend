@@ -183,7 +183,7 @@ now:
   later layer multiplied by 6.4, so the output started 88× the target (first
   loss **8062.7** against the vendored reference's 0.96), and the 95× cloud expansion was the
   missing clamp of the predicted start. Both are fixed and measured against
-  `lucidrains/denoising-diffusion-pytorch` (`issues-hit.md`, ISSUE-001 and
+  `lucidrains/denoising-diffusion-pytorch` (the local issue ledger, ISSUE-001 and
   ISSUE-005): first loss **1.0039**, final **0.0417**, ancestral cloud
   **0.385/0.355**, DDIM **0.415/0.406**, against the data's 0.308/0.377, and
   both clouds' statistics are report-mode.

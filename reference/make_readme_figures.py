@@ -2,7 +2,7 @@
 
   reference/.venv/bin/python reference/make_readme_figures.py
 
-Writes docs/figures/{legibility,loss,flow,plumbing}.svg and .webp, and an
+Writes docs/assets/figures/{legibility,loss,flow,plumbing}.svg and .webp, and an
 index.html gallery. The webp is what the README embeds; the svg is the source.
 The numbers come from results/, the before/after plumbing numbers from the
 2026-10-30 measurement recorded in ISSUE-018.
@@ -12,7 +12,7 @@ import os
 import subprocess
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-OUT = os.path.join(ROOT, "docs", "figures")
+OUT = os.path.join(ROOT, "docs", "assets", "figures")
 
 BG = "#f2eee7"
 PANEL = "#e9e4db"

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="bend-hero.png" alt="bend-lab: machine learning, built in Bend" width="100%">
+  <img src="docs/assets/bend-hero.png" alt="bend-lab: machine learning, built in Bend" width="100%">
 </p>
 
 # bend-lab
@@ -24,7 +24,7 @@ written down.
 
 ## Results
 
-![Legibility by arm](docs/figures/legibility.webp)
+![Legibility by arm](docs/assets/figures/legibility.webp)
 
 The diffusion track is complete through a ViT denoiser: 2×2 patches, 16 tokens,
 three pre-LN blocks, 100,736 parameters and 3000 steps on the first 1024
@@ -50,7 +50,7 @@ comparison is `results/compare/index.html`.
 
 ## Diffusion
 
-![ViT loss](docs/figures/loss.webp)
+![ViT loss](docs/assets/figures/loss.webp)
 
 The loss falls from 1.009 to 0.071 over 3000 steps, with a minimum of 0.058.
 The frozen probe pins the forward pass, one ancestral step, the 16-step DDIM
@@ -58,11 +58,11 @@ cloud and the eta=0 invariance to the NumPy twin; the legibility gate is 0.75.
 The same task also runs on a dense MLP over real digits, and on two moons with
 an ancestral sampler and DDIM.
 
-![DDIM samples](docs/figures/samples.webp)
+![DDIM samples](docs/assets/figures/samples.webp)
 
 ## Flow matching
 
-![Rectified flow loss](docs/figures/flow.webp)
+![Rectified flow loss](docs/assets/figures/flow.webp)
 
 Rectified flow replaces the diffusion chain with one vector field and an Euler
 ODE: `x_t = noise*(1-t) + data*t`, target `v = data - noise`, MSE loss, and a
@@ -75,7 +75,7 @@ still to be added.
 
 ## Where the time goes
 
-![One training step before and after](docs/figures/plumbing.webp)
+![One training step before and after](docs/assets/figures/plumbing.webp)
 
 A training step used to take 543 ms, of which 418 ms built the input and the
 target, and `init_params` cost 25.3 s. The builders appended into a growing
@@ -97,7 +97,7 @@ examples/          what is run: one directory per task, with main.bend, README.m
                    the ten packages published to BendHub
 reference/         what proves it: twins, probes, gates, comparisons, the task registry
 results/           what it proved: run.json, REPORT.md, plots, the three-arm comparison
-docs/              PLAN, AUDIT, the agent handoff, the generated figures
+docs/              PLAN, AUDIT, NOTES, the agent handoff, assets/ (hero and figures)
 papers/            paper comparisons: the claim, the reduced protocol, the two arms
 bench/             compute-only benchmarks
 ```

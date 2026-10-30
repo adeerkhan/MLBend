@@ -21,7 +21,7 @@ dense MLP.
 | parameters | 100,736 |
 | layers | BendTorch's only: `LinearNB`, `LayerNorm`, `Attention`, `GELU`, `Residual`, `Seq` |
 
-Three facts shaped it, all in `issues-hit.md`:
+Three facts shaped it, all in the local issue ledger:
 
 - **The residual must wrap the norm** (`ISSUE-010`). Written
   `Seq(ln, Residual(att))` it computes `ln(x) + att(ln(x))`, which discards the

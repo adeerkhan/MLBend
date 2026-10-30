@@ -73,7 +73,7 @@ two sequences are `List<&2, F32>` (the values may be read twice) and
    cannot see a wrong backward pass. It could not, in fact — both twins
    evaluated the SiLU derivative at the activated value instead of the
    pre-activation, and no gate noticed until the Bend arm learned and the
-   twins did not (`issues-hit.md`, ISSUE-006). The digits twins are now also
+   twins did not (the local issue ledger, ISSUE-006). The digits twins are now also
    compared with the vendored lucidrains reference, which is an outside
    implementation rather than a mirror of our own code.
 3. **The published packages this repository imports.** `mlbend-metrics`

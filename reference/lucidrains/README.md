@@ -9,7 +9,7 @@ optimizer.
 It exists because the diffusion examples needed a second opinion that is not
 my own NumPy mirror. The mirror agrees with the example by construction; this
 library is what the field actually uses, and comparing against it is how the
-digits denoiser's failure was found (`issues-hit.md`, ISSUE-001).
+digits denoiser's failure was found (the local issue ledger, ISSUE-001).
 
 ## The environment
 
@@ -53,7 +53,7 @@ The parts that changed the Bend side, with the files they come from:
 | Reference | Where | What Bend did |
 |---|---|---|
 | zero-mean init at `1/sqrt(fan_in)` | PyTorch `nn.Linear` default | `examples/diffusion/digits` `value()` rebuilt (ISSUE-001) |
-| x̂₀ clamped to [-1, 1] before the posterior mean | `p_mean_variance`, `ddim_sample` (`maybe_clip`) | open — see `issues-hit.md` H2 |
+| x̂₀ clamped to [-1, 1] before the posterior mean | `p_mean_variance`, `ddim_sample` (`maybe_clip`) | open — see the local issue ledger H2 |
 | data normalized to [-1, 1] | `normalize_to_neg_one_to_one` | open — H3 |
 | `linear_beta_schedule` = `linspace(1e-4·1000/T, 0.02·1000/T, T)` | `linear_beta_schedule` | divergence recorded (ISSUE-002) |
 | sinusoidal embedding injected per block | `Unet` + `SinusoidalPosEmb` | ours concatenates 8 values into the input row — H4 |
