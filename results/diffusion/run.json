@@ -1,10 +1,10 @@
 {
-  "created_at": "2026-10-29T19:46:05.735496+00:00",
+  "created_at": "2026-10-30T07:04:30.499103+00:00",
   "example": "examples/diffusion/two_moons/main.bend",
   "architecture": "linear(10,32), SiLU, linear(32,32), SiLU, linear(32,2)",
   "process": "DDPM, T=64, linear beta 0.0001..0.3, eps-prediction; DDIM eta=0, every 4th rung (16 model calls)",
   "machine": "Linux-7.2.9-200.fc44.x86_64-x86_64-with-glibc2.43",
-  "seconds": 23.719636917114258,
+  "seconds": 25.166509866714478,
   "bend": {
     "first_loss": 152.95369,
     "final_loss": 0.056912296,
