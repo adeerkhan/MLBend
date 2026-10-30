@@ -128,7 +128,9 @@ def main():
         heading = head[3:].strip()
         parts = [p.strip() for p in heading.split("—")]
         name = parts[0]
-        status = parts[-1].upper() if parts[-1].upper() in STATUS_TONE else ""
+        raw = parts[-1].upper()
+        # a status may carry a note ("UPSTREAM (filed #17)"): the word is the status
+        status = next((k for k in STATUS_TONE if raw.startswith(k)), "")
         desc = " — ".join(parts[1:-1]) if status else " — ".join(parts[1:])
         tone = STATUS_TONE.get(status, "b0")
         counts["FIXED" if status == "FIXED" else
