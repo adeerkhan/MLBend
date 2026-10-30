@@ -186,8 +186,9 @@ so the device lane is worth re-measuring. The split is in
 Paper comparisons live in `papers/`, one folder per paper, with the paper's
 claims, the reduced protocol used here, and the Python and Bend arms. The first
 entry, TEM, is a negative result: the 64x64 contrastive protocol collapses to a
-constant energy, and the folder records the diagnosis and the blocked Bend
-port. Paper numbers are never presented as reproduced.
+constant energy, the denoising variants move toward the data but need far more
+compute, and the Bend port is blocked by the missing full attention, RoPE and
+adaLN. Paper numbers are never presented as reproduced.
 
 ## Status
 

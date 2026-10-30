@@ -84,44 +84,49 @@ The cache is built once by `papers/TEM/data.py --build` and lives under
 
 ## Results
 
-Two Python runs, both on the same 64x64 flowers data. Neither produces a
-usable sampler, and the reason is the same in both.
+Four Python runs on the same 64x64 flowers data. The contrastive arms collapse;
+the denoising arms move toward the data but do not reach a usable sampler at
+this compute budget.
 
-| run | steps | loss, last 50 | positive E | negative E | samples |
-|---|---:|---:|---:|---:|---|
-| CD + L2, noise buffer | 800 | -1.4987 | -1.51 | +1.49 | pure noise |
-| CD + L2 + PRA, data buffer | 300 | -0.1747 | -0.36 | +0.46 | pure noise |
+| run | steps | loss, last 50 | nearest test image | samples |
+|---|---:|---:|---:|---|
+| CD + L2, noise buffer | 800 | -1.4987 | 82.7 | noise |
+| CD + L2 + PRA, data buffer | 300 | -0.1747 | 82.7 | noise |
+| denoising energy regression, sigma 0.2 | 1500 | 0.0527 | 77.6 | noise |
+| denoising score network, sigma 0.2 | 2000 | 8.03 | 61.7 | noise, textured |
+
+For scale: the initial noise is 84.1 from the test set, so the score network
+does move (84.1 to 61.7), but it is not a flower sampler.
 
 ![curves](results/tem64-data-curves.webp)
 
-**What happened.** The plain contrastive run reached the exact constant-energy
-minimum of `alpha(E^2) + E(pos) - E(neg)`: positive energy -1.51, negative
-+1.49, and a field so weak that 40 Langevin steps at step 0.01 to 1.0 left the
-cloud at its initial noise (nearest test image 82.1 to 82.2, against 84.1 for
-the noise).
+**Why the contrastive arms collapse.** The plain run reached the exact
+constant-energy minimum of `alpha(E^2) + E(pos) - E(neg)`: positive energy
+-1.51, negative +1.49, and a field so weak that 40 Langevin steps at step 0.01
+to 1.0 left the cloud at its initial noise.
 
 The fixes tried, in order:
 
 - PRA with DINOv2-S. The alignment loss learned (1.00 to 0.66), so the trunk
-  was carrying content, but the energy head still went to the constant.
+  carried content, but the energy head still went to the constant.
 - A bias-free last energy layer. The head recovered a near-constant through
   the hidden bias instead.
-- A batch-variance term at 0.1 and at 1.0. It was gamed by a few samples; the
-  energies spread but the field did not point at the data.
-- A data-initialized replay buffer. This is the only variant that kept the
-  energies moderate. It learns a local denoiser around real images, but the
-  sampler starts from noise, where that field is flat, so it produces noise
-  again.
+- A batch-variance term at 0.1 and at 1.0. It was gamed by a few samples.
+- A data-initialized replay buffer. This kept the energies moderate and learns
+  a local denoiser around real images, but the sampler starts from noise where
+  that field is flat.
 
-A denoising score-matching auxiliary was tested separately and does stabilize
-the objective, but the score scale is `1/sigma` and it needs its own Langevin
-step schedule. That is a different training method, so it is not counted as
-the TEM arm.
+**Why the denoising arms are not enough either.** The energy regression target
+`mean(eps^2)/(2 sigma^2)` is almost constant across a batch (12.5 +/- 0.16 at
+64x64), so the model can fit it with a constant and the gradient stays flat.
+The score network is first-order and does learn: its loss falls from 25.1 to
+8.0 and the nearest-test distance from 84.1 to 61.7. But 2000 steps over 32k
+images is three orders of magnitude below the paper's 12.8M images, and the
+samples stay noise.
 
-**Conclusion for this protocol.** TEM's contrastive objective at 4.6M
-parameters, 6.4k images and 800 steps collapses to a constant energy. The
-paper's answer to this is scale plus the full PRA/KL/repulsion recipe, and
-this folder does not reproduce it. The negative result is the entry.
+**Conclusion.** TEM's result depends on scale. This folder records the
+reduced protocol, the collapse, the denoising variants and the compute wall.
+It does not claim the paper's numbers.
 
 ## The Bend arm
 

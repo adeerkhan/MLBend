@@ -99,14 +99,12 @@ class Block(nn.Module):
 
 
 class EnergyHead(nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, bias=False):
         super().__init__()
         self.norm = nn.LayerNorm(dim)
-        # No bias on the last layer: a constant energy is not a reachable
-        # minimum of the CD loss. The paper can leave the bias in at scale;
-        # at 4.6M parameters it is the difference between a field and a constant.
+        # No bias is the CD stabiliser; the denoising regression wants one.
         self.mlp = nn.Sequential(nn.Linear(dim, dim), nn.SiLU(),
-                                 nn.Linear(dim, 1, bias=False))
+                                 nn.Linear(dim, 1, bias=bias))
 
     def forward(self, x):
         return self.mlp(self.norm(x.mean(1))).squeeze(-1)
@@ -114,7 +112,8 @@ class EnergyHead(nn.Module):
 
 class TEM(nn.Module):
     def __init__(self, depth=6, dim=192, heads=6, patch=8, grid=8,
-                 in_ch=3, num_classes=102, head_layers=None, pra_layer=1):
+                 in_ch=3, num_classes=102, head_layers=None, pra_layer=1,
+                 head_bias=False):
         super().__init__()
         self.depth = depth
         self.pra_layer = pra_layer
@@ -127,7 +126,7 @@ class TEM(nn.Module):
         self.blocks = nn.ModuleList([Block(dim, heads, grid) for _ in range(depth)])
         layers = head_layers or tuple((j * depth) // 3 - 1 for j in (1, 2)) + (depth - 1,)
         self.head_layers = tuple(layers)
-        self.heads = nn.ModuleList([EnergyHead(dim) for _ in self.head_layers])
+        self.heads = nn.ModuleList([EnergyHead(dim, head_bias) for _ in self.head_layers])
         self.projector = nn.Conv2d(dim, 384, 3, padding=1)
         self.apply(self._init_weights)
 
