@@ -51,7 +51,7 @@ is `results/compare/index.html`.
 ```
 examples/          what is run: one directory per task, with main.bend, README.md and plot.svg
   classification/    knn, logistic, mlp, naive_bayes, naive_bayes_heart, crossval
-  diffusion/         two_moons, digits, vit
+  diffusion/         two_moons, flow_matching, digits, vit
   transformers/      attention, periodic
   unsupervised/      kmeans, pca
 {metrics,hf,datasets,preprocess,split,select,cluster,pipeline,report,generative}/
@@ -91,6 +91,7 @@ and that is the slow part.
 | `diffusion/vit` | optdigits, 1024 × 8×8 | legibility of 4096 samples, three arms | **0.787 / 0.811** (torch 0.790 / 0.779) |
 | `diffusion/digits` | optdigits, 1024 × 8×8 | first loss against the twin, cloud statistics | 1.0039 (twin agrees to 2.9e-8) |
 | `diffusion/two_moons` | two moons, 128 × 2 | loss curve, cloud mean and std | 152.95 → 0.065 |
+| `diffusion/flow_matching` | two moons, 128 × 2 | last-100 loss, sample mean/std, box | 0.886, 112/128 in the box |
 | `transformers/periodic` | periodic 0…7, 32 × 8 | loss and next-token accuracy | 2.359 → 0.002, accuracy 1.00 |
 | `transformers/attention` | synthetic 4 × 8 | every output against NumPy | checksum 1.76295, Δ 3.3e-9 |
 | `classification/crossval` | iris, 150 × 4 | five stratified folds, no leakage | 0.9307 ± 0.006 (sklearn 0.9307) |
@@ -149,8 +150,9 @@ are bit-identical. The card is worth re-measuring now. The split is in
 `make check` is 92/92. Diffusion is complete through the ViT, with the gate at
 0.75 and the Bend model measured at 0.787 and 0.811. The row builder is fixed:
 a step fell from 543 ms to 131 ms with identical values, and `init_params` from
-25 s to 6 ms. Flow matching has a measured probe and needs its 2D example.
-CIFAR-10 waits on a real step time and a re-measured device lane. The UNet in
+25 s to 6 ms. Flow matching has a measured 2D example (last-100 0.886, 112/128
+in the box); its frozen gate is still owed. CIFAR-10 waits on a real step time
+and a re-measured device lane. The UNet in
 Bend waits on `Im2col` and `GroupNorm` upstream. Upstream, `FullAttention` for
 BendTorch and `Im2col` come next.
 

@@ -38,6 +38,14 @@ lists in step. Retrained 3000 steps: legibility **0.7875** (was 0.7829),
 ancestral **0.8110** (was 0.8070), final loss 0.0712 (was 0.0896). The gate
 passes at a 1.15e-4 first-loss delta.
 
+**Flow matching (2026-10-30).** `examples/diffusion/flow_matching` runs
+rectified flow on the DDPM example's two moons, normalised to [-1, 1]:
+3 -> 128 -> 128 -> 2 with SiLU, full batch, 6000 AdamW steps, Euler 32.
+Last-100 loss **0.8859** (the probe measured 0.8662), sample mean/std
+**+0.049 / -0.048 · 0.610 / 0.675** against the data's 0 / 0 · 0.577 / 0.659,
+and **112/128** inside the box. `make flow` rebuilds it and rewrites
+`results/flow-matching/`. The frozen probe and its NumPy twin are still owed.
+
 **The measured state (unchanged, 2026-10-29).** The diffusion objective's
 M1–M4 are done on measured numbers; M5 (CIFAR) and M6 (UNet) are not.
 
@@ -78,11 +86,9 @@ card is worth re-measuring.
    `apparatus/`; `bend.toml`'s members, the intra-package imports,
    `check_all.py`'s package list and the Makefile. One commit, `make check`
    behind it.
-2. **`examples/flow_matching/main.bend`**: 2D first, on the lane (`F.LinearNBF`,
-   build gate `ldd | grep libnvrtc`), against `reference/flow_probe.py`'s
-   targets (loss 2.1253 -> 0.8662; samples mean [-0.111, 0.150] / std
-   [0.546, 0.745] against the data's [-0.002, -0.000] / [0.583, 0.741]; 465/512
-   in the box). Then flowers at batch 32 / 11k steps, dataset pinned by sha256.
+2. **Flow matching's frozen gate**: a `probe_flow.bend` at the fixed init and
+   a `twin_flow.py` for one forward and one Euler step, the way the ViT gates
+   work. Then flowers at batch 32 / 11k steps, dataset pinned by sha256.
 3. **`FullAttention`** — the PR we accepted on BendTorch#17: separate def, share
    `qrow`/`prow` with the key length, its own three laws over all t,
    `demo/ops_test.bend` + `reference/test_ops.py` against
