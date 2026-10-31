@@ -18,11 +18,13 @@ OUT = os.path.join(ROOT, "examples/diffusion/flowers_flow/config.bend")
 # blocks is 1 for every preset: the example's model composition is three blocks
 # only in `full`, and no machine measured here builds that. See config.bend.
 PRESETS = {
-    "tiny":   {"B": 1, "W": 64,  "STEPS": 200,  "EULER": 32, "RES": 64, "NIMG": 500},
-    "small":  {"B": 1, "W": 96,  "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500},
-    "medium": {"B": 2, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500},
+    "tiny":   {"B": 1, "W": 64,  "STEPS": 200,  "EULER": 32, "RES": 64, "NIMG": 500, "DATA": "flowers64-512-gray.u8"},
+    "small":  {"B": 1, "W": 96,  "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500, "DATA": "flowers64-512-gray.u8"},
+    "medium": {"B": 2, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500, "DATA": "flowers64-512-gray.u8"},
     "full":   {"B": 8, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500},
-    "hi":     {"B": 1, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 256, "NIMG": 500},
+    "hi":     {"B": 1, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 256, "NIMG": 500, "DATA": "flowers256-512-gray.u8"},
+    "corpus": {"B": 2, "W": 128, "STEPS": 6000, "EULER": 32, "RES": 64, "NIMG": 3874,
+               "DATA": "flowers64-train-gray.u8"},
 }
 
 HEAD = """# The 64x64 flow's shape, fixed before the compile: every number here is a
@@ -49,7 +51,7 @@ def RES() -> Nat:
   {RES}n
 
 def DATA() -> String:
-  "/home/adeerkhan/.cache/bend-lab/flowers/flowers{RES}-512-gray.u8"
+  "/home/adeerkhan/.cache/bend-lab/flowers/{DATA}"
 
 # one token per row of pixels, so RES tokens per image
 def TK() -> Nat:

@@ -10,7 +10,7 @@
 # which presets fit the machine. The compile is what costs memory, not the step:
 # `bend -o` reached 4.3 GB on the 3-block model's data half alone and passed
 # 8 GB once the training step was added, which is why the preset is chosen
-# before the build and not at runtime. This file is the `medium` preset.
+# before the build and not at runtime. This file is the `corpus` preset.
 
 def B() -> Nat:
   2n
@@ -20,7 +20,7 @@ def RES() -> Nat:
   64n
 
 def DATA() -> String:
-  "/home/adeerkhan/.cache/bend-lab/flowers/flowers64-512-gray.u8"
+  "/home/adeerkhan/.cache/bend-lab/flowers/flowers64-train-gray.u8"
 
 # one token per row of pixels, so RES tokens per image
 def TK() -> Nat:
@@ -37,7 +37,7 @@ def PIL() -> Nat:
 
 # images used for training; the rest of the file is held out
 def NIMG() -> Nat:
-  500n
+  3874n
 
 def RW() -> Nat:
   Nat.mul(B(), TK())
@@ -53,7 +53,7 @@ def FE() -> Nat:
   Nat.add(PX(), 16n)
 
 def STEPS() -> Nat:
-  2000n
+  6000n
 
 def EULER() -> Nat:
   32n

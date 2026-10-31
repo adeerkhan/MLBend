@@ -1462,3 +1462,54 @@ not more blocks, more steps or a different attention.
 Caveats recorded with the number: the holdout is one class (the parquet is
 grouped by label), and `final_loss` is the last batch's loss, not a held-out
 loss.
+
+### Legibility is a fraction of a ceiling, not a number (2026-10-31)
+
+The proxy is "the best absolute correlation of a sample with any training
+flower", so it depends on **how many images the reference set holds** and on what
+a *real* image scores in the same comparison. Measured on the 3,874/102 split:
+
+```
+real held-out flowers vs the training set   0.562   <- the ceiling
+noise                     vs the training set   0.055
+the 512-trained model's samples, held out       0.414   = 73% of the ceiling
+the same samples, against the 512 it trained on 0.450
+```
+
+So the earlier "held out 0.227, gap +0.301" was measured against **12** images,
+one class, and is not comparable with 0.414 against **102**. The samples were
+never as bad as that number suggested: on unseen classes they reach 73% of what a
+real unseen flower scores.
+
+Rules that follow, and are now in the reporter:
+
+- report the **ceiling** beside the sample score, and read the sample as a
+  fraction of it;
+- never compare two legibility numbers taken against reference sets of different
+  sizes;
+- the random baseline stays as the floor (0.046–0.055), since it is the other end
+  of the same scale.
+
+### The corpus run, 3,874 images (2026-10-31)
+
+Exported from the pinned parquet, evenly across classes, by
+`reference/flowers_export.py --split`: 40 training and 1 held-out image per
+class, 64x64 grayscale, all 102 classes.
+
+| file | images | bytes | sha256 |
+|---|---|---|---|
+| `flowers64-train-gray.u8` | 3,874 | 15,867,904 | `1ff86747f9b070c3ed7b2058dd0c1f88317dfea931ed883379513f121385566e` |
+| `flowers64-hold-gray.u8` | 102 | 417,792 | `f08730fe6730aacf440526420dfd645cd78f2ed1ef3fa82dacb1d90f2b978cf8` |
+
+`make flow64 PRESET=corpus` (3 blocks, 2 images per step, 6,000 steps, 32 Euler)
+builds at 926 MB and runs in 47 minutes. Loss 0.289 at the last step.
+
+```
+legibility  trained 0.536   held out 0.490   gap +0.046
+ceiling     real held-out flowers vs the training set 0.562  -> samples reach 87%
+floor       noise vs the training set 0.046
+```
+
+Against the 512-image model (73% of the same ceiling), the corpus moves unseen
+flowers up 14 points and costs 0.046 of memorisation. The corpus was a
+constraint; the remaining 13% is not answered by more of the same data.

@@ -56,6 +56,7 @@ absolute correlation of a sample with any training flower; random images score
 | 1 block, 128 wide | full | 0.328 | 0.427 |
 | 3 blocks, 128 wide | causal | 0.325 | **0.450** |
 | 3 blocks, 128 wide | full | **0.316** | 0.418 |
+| 3 blocks, 128 wide, 3,874 images | causal | 0.289 | trained 0.536 / held out 0.490 |
 
 Full attention is the right layer for an image: with row-tokens, causal
 attention lets row 40 see rows 0..40 only. At one block it is worth 0.008
@@ -71,21 +72,25 @@ and it is not comparable to a paper's FID.
 
 ## What it learned, and what it memorised
 
-The 500/12 run (three blocks, causal, 2000 steps) separates the two:
+Legibility is a max over a reference set, so it must be read as a fraction of
+what a **real** unseen flower scores in the same comparison. On the 3,874/102
+split (one held-out image per class):
 
 ```
-legibility  trained 0.529    held out 0.227    baseline 0.032    gap +0.301
+ceiling   real held-out flowers vs the training set   0.562
+floor     noise                 vs the training set   0.046
+3,874-images model   trained 0.536   held out 0.490   87% of the ceiling
+512-images model     trained 0.450   held out 0.414   73% of the ceiling
 ```
 
-The samples reach 0.227 against unseen flowers, seven times the random baseline,
-so something transfers. They reach 0.529 against the training flowers, so more
-than half of that resemblance is memory. **Every number in the table above is a
-training-set number and therefore an upper bound**; 0.227 is the honest figure
-for images the model has not seen.
+Two things follow. The corpus was a constraint: 512 to 3,874 images moves unseen
+flowers from 73% to 87% of the ceiling, for 0.046 of memorisation gap. And the
+earlier "held out 0.227, gap +0.301" was measured against 12 images of one class
+and is not comparable with these; it made the model look far more memorising than
+it is.
 
-That makes 512 images the binding constraint rather than the step count: more
-steps on the same corpus would raise the first number and leave the second
-roughly where it is.
+The 13% that remains is the next question, and it is not answered by more of the
+same data.
 
 ## Not done
 

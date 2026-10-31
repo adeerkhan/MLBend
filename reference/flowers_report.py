@@ -53,8 +53,8 @@ def png(path, arr):
         f.write(out)
 
 
-def data_stats(size=64, holdout=0):
-    path = os.path.expanduser(f"~/.cache/bend-lab/flowers/flowers{size}-512-gray.u8")
+def data_stats(size=64, holdout=0, path=None):
+    path = path or os.path.expanduser(f"~/.cache/bend-lab/flowers/flowers{size}-512-gray.u8")
     if not os.path.exists(path):
         return None
     blob = open(path, "rb").read()
@@ -133,7 +133,15 @@ def main():
     holdout = 0
     if "--holdout" in sys.argv:
         holdout = int(sys.argv[sys.argv.index("--holdout") + 1])
-    st = data_stats(EDGE, holdout)
+    hold_path = None
+    if "--hold-file" in sys.argv:
+        hold_path = sys.argv[sys.argv.index("--hold-file") + 1]
+        if not holdout:
+            holdout = 1
+    train_path = None
+    if "--train-file" in sys.argv:
+        train_path = sys.argv[sys.argv.index("--train-file") + 1]
+    st = data_stats(EDGE, holdout, train_path)
     if st is None:
         print(f"data: {DATA} not found, no comparison")
         sha_ok = False
@@ -147,18 +155,31 @@ def main():
         flat = images.reshape(IMAGES, -1)
         allx = x.reshape(-1, EDGE * EDGE)
         if holdout:
-            # the last holdout images were never trained on: scoring against them
-            # measures the model, scoring against the trained part measures its
-            # memory, and the gap between the two is the honest number
-            print(f"held out: the last {holdout} images; trained on the first {len(allx) - holdout}")
-            lt = legibility(flat, allx[:len(allx) - holdout])
-            lh = legibility(flat, allx[len(allx) - holdout:])
+            # scoring against held-out images measures the model; scoring against
+            # the trained part measures its memory; the gap is the honest number
+            if hold_path:
+                hb = open(hold_path, "rb").read()
+                hx = np.frombuffer(hb, dtype=np.uint8).astype(np.float32) / np.float32(127.5) - np.float32(1.0)
+                hold = hx.reshape(-1, EDGE * EDGE)
+                print(f"held out: {len(hold)} images from {os.path.basename(hold_path)}; "
+                      f"trained on {len(allx)}")
+            else:
+                hold = allx[len(allx) - holdout:]
+                print(f"held out: the last {holdout} images; trained on the first {len(allx) - holdout}")
+            lt = legibility(flat, allx)
+            lh = legibility(flat, hold)
+            # the same measurement on real held-out flowers: a proxy is only
+            # readable as a fraction of what a real unseen image scores against
+            # the same reference set, which also fixes its dependence on how
+            # many images the reference set holds
+            ceil = legibility(hold, allx)
             print(f"legibility: trained {lt.mean():.3f} (min {lt.min():.3f})  "
                   f"held out {lh.mean():.3f} (min {lh.min():.3f})  gap {lt.mean() - lh.mean():+.3f}")
             rng = np.random.default_rng(0)
-            base = legibility(rng.normal(size=(IMAGES, EDGE * EDGE)).astype(np.float32),
-                              allx[len(allx) - holdout:])
+            base = legibility(rng.normal(size=(IMAGES, EDGE * EDGE)).astype(np.float32), hold)
             print(f"  random baseline on the held-out set {base.mean():.3f}")
+            print(f"  ceiling: real held-out flowers score {ceil.mean():.3f} against the training set; "
+                  f"samples reach {100.0 * lh.mean() / ceil.mean():.0f}% of it")
             out = "results/flowers/samples.png"
             for i, a in enumerate(sys.argv):
                 if a == "--png" and i + 1 < len(sys.argv):

@@ -63,8 +63,54 @@ def from256():
     return out, 256
 
 
+def split():
+    """40 training and 1 held-out image per class, evenly across the 102 classes.
+
+    The parquet is grouped by label, so a contiguous holdout is one class (the
+    first 512 images are classes 0..11). This takes each class's first image as
+    the holdout and its next 40 as training.
+    """
+    import io as _io
+
+    import pyarrow.parquet as pq
+    from PIL import Image
+
+    blob = open(PQ, "rb").read()
+    got = hashlib.sha256(blob).hexdigest()
+    if got != PQ_SHA:
+        raise SystemExit(f"{PQ} is {got}, not the pinned {PQ_SHA}")
+    rows = pq.read_table(PQ, columns=["image", "label"]).to_pylist()
+    by_class = {}
+    for r in rows:
+        by_class.setdefault(r["label"], []).append(r["image"]["bytes"])
+    train, hold = [], []
+    for c in sorted(by_class):
+        imgs = by_class[c]
+        if len(imgs) < 2:
+            continue
+        hold.append(imgs[0])
+        train.extend(imgs[1:41])
+    def gray_of(jpegs, name):
+        out = np.zeros((len(jpegs), 64, 64), dtype=np.uint8)
+        for i, b in enumerate(jpegs):
+            im = Image.open(_io.BytesIO(b)).convert("RGB").resize((64, 64), Image.Resampling.BICUBIC)
+            out[i] = luma(np.asarray(im))
+        path = os.path.join(CACHE, name)
+        data = out.tobytes()
+        open(path, "wb").write(data)
+        print(path)
+        print(f"  {len(data)} bytes, {len(jpegs)} images of 64x64, classes {len(by_class)}")
+        print(f"  sha256 {hashlib.sha256(data).hexdigest()}")
+    print(f"classes {len(by_class)}, train {len(train)}, hold {len(hold)}")
+    gray_of(train, "flowers64-train-gray.u8")
+    gray_of(hold, "flowers64-hold-gray.u8")
+
+
 def main():
     size = 64
+    if "--split" in sys.argv:
+        split()
+        return
     if "--size" in sys.argv:
         size = int(sys.argv[sys.argv.index("--size") + 1])
     gray, size = from64() if size == 64 else from256()
