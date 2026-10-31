@@ -152,6 +152,7 @@ which is the slow part.
 |---|---|---|---|
 | `diffusion/vit` | optdigits, 1024 × 8×8 | legibility of 4096 samples, three arms | **0.787 / 0.811** (torch 0.790 / 0.779) |
 | `diffusion/digits` | optdigits, 1024 × 8×8 | first loss against the twin, cloud statistics | 1.0039 (twin agrees to 2.9e-8) |
+| `cifar` | cifar10, 256 × 32×32×3 | first loss and data mean against the twin | 1.0014 (twin agrees to 2.5e-5) |
 | `diffusion/two_moons` | two moons, 128 × 2 | loss curve, cloud mean and std | 152.95 → 0.065 |
 | `diffusion/flow_matching` | two moons, 128 × 2 | last-100 loss, sample mean/std, box | 0.886, 112/128 in the box |
 | `transformers/periodic` | periodic 0…7, 32 × 8 | loss and next-token accuracy | 2.359 → 0.002, accuracy 1.00 |
@@ -215,10 +216,11 @@ adaLN. Paper numbers are never presented as reproduced.
 
 ## Status
 
-`make check` is 92/92. Diffusion is complete through the ViT, with the gate at
+`make check` is 93/93. Diffusion is complete through the ViT, with the gate at
 0.75 and the Bend model measured at 0.787 and 0.811. Flow matching has a
-measured 2D example, with its frozen gate still to be added. CIFAR-10 waits on
-a real step time and a re-measured device lane. The UNet in Bend waits on
+measured 2D example, with its frozen gate still to be added. CIFAR-10 has its
+3072-output DDPM: 256 images, 40 steps, build 50.8 s and run 65.4 s, first loss
+and data mean gated against the NumPy twin and `RESULTS.md` carrying the rows. The UNet in Bend waits on
 `Im2col`; GroupNorm has landed upstream, and a faithful reference arm also
 needs the full and linear attention variants.
 

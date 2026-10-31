@@ -1560,3 +1560,46 @@ invariant arrives as `h`, and `rows_step` is a closed Nat lemma over
 holds the HuggingFace socket bindings, and the verdict refuses a book with
 foreign code (314 definitions listed, before and after the law). It is the
 trust base, not the proof, and `datasets/README.md` says so.
+
+### cifar-10: the 3072-output DDPM (2026-10-31)
+
+`examples/cifar/main.bend` is the digits skeleton at CIFAR shapes, and
+`reference/test_cifar.py` is its NumPy twin.
+
+The data is `arwics/cifar10` at revision `f44619ab`, `train.csv`, 54,902,548
+bytes, sha256
+`80f3ca81e56946a0eabc65f68b69558b4fdc741e1aafb0d9f552fcee768b3161`: 5,000 rows of
+3,072 pixels (0..255, channel-height-width) with the label last. The first 256
+rows are the training set, the pixels scaled by 255.
+
+`n=256`, `hidden=128`, `inwidth=3080`, `steps=40`, `samples=8`, the 64-step
+linear schedule, full-batch AdamW, the ancestral loop and DDIM.
+
+| measured | value |
+|---|---|
+| build | 50.8 s |
+| run | 65.4 s |
+| twin | 5.4 s |
+| fetch | 0.069 s |
+| `first_loss` | 1.00143 vs 1.00145 (-2.518e-05) |
+| `data_mean` | 0.474855 vs 0.474855 (1.689e-09) |
+
+121 s against the 410 s estimate the issue sized from the probe, so the config
+stayed where it was; the run's wall time in the manifest and `RESULTS.md` is
+this one. `final_loss` and the sample statistics are report mode: 40 steps is
+a pipeline, not a trained model. The legibility report reads 0.071 against
+random images' 0.055.
+
+Two findings came out of the gates, not out of reading:
+
+- **`drop` counts from the right, and the issue's `1n` was wrong.** With
+  `csv_of(..., False{}, 1n)` the label is the second-to-last column and one
+  pixel column is dropped, so the rows hold 3,071 features and the data mean
+  reads 0.47471285. `0n` is the label-last call the file's shape wants; it
+  reads 0.47485462 and the 1e-5 gate passes. The issue text says drop=1 takes
+  the label off the end; it does not.
+- **The data mean is a sum-order number.** The example walks the pixels with one
+  float32 running sum; `numpy.mean` adds pairwise, and over 786,432 values the
+  two orders differ by 9.6e-5, ten times the gate. The twin therefore mirrors
+  the running sum and prints the exact mean beside it; the tolerance is
+  unchanged.

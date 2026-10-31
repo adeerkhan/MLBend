@@ -22,6 +22,14 @@ PREDICTIONS = [2.5, 1.0, 2.0, 8.0]
 LABELS = [0, 1, 1, 0]
 PREDICTED = [0, 0, 1, 1]
 
+# the class probabilities of metrics/tests/ok.bend, one row per sample
+PROBABILITIES = np.array([[0.7, 0.2, 0.1],
+                          [0.1, 0.8, 0.1],
+                          [0.2, 0.2, 0.6],
+                          [0.6, 0.3, 0.1]], dtype=np.float32)
+
+CLASSES = [0, 1]
+
 TOL = 1e-5
 
 
@@ -56,6 +64,17 @@ def main():
         "rmse": float(np.sqrt(np.mean((y - p) ** 2))),
         "accuracy": float(sk.accuracy_score(LABELS, PREDICTED)),
     }
+    want["r2"] = float(sk.r2_score(TARGETS, PREDICTIONS))
+    want["log_loss"] = float(sk.log_loss(LABELS, PROBABILITIES, labels=[0, 1, 2]))
+    for a in ("macro", "weighted"):
+        want[f"{a}_precision"] = float(sk.precision_score(LABELS, PREDICTED, labels=CLASSES, average=a, zero_division=0))
+        want[f"{a}_recall"] = float(sk.recall_score(LABELS, PREDICTED, labels=CLASSES, average=a, zero_division=0))
+        want[f"{a}_f1"] = float(sk.f1_score(LABELS, PREDICTED, labels=CLASSES, average=a, zero_division=0))
+    matrix = sk.confusion_matrix(LABELS, PREDICTED, labels=CLASSES)
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            want[f"confusion_{i}_{j}"] = float(matrix[i, j])
+
     for k in (0, 1):
         want[f"precision_{k}"] = float(sk.precision_score(LABELS, PREDICTED, pos_label=k, zero_division=0))
         want[f"recall_{k}"] = float(sk.recall_score(LABELS, PREDICTED, pos_label=k, zero_division=0))

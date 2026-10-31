@@ -219,6 +219,18 @@ def reference_diffusion_vit(context=None):
             "final_loss": None, "sample_mean": None, "sample_std": None}
 
 
+def reference_cifar(context=None):
+    """The twin's numbers for cifar-10: the first loss and the data's mean.
+
+    The twin trains the same 40 steps and samples the same 8 images, so the
+    gated numbers are the deterministic ones; the rest is report mode.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "reference"))
+    from test_cifar import numpy_answer
+
+    return numpy_answer()
+
+
 def reference_diffusion_digits(context=None):
     sys.path.insert(0, os.path.join(ROOT, "reference"))
     from test_diffusion_digits import numpy_answer
@@ -339,6 +351,24 @@ TASKS = {
         "seed": 0,
         "parse": parse_diffusion_digits,
         "reference": reference_diffusion_digits,
+        "metrics": {
+            "first_loss": {"tolerance": 0.0001, "mode": "relative"},
+            "data_mean": {"tolerance": 0.00001, "mode": "absolute"},
+            "final_loss": {"tolerance": 0, "mode": "report"},
+            "sample_mean": {"tolerance": 0, "mode": "report"},
+            "sample_std": {"tolerance": 0, "mode": "report"},
+        },
+    },
+    "cifar-10": {
+        "description": "a DDPM denoiser over the first 256 CIFAR-10 images, BendTorch against NumPy",
+        "program": "examples/cifar/main.bend",
+        "dataset": {"name": "cifar10", "rows": 256, "features": 3072,
+                    "source": "https://huggingface.co/datasets/arwics/cifar10",
+                    "files": ["https://huggingface.co/datasets/arwics/cifar10/resolve/f44619abdb57391606d732724f9fc40a684471bf/train.csv"],
+                    "expected_sha256": "80f3ca81e56946a0eabc65f68b69558b4fdc741e1aafb0d9f552fcee768b3161"},
+        "seed": 0,
+        "parse": parse_diffusion_digits,
+        "reference": reference_cifar,
         "metrics": {
             "first_loss": {"tolerance": 0.0001, "mode": "relative"},
             "data_mean": {"tolerance": 0.00001, "mode": "absolute"},
