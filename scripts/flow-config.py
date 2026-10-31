@@ -18,11 +18,11 @@ OUT = os.path.join(ROOT, "examples/diffusion/flowers_flow/config.bend")
 # blocks is 1 for every preset: the example's model composition is three blocks
 # only in `full`, and no machine measured here builds that. See config.bend.
 PRESETS = {
-    "tiny":   {"B": 1, "W": 64,  "STEPS": 200,  "EULER": 32, "RES": 64},
-    "small":  {"B": 1, "W": 96,  "STEPS": 2000, "EULER": 32, "RES": 64},
-    "medium": {"B": 2, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64},
-    "full":   {"B": 8, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64},
-    "hi":     {"B": 1, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 256},
+    "tiny":   {"B": 1, "W": 64,  "STEPS": 200,  "EULER": 32, "RES": 64, "NIMG": 500},
+    "small":  {"B": 1, "W": 96,  "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500},
+    "medium": {"B": 2, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500},
+    "full":   {"B": 8, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 64, "NIMG": 500},
+    "hi":     {"B": 1, "W": 128, "STEPS": 2000, "EULER": 32, "RES": 256, "NIMG": 500},
 }
 
 HEAD = """# The 64x64 flow's shape, fixed before the compile: every number here is a
@@ -64,8 +64,9 @@ def HI() -> Nat:
 def PIL() -> Nat:
   Nat.mul(TK(), TK())
 
+# images used for training; the rest of the file is held out
 def NIMG() -> Nat:
-  512n
+  {NIMG}n
 
 def RW() -> Nat:
   Nat.mul(B(), TK())

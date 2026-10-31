@@ -177,6 +177,20 @@ def B12() -> T.Layer<B12P, A(W()), A(W()), B12S>:
   T.Seq(~AttBlkP, ~MlpP, ~A(W()), ~A(W()), ~A(W()), ~AttBlkS, ~MlpS,
     ~AttBlk(), ~Mlp())
 
+
+def B3P() -> Type:
+  T.Two<T.Two<B12P, B12P>, B12P>
+
+def B3S() -> Type:
+  T.Two<T.Two<B12S, B12S>, B12S>
+
+def B2() -> T.Layer<T.Two<B12P, B12P>, A(W()), A(W()), T.Two<B12S, B12S>>:
+  T.Seq(~B12P, ~B12P, ~A(W()), ~A(W()), ~A(W()), ~B12S, ~B12S, ~B12(), ~B12())
+
+def Body3() -> T.Layer<B3P, A(W()), A(W()), B3S>:
+  T.Seq(~T.Two<B12P, B12P>, ~B12P, ~A(W()), ~A(W()), ~A(W()),
+    ~T.Two<B12S, B12S>, ~B12S, ~B2(), ~B12())
+
 def EmbP() -> Type:
   TA.Mat<W(), FE()>
 
@@ -187,10 +201,10 @@ def HS() -> Type:
   T.Two<A(W()), A(W())>
 
 def ModelP() -> Type:
-  T.Two<T.Two<EmbP, B12P>, HP>
+  T.Two<T.Two<EmbP, B3P>, HP>
 
 def ModelS() -> Type:
-  T.Two<T.Two<TA.Mat<RW(), FE()>, B12S>, HS>
+  T.Two<T.Two<TA.Mat<RW(), FE()>, B3S>, HS>
 
 def HeadP() -> Type:
   TA.Mat<PX(), W()>
@@ -209,10 +223,10 @@ def HeadN() -> T.Layer<HP, A(W()), TA.Mat<RW(), PX()>, HS>:
     ~A(W()), ~A(W()), ~T.LayerNorm(RW(), W(), 0.00001), ~Head())
 
 def Model() -> T.Layer<ModelP, TA.Mat<RW(), FE()>, TA.Mat<RW(), PX()>, ModelS>:
-  T.Seq(~T.Two<EmbP, B12P>, ~HP, ~TA.Mat<RW(), FE()>, ~A(W()), ~TA.Mat<RW(), PX()>,
-    ~T.Two<TA.Mat<RW(), FE()>, B12S>, ~HS,
-    ~T.Seq(~EmbP, ~B12P, ~TA.Mat<RW(), FE()>, ~A(W()), ~A(W()),
-      ~TA.Mat<RW(), FE()>, ~B12S, ~Embed(), ~B12()),
+  T.Seq(~T.Two<EmbP, B3P>, ~HP, ~TA.Mat<RW(), FE()>, ~A(W()), ~TA.Mat<RW(), PX()>,
+    ~T.Two<TA.Mat<RW(), FE()>, B3S>, ~HS,
+    ~T.Seq(~EmbP, ~B3P, ~TA.Mat<RW(), FE()>, ~A(W()), ~A(W()),
+      ~TA.Mat<RW(), FE()>, ~B3S, ~Embed(), ~Body3()),
     ~HeadN())
 
 # ---- the data: 512 flowers, uint8, one row per token ----

@@ -1396,3 +1396,23 @@ real and is the useful part: resolution does not move the compile.
 
 The fix for a real 256 preset is a builder that never matches a resolution: count
 down from `TK()` and match only `0n`, and print with `TK()`.
+
+### Attention and depth at 64x64 (2026-10-31)
+
+Three runs, same budget (2000 steps, 2 images per step, 128 wide, 32 Euler,
+28 cores), all on the 512-image grayscale export:
+
+| model | attention | final loss | legibility | wall |
+|---|---|---|---|---|
+| 1 block | causal | 0.328 | 0.419 | 2m03 |
+| 1 block | full | 0.328 | 0.427 | 4m30 |
+| 3 blocks | causal | 0.325 | **0.450** | 17m02 |
+
+Full attention costs 2.2x the time and buys 0.008 legibility at one block: at 64
+tokens the causal restriction was not what limited the model, even though it is
+the wrong layer for an image (row 40 cannot see rows 41..63). Depth is the
+lever: two more blocks buy 0.031 for 8x the time.
+
+The full-attention run imports the local `feat/full-attention` branch of
+BendTorch (`examples/diffusion/flowers_flow/full.bend` points at
+`../../../../bendtorch/torch/`), so it exercises the layer before the PR lands.

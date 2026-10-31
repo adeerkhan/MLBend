@@ -53,7 +53,7 @@ def png(path, arr):
         f.write(out)
 
 
-def data_stats(size=64):
+def data_stats(size=64, holdout=0):
     path = os.path.expanduser(f"~/.cache/bend-lab/flowers/flowers{size}-512-gray.u8")
     if not os.path.exists(path):
         return None
@@ -61,7 +61,7 @@ def data_stats(size=64):
     got = hashlib.sha256(blob).hexdigest()
     x = np.frombuffer(blob, dtype=np.uint8).astype(np.float32)
     x = x / np.float32(127.5) - np.float32(1.0)
-    return got, x
+    return got, x, holdout
 
 
 def legibility(samples, train):
@@ -130,19 +130,28 @@ def main():
           f"min {v.min():+.4f}  max {v.max():+.4f}  in [-1,1]: "
           f"{int(((v >= -1) & (v <= 1)).sum())}/{v.size}")
 
-    st = data_stats(EDGE)
+    holdout = 0
+    if "--holdout" in sys.argv:
+        holdout = int(sys.argv[sys.argv.index("--holdout") + 1])
+    st = data_stats(EDGE, holdout)
     if st is None:
         print(f"data: {DATA} not found, no comparison")
         sha_ok = False
     else:
-        got, x = st
+        got, x, holdout = st
         sha_ok = got == DATA_SHA.get(EDGE)
         print(f"data: mean {x.mean():+.4f}  std {x.std():.4f}  "
               f"min {x.min():+.4f}  max {x.max():+.4f}  sha256 {got[:16]}… "
               f"{'pinned' if sha_ok else 'NOT the pinned export'}")
         print(f"  per-image std {np.round(images.reshape(IMAGES, -1).std(1), 3).tolist()}")
         flat = images.reshape(IMAGES, -1)
-        train = x.reshape(-1, EDGE * EDGE)
+        if holdout:
+            # the last holdout images were never trained on: legibility against
+            # them measures the model, not its memory of the batch
+            x = x.reshape(-1, EDGE * EDGE)[-holdout:]
+            print(f"held out: {holdout} images (the last {holdout} of the file), "
+                  f"trained on the rest")
+        train = x.reshape(-1, EDGE * EDGE) if not holdout else x
         leg = legibility(flat, train)
         rng = np.random.default_rng(0)
         base = legibility(rng.normal(size=(IMAGES, EDGE * EDGE)).astype(np.float32), train)
