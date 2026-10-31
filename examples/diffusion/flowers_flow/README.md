@@ -55,22 +55,46 @@ absolute correlation of a sample with any training flower; random images score
 | 1 block, 128 wide | causal | 0.328 | 0.419 |
 | 1 block, 128 wide | full | 0.328 | 0.427 |
 | 3 blocks, 128 wide | causal | 0.325 | **0.450** |
+| 3 blocks, 128 wide | full | **0.316** | 0.418 |
 
-Two things follow from the table and both were stated before the runs. Full
-attention is the right layer for an image (with row-tokens, causal attention
-lets row 40 see rows 0..40 only), but at 64 tokens and one block it is worth
-about 0.008 legibility for 2.2x the time: the restriction was not what limited
-the model. Depth was: three blocks are worth 0.031.
+Full attention is the right layer for an image: with row-tokens, causal
+attention lets row 40 see rows 0..40 only. At one block it is worth 0.008
+legibility for 2.2x the time, so the restriction was not what limited the
+model; depth was, at 0.031. At three blocks full attention gives the best loss
+of the four and the lowest legibility of the pair, the same inversion the
+2-image and 8-image runs showed. A training-set legibility proxy cannot rank
+models, which is what the holdout below is for.
 
 Samples are blurred flowers: the colour and the layout are right, the detail is
 not. That is what a 1-3 block model at 64 tokens on 512 images should look like,
 and it is not comparable to a paper's FID.
 
+## What it learned, and what it memorised
+
+The 500/12 run (three blocks, causal, 2000 steps) separates the two:
+
+```
+legibility  trained 0.529    held out 0.227    baseline 0.032    gap +0.301
+```
+
+The samples reach 0.227 against unseen flowers, seven times the random baseline,
+so something transfers. They reach 0.529 against the training flowers, so more
+than half of that resemblance is memory. **Every number in the table above is a
+training-set number and therefore an upper bound**; 0.227 is the honest figure
+for images the model has not seen.
+
+That makes 512 images the binding constraint rather than the step count: more
+steps on the same corpus would raise the first number and leave the second
+roughly where it is.
+
 ## Not done
 
-- **A held-out split.** Every run above trained on all 512 images, so
-  legibility can only measure memory of the batch. The reporter has
-  `--holdout N`; the training run on 500 images is the missing half.
+- **A per-class held-out split.** Every run above trained on all 512 images, so
+  legibility measures memory of the batch. The parquet is grouped by class (the
+  first 512 are classes 0..11), so "the last 12" is one class, not a random
+  sample; the 500/12 split measures unseen images of a seen class and is
+  recorded as such. A proper split takes one image per class and needs a
+  re-export.
 - **256x256.** It builds (940 MB) but the builders advance on the literal
   `64n`, so a 256 preset needs a builder that never names the resolution.
 - **Full attention in the GPU lane.** `FullAttention` is in `torch/main.bend`;

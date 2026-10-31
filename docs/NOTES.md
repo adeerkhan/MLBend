@@ -1407,12 +1407,58 @@ Three runs, same budget (2000 steps, 2 images per step, 128 wide, 32 Euler,
 | 1 block | causal | 0.328 | 0.419 | 2m03 |
 | 1 block | full | 0.328 | 0.427 | 4m30 |
 | 3 blocks | causal | 0.325 | **0.450** | 17m02 |
+| 3 blocks | full | **0.316** | 0.418 | 11m22 |
 
 Full attention costs 2.2x the time and buys 0.008 legibility at one block: at 64
 tokens the causal restriction was not what limited the model, even though it is
 the wrong layer for an image (row 40 cannot see rows 41..63). Depth is the
 lever: two more blocks buy 0.031 for 8x the time.
 
+At three blocks full attention gives the best loss of the four (0.316) and the
+lowest legibility of the pair (0.418 against 0.450): the same inversion the
+2-image and 8-image runs showed, and the reason a training-set legibility proxy
+cannot rank models. The wall times are machine variance, not the layer (the
+11m22 full run and the 17m02 causal one are the same program shape).
+
 The full-attention run imports the local `feat/full-attention` branch of
 BendTorch (`examples/diffusion/flowers_flow/full.bend` points at
 `../../../../bendtorch/torch/`), so it exercises the layer before the PR lands.
+
+### The data is ordered by class, so a contiguous holdout is biased (2026-10-31)
+
+`train-00000-of-00001-12de94e121bdbead.parquet` is grouped by label: the first
+512 images are 12 classes (0..11), and the last 12 images are all class 11. A
+holdout taken as "the last N" is therefore one class, and the training split
+keeps only 9 of that class in its first 500.
+
+The 500/12 split still measures *unseen images of a seen class*, which is what
+the sample question needs, but it is not a per-class holdout and the number must
+not be read as one. A proper split takes one image per class: a re-export that
+writes the 500 training images and the 12 held-out ones as two pinned files.
+
+### What the model actually learned (2026-10-31)
+
+The 500/12 run, three blocks, causal, 2000 steps:
+
+```
+final loss 0.2625
+legibility  trained 0.529 (min 0.525)   held out 0.227 (min 0.212)
+            random baseline on the held-out set 0.032
+            gap +0.301
+```
+
+Read the three numbers together. The samples resemble unseen flowers at 0.227
+against a 0.032 baseline, so the model learned something transferable. They
+resemble the training flowers at 0.529, so **more than half of the training-set
+legibility is memorisation**. Every "0.450" in the table above is therefore an
+upper bound on quality, not an estimate of it; the honest figure for unseen
+images is 0.227.
+
+The practical consequence is that 512 images is the binding constraint, not the
+step count: longer training on the same 512 would raise 0.529 and leave 0.227
+roughly where it is. The next lever is data (a larger export, or augmentation),
+not more blocks, more steps or a different attention.
+
+Caveats recorded with the number: the holdout is one class (the parquet is
+grouped by label), and `final_loss` is the last batch's loss, not a held-out
+loss.

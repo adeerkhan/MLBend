@@ -145,13 +145,30 @@ def main():
               f"{'pinned' if sha_ok else 'NOT the pinned export'}")
         print(f"  per-image std {np.round(images.reshape(IMAGES, -1).std(1), 3).tolist()}")
         flat = images.reshape(IMAGES, -1)
+        allx = x.reshape(-1, EDGE * EDGE)
         if holdout:
-            # the last holdout images were never trained on: legibility against
-            # them measures the model, not its memory of the batch
-            x = x.reshape(-1, EDGE * EDGE)[-holdout:]
-            print(f"held out: {holdout} images (the last {holdout} of the file), "
-                  f"trained on the rest")
-        train = x.reshape(-1, EDGE * EDGE) if not holdout else x
+            # the last holdout images were never trained on: scoring against them
+            # measures the model, scoring against the trained part measures its
+            # memory, and the gap between the two is the honest number
+            print(f"held out: the last {holdout} images; trained on the first {len(allx) - holdout}")
+            lt = legibility(flat, allx[:len(allx) - holdout])
+            lh = legibility(flat, allx[len(allx) - holdout:])
+            print(f"legibility: trained {lt.mean():.3f} (min {lt.min():.3f})  "
+                  f"held out {lh.mean():.3f} (min {lh.min():.3f})  gap {lt.mean() - lh.mean():+.3f}")
+            rng = np.random.default_rng(0)
+            base = legibility(rng.normal(size=(IMAGES, EDGE * EDGE)).astype(np.float32),
+                              allx[len(allx) - holdout:])
+            print(f"  random baseline on the held-out set {base.mean():.3f}")
+            out = "results/flowers/samples.png"
+            for i, a in enumerate(sys.argv):
+                if a == "--png" and i + 1 < len(sys.argv):
+                    out = sys.argv[i + 1]
+            os.makedirs(os.path.dirname(os.path.join(ROOT, out)) or ".", exist_ok=True)
+            px = np.clip((images + 1.0) * 127.5, 0, 255).astype(np.uint8)
+            png(os.path.join(ROOT, out), grid(px))
+            print(f"wrote {out}")
+            return
+        train = allx
         leg = legibility(flat, train)
         rng = np.random.default_rng(0)
         base = legibility(rng.normal(size=(IMAGES, EDGE * EDGE)).astype(np.float32), train)
