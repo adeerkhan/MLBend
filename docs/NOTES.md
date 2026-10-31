@@ -1513,3 +1513,50 @@ floor       noise vs the training set 0.046
 Against the 512-image model (73% of the same ceiling), the corpus moves unseen
 flowers up 14 points and costs 0.046 of memorisation. The corpus was a
 constraint; the remaining 13% is not answered by more of the same data.
+
+### The proof shape the checker accepts (2026-10-31)
+
+A law whose return type calls a recursive function does not reduce its branch
+goal when the recursion is made inside a two-list match:
+
+```
+law accounting:
+  {Nat.add(right(ys, ps), wrong(ys, ps)) == walked(ys, ps) : Nat}
+```
+
+`case Con{y, yt} Con{p, pt}:` leaves the goal at `right(y <> yt, ps)`, while the
+recursive call returns the statement over `yt, pt`; the checker will not rewrite
+one into the other, and six other shapes (a record threaded through the walk, an
+accumulator induction, `+` binders, a `let` for the Bool) each failed at a
+different point.
+
+The shape that works is `tensor-array`'s, at `main.bend:1943-1980` in the
+installed package: the helper (`ASet.node_t`) is defined **before** the recursion
+(`ASet.facts`), takes the subtree's fact as a **parameter**, and states its
+return type over the **constructor** (`ASet.Facts(T, ANode{xs, ys}, ...)`), so
+the branch body is a call whose type already is the goal. Applied here:
+
+```
+def split_pair(... , hf: {Nat.add(right(yt, pt), wrong(yt, pt)) == walked(yt, pt)}) ->
+  {Nat.add(right(Con{y, yt}, Con{p, pt}), wrong(...)) == walked(...)}
+
+def split_ok(+ys, +ps) -> {Nat.add(right(ys, ps), wrong(ys, ps)) == walked(ys, ps)}:
+  match ys ps:
+    case Con{y, yt} Con{p, pt}:
+      split_pair(y, p, yt, pt, Nat.is_eq(y, p), split_ok(yt, pt))
+    case Nil{} _:
+      {==}
+    case Con{y, yt} Nil{}:
+      {==}
+```
+
+The `_ _` base case does not refine `ps`, so the two lists need their three
+cases written out. The same template carries `law rows_labels` in
+`mlbend-datasets`: `rows_break` is defined before `rows_ok`, the accumulator's
+invariant arrives as `h`, and `rows_step` is a closed Nat lemma over
+`length_append`.
+
+`law rows_labels` is type-checked but not kernel-certified: `mlbend-datasets`
+holds the HuggingFace socket bindings, and the verdict refuses a book with
+foreign code (314 definitions listed, before and after the law). It is the
+trust base, not the proof, and `datasets/README.md` says so.

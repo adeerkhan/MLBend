@@ -93,6 +93,100 @@ def count_right.go(ys: List<&2, Nat>, ps: List<&2, Nat>, n: Nat) -> Nat:
 def count_right(ys: List<&2, Nat>, ps: List<&2, Nat>) -> Nat:
   count_right.go(ys, ps, 0n)
 
+# The accounting walks
+# --------------------
+#
+# The samples predicted right, the samples predicted wrong, and the pairs
+# walked: three plain recursions over the two lists. Each stops on whichever
+# list ends first, so the law needs no length hypothesis; count_length pins the
+# walked count to the list's length when the two sequences are the same length,
+# which is the case the metrics check before they count.
+
+# the number of samples predicted wrong, of one label comparison
+def diff_of(s: Bool) -> Nat:
+  match s:
+    case True{}:
+      0n
+    case False{}:
+      1n
+
+def diff(a: Nat, b: Nat) -> Nat:
+  diff_of(Nat.is_eq(a, b))
+
+# the number of samples predicted right
+def right(ys: List<&2, Nat>, ps: List<&2, Nat>) -> Nat:
+  match ys ps:
+    case Con{y, yt} Con{p, pt}:
+      Nat.add(same(y, p), right(yt, pt))
+    case _ _:
+      0n
+
+# the number of samples predicted wrong
+def wrong(ys: List<&2, Nat>, ps: List<&2, Nat>) -> Nat:
+  match ys ps:
+    case Con{y, yt} Con{p, pt}:
+      Nat.add(diff(y, p), wrong(yt, pt))
+    case _ _:
+      0n
+
+# the number of pairs walked
+def walked(ys: List<&2, Nat>, ps: List<&2, Nat>) -> Nat:
+  match ys ps:
+    case Con{y, yt} Con{p, pt}:
+      Nat.add(1n, walked(yt, pt))
+    case _ _:
+      0n
+
+# (a + b) + (c + d) == (a + c) + (b + d)
+def add4(+a: Nat, +b: Nat, +c: Nat, +d: Nat) -> {Nat.add(Nat.add(a, b), Nat.add(c, d)) == Nat.add(Nat.add(a, c), Nat.add(b, d)) : Nat}:
+  +u1 = Equal.sym(Nat, Nat.add(a, Nat.add(b, Nat.add(c, d))), Nat.add(Nat.add(a, b), Nat.add(c, d)), NL.add_assoc(a, b, Nat.add(c, d)))
+  +u2 = Equal.cong(Nat, Nat, z => Nat.add(a, z), Nat.add(b, Nat.add(c, d)), Nat.add(Nat.add(b, c), d), NL.add_assoc(b, c, d))
+  +u3 = Equal.cong(Nat, Nat, z => Nat.add(a, Nat.add(z, d)), Nat.add(b, c), Nat.add(c, b), NL.add_comm(b, c))
+  +u4 = Equal.cong(Nat, Nat, z => Nat.add(a, z), Nat.add(Nat.add(c, b), d), Nat.add(c, Nat.add(b, d)), Equal.sym(Nat, Nat.add(c, Nat.add(b, d)), Nat.add(Nat.add(c, b), d), NL.add_assoc(c, b, d)))
+  Equal.trans(Nat, Nat.add(Nat.add(a, b), Nat.add(c, d)), Nat.add(a, Nat.add(b, Nat.add(c, d))), Nat.add(Nat.add(a, c), Nat.add(b, d)), u1,
+    Equal.trans(Nat, Nat.add(a, Nat.add(b, Nat.add(c, d))), Nat.add(a, Nat.add(Nat.add(b, c), d)), Nat.add(Nat.add(a, c), Nat.add(b, d)), u2,
+      Equal.trans(Nat, Nat.add(a, Nat.add(Nat.add(b, c), d)), Nat.add(a, Nat.add(Nat.add(c, b), d)), Nat.add(Nat.add(a, c), Nat.add(b, d)), u3,
+        Equal.trans(Nat, Nat.add(a, Nat.add(Nat.add(c, b), d)), Nat.add(a, Nat.add(c, Nat.add(b, d))), Nat.add(Nat.add(a, c), Nat.add(b, d)), u4,
+          NL.add_assoc(a, c, Nat.add(b, d))))))
+
+# one pair: s + d == 1, so (s + cr) + (d + cm) == 1 + cw when cr + cm == cw
+def split_step(+s: Nat, +d: Nat, +cr: Nat, +cm: Nat, +cw: Nat, hs: {Nat.add(s, d) == 1n : Nat}, h: {Nat.add(cr, cm) == cw : Nat}) -> {Nat.add(Nat.add(s, cr), Nat.add(d, cm)) == Nat.add(1n, cw) : Nat}:
+  +u1 = add4(s, cr, d, cm)
+  +u2 = Equal.cong(Nat, Nat, z => Nat.add(z, Nat.add(cr, cm)), Nat.add(s, d), 1n, hs)
+  +u3 = Equal.cong(Nat, Nat, z => Nat.add(1n, z), Nat.add(cr, cm), cw, h)
+  Equal.trans(Nat, Nat.add(Nat.add(s, cr), Nat.add(d, cm)), Nat.add(Nat.add(s, d), Nat.add(cr, cm)), Nat.add(1n, cw), u1,
+    Equal.trans(Nat, Nat.add(Nat.add(s, d), Nat.add(cr, cm)), Nat.add(1n, Nat.add(cr, cm)), Nat.add(1n, cw), u2, u3))
+
+# The parent step, stated over the two constructors so the branch goal reduces
+# the way ASet.node_t's does: the subtree's fact arrives as an argument, never
+# as the result of a recursive call made inside the match.
+def split_pair(+y: Nat, +p: Nat, +yt: List<&2, Nat>, +pt: List<&2, Nat>, b: Bool, hf: {Nat.add(right(yt, pt), wrong(yt, pt)) == walked(yt, pt) : Nat}) -> {Nat.add(Nat.add(same_of(b), right(yt, pt)), Nat.add(diff_of(b), wrong(yt, pt))) == Nat.add(1n, walked(yt, pt)) : Nat}:
+  match b:
+    case True{}:
+      split_step(1n, 0n, right(yt, pt), wrong(yt, pt), walked(yt, pt), NL.add_zero(1n), hf)
+    case False{}:
+      split_step(0n, 1n, right(yt, pt), wrong(yt, pt), walked(yt, pt),
+        Equal.trans(Nat, Nat.add(0n, 1n), Nat.add(1n, 0n), 1n, NL.add_comm(0n, 1n), NL.add_zero(1n)), hf)
+
+def split_ok(+ys: List<&2, Nat>, +ps: List<&2, Nat>) -> {Nat.add(right(ys, ps), wrong(ys, ps)) == walked(ys, ps) : Nat}:
+  match ys ps:
+    case Con{y, yt} Con{p, pt}:
+      split_pair(y, p, yt, pt, Nat.is_eq(y, p), split_ok(yt, pt))
+    case Nil{} _:
+      {==}
+    case Con{y, yt} Nil{}:
+      {==}
+
+# LAW 2 (accounting): the samples predicted right and the samples predicted
+# wrong add up to the samples walked.
+law accounting:
+  for ys: List<&2, Nat>
+  for ps: List<&2, Nat>
+  {Nat.add(right(ys, ps), wrong(ys, ps)) == walked(ys, ps) : Nat}
+
+def accounting(ys, ps):
+  split_ok(ys, ps)
+
 # LAW 1 (count_length): the number of samples is the length of the list
 # of labels. (The count is this package's own walk, so the law pins it
 # to the length Base counts.)
@@ -323,3 +417,275 @@ def f1.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +
 def f1(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
   f1.go(pairs(&2, Nat, ys, ps), ys, ps, k)
 
+# the total of a sum
+def sum_total(s: Sum) -> F32:
+  match s:
+    case Sum{n, s0}:
+      s0
+
+# the sum of the squared residuals, as a number
+def ss_res(ys: List<&2, F32>, ps: List<&2, F32>) -> F32:
+  sum_total(sq_sum.go(ys, ps, Sum{0n, 0.0}))
+
+# ---- r2 ----
+def ysum.go(ys: List<&2, F32>, acc: F32) -> F32:
+  match ys:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      ysum.go(t, (acc + h : F32))
+
+def ysum(ys: List<&2, F32>) -> F32:
+  ysum.go(ys, 0.0)
+
+def dev.go(ys: List<&2, F32>, +m: F32, acc: F32) -> F32:
+  match ys:
+    case Nil{}:
+      acc
+    case Con{h, t}:
+      +d = (h - m : F32)
+      dev.go(t, m, (acc + d * d : F32))
+
+def dev(ys: List<&2, F32>, m: F32) -> F32:
+  dev.go(ys, m, 0.0)
+
+def r2_of(z: Bool, +sst: F32, +sse: F32) -> F32:
+  match z:
+    case True{}:
+      Bool.pick(F32, F32.is_eq(sse, 0.0), 1.0, 0.0)
+    case False{}:
+      (1.0 - (sse / sst : F32) : F32)
+
+def r2.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, F32>, +ps: List<&2, F32>) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      +m = (ysum(ys) / F32.from_nat(n) : F32)
+      +sst = dev(ys, m)
+      Done{r2_of(F32.is_eq(sst, 0.0), sst, ss_res(ys, ps))}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def r2(+ys: List<&2, F32>, +ps: List<&2, F32>) -> Result<&1, &1, Bad, F32>:
+  r2.go(pairs(&2, F32, ys, ps), ys, ps)
+
+# ---- log loss ----
+def prob_at(xs: List<&2, F32>, +i: Nat) -> F32:
+  match xs:
+    case Nil{}:
+      0.0
+    case Con{h, t}:
+      match i:
+        case 0n:
+          h
+        case 1n+r:
+          prob_at(t, r)
+
+def log_sum.go(ys: List<&2, Nat>, ps: List<&2, List<&2, F32>>, acc: F32) -> F32:
+  match ys ps:
+    case Con{y, yt} Con{p, pt}:
+      +q = F32.max(prob_at(p, y), 0.0000001)
+      log_sum.go(yt, pt, (acc - F32.log(q) : F32))
+    case _ _:
+      acc
+
+def log_loss.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, List<&2, F32>>) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      Done{(log_sum.go(ys, ps, 0.0) / F32.from_nat(n) : F32)}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def log_loss(+ys: List<&2, Nat>, +ps: List<&2, List<&2, F32>>) -> Result<&1, &1, Bad, F32>:
+  log_loss.go(not_empty(same_len(List.length(&2, Nat, ys), List.length(&2, List<&2, F32>, ps))), ys, ps)
+
+# ---- the confusion matrix ----
+def cell.go(ys: List<&2, Nat>, ps: List<&2, Nat>, +i: Nat, +j: Nat, acc: Nat) -> Nat:
+  match ys ps:
+    case Con{y, yt} Con{p, pt}:
+      cell.go(yt, pt, i, j, Nat.add(acc, Nat.mul(same(y, i), same(p, j))))
+    case _ _:
+      acc
+
+def cell(ys: List<&2, Nat>, ps: List<&2, Nat>, i: Nat, j: Nat) -> Nat:
+  cell.go(ys, ps, i, j, 0n)
+
+def row_at(+n: Nat, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat, +i: Nat) -> List<&2, Nat>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+r:
+      Con{cell(ys, ps, i, Nat.sub(k, n)), row_at(r, ys, ps, k, i)}
+
+def row(+ys: List<&2, Nat>, +ps: List<&2, Nat>, i: Nat, +k: Nat) -> List<&2, Nat>:
+  row_at(k, ys, ps, k, i)
+
+def rows_at(+n: Nat, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> List<&2, List<&2, Nat>>:
+  match n:
+    case 0n:
+      Nil{}
+    case 1n+r:
+      Con{row(ys, ps, Nat.sub(k, n), k), rows_at(r, ys, ps, k)}
+
+def confusion.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, List<&2, List<&2, Nat>>>:
+  match r:
+    case Done{+n}:
+      Done{rows_at(k, ys, ps, k)}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def confusion(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, List<&2, List<&2, Nat>>>:
+  confusion.go(pairs(&2, Nat, ys, ps), ys, ps, k)
+
+# ---- the averages ----
+type Scores is Data:
+  Scores{p: F32, r: F32, f: F32}
+
+def p_of(s: Scores) -> F32:
+  match s:
+    case Scores{p, r, f}:
+      p
+
+def r_of(s: Scores) -> F32:
+  match s:
+    case Scores{p, r, f}:
+      r
+
+def f_of(s: Scores) -> F32:
+  match s:
+    case Scores{p, r, f}:
+      f
+
+def val_of(r: Result<&1, &1, Bad, F32>) -> F32:
+  match r:
+    case Done{v}:
+      v
+    case Fail{e}:
+      0.0
+
+def div_or(z: Bool, +a: F32, +b: F32) -> F32:
+  match z:
+    case True{}:
+      0.0
+    case False{}:
+      (a / b : F32)
+
+def sums_go(+left: Nat, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat, +total: Nat, +w: Bool, +acc: Scores) -> Scores:
+  match left:
+    case 0n:
+      acc
+    case 1n+r:
+      +i = Nat.sub(k, left)
+      +pv = val_of(precision.go(Done{total}, ys, ps, i))
+      +rv = val_of(recall.go(Done{total}, ys, ps, i))
+      +fv = val_of(f1.go(Done{total}, ys, ps, i))
+      +wt = Bool.pick(F32, w, F32.from_nat(count_true(ys, i)), 1.0)
+      sums_go(r, ys, ps, k, total, w, Scores{(p_of(acc) + pv * wt : F32), (r_of(acc) + rv * wt : F32), (f_of(acc) + fv * wt : F32)})
+
+def sums(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat, +total: Nat, w: Bool) -> Scores:
+  sums_go(k, ys, ps, k, total, w, Scores{0.0, 0.0, 0.0})
+
+def macro_precision.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      Done{div_or(Nat.is_eq(k, 0n), p_of(sums(ys, ps, k, n, False{})), F32.from_nat(k))}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def macro_precision(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  macro_precision.go(pairs(&2, Nat, ys, ps), ys, ps, k)
+
+def weighted_precision.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      Done{(p_of(sums(ys, ps, k, n, True{})) / F32.from_nat(n) : F32)}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def weighted_precision(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  weighted_precision.go(pairs(&2, Nat, ys, ps), ys, ps, k)
+
+def macro_recall.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      Done{div_or(Nat.is_eq(k, 0n), r_of(sums(ys, ps, k, n, False{})), F32.from_nat(k))}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def macro_recall(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  macro_recall.go(pairs(&2, Nat, ys, ps), ys, ps, k)
+
+def macro_f1.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      Done{div_or(Nat.is_eq(k, 0n), f_of(sums(ys, ps, k, n, False{})), F32.from_nat(k))}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def macro_f1(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  macro_f1.go(pairs(&2, Nat, ys, ps), ys, ps, k)
+
+def weighted_recall.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      Done{(r_of(sums(ys, ps, k, n, True{})) / F32.from_nat(n) : F32)}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def weighted_recall(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  weighted_recall.go(pairs(&2, Nat, ys, ps), ys, ps, k)
+
+def weighted_f1.go(r: Result<&1, &1, Bad, Nat>, +ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  match r:
+    case Done{+n}:
+      Done{(f_of(sums(ys, ps, k, n, True{})) / F32.from_nat(n) : F32)}
+    case Fail{Mismatch{expected, got}}:
+      Fail{Mismatch{expected, got}}
+    case Fail{Empty{}}:
+      Fail{Empty{}}
+
+def weighted_f1(+ys: List<&2, Nat>, +ps: List<&2, Nat>, +k: Nat) -> Result<&1, &1, Bad, F32>:
+  weighted_f1.go(pairs(&2, Nat, ys, ps), ys, ps, k)
+
+def show(r: Result<&1, &1, Bad, F32>) -> String:
+  match r:
+    case Done{v}:
+      F32.show(v)
+    case Fail{e}:
+      "fail"
+
+def row_show(rs: List<&2, Nat>) -> String:
+  match rs:
+    case Nil{}:
+      ""
+    case Con{h, t}:
+      String.append(U32.show(U32.from_nat(h)), String.append(" ", row_show(t)))
+
+def mat_show(rs: List<&2, List<&2, Nat>>) -> String:
+  match rs:
+    case Nil{}:
+      ""
+    case Con{h, t}:
+      String.append(row_show(h), mat_show(t))
+
+def cm(r: Result<&1, &1, Bad, List<&2, List<&2, Nat>>>) -> String:
+  match r:
+    case Done{v}:
+      mat_show(v)
+    case Fail{e}:
+      "fail"

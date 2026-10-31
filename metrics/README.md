@@ -41,10 +41,21 @@ def main():
 | `precision(ys, ps, k)` | of the samples predicted `k`, the fraction really `k` | `precision_score` |
 | `recall(ys, ps, k)` | of the samples really `k`, the fraction predicted `k` | `recall_score` |
 | `f1(ys, ps, k)` | the harmonic mean of the precision and the recall | `f1_score` |
+| `r2(ys, ps)` | the coefficient of determination | `r2_score` |
+| `log_loss(ys, ps)` | the negative log likelihood of the true classes | `log_loss` |
+| `confusion(ys, ps, k)` | the `k` by `k` counts of true against predicted labels | `confusion_matrix` |
+| `macro_precision(ys, ps, k)` | the precision averaged over the `k` classes, each weighing the same | `precision_score(average="macro")` |
+| `macro_recall(ys, ps, k)` | the recall averaged over the `k` classes, each weighing the same | `recall_score(average="macro")` |
+| `macro_f1(ys, ps, k)` | the f1 averaged over the `k` classes, each weighing the same | `f1_score(average="macro")` |
+| `weighted_precision(ys, ps, k)` | the precision averaged over the `k` classes, each weighing by its count | `precision_score(average="weighted")` |
+| `weighted_recall(ys, ps, k)` | the recall averaged over the `k` classes, each weighing by its count | `recall_score(average="weighted")` |
+| `weighted_f1(ys, ps, k)` | the f1 averaged over the `k` classes, each weighing by its count | `f1_score(average="weighted")` |
 
 `ys` and `ps` are the targets and the predictions: `List<&2, F32>` for a
 regression, `List<&2, Nat>` (the labels) for a classification. The two
-sequences must have the same length.
+sequences must have the same length. `log_loss` is the exception: its
+`ps` is `List<&2, List<&2, F32>>`, one row of class probabilities per
+sample, and it reads the probability of the true class.
 
 ## The counts
 
@@ -71,11 +82,21 @@ A metric never crashes: it answers a `Result`.
 A metric whose denominator is zero (the precision of a class nobody predicted)
 answers `0.0`, the convention scikit-learn uses with `zero_division=0`.
 
+`r2` has a zero denominator of its own: when every target is the same number,
+the variance the coefficient divides by is zero. The answer is then `1.0` if
+every prediction is that same number and `0.0` otherwise, which is what
+scikit-learn's `force_finite` answers. The macro averages of zero classes
+answer `0.0` as well.
+
+`log_loss` clips a probability at `1e-7` before taking its logarithm, so a
+probability of zero costs a finite number instead of an infinity.
+
 ## The laws
 
 | Law | What it says |
 |---|---|
 | `count_length` | the number of samples is the length of the list of labels |
+| `accounting` | the samples predicted right and the samples predicted wrong add up to the samples walked |
 
 ## What is proved and what is tested
 
