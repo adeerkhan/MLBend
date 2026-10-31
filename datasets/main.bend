@@ -27,6 +27,7 @@
 # the label is the column before them.
 
 import Base
+import bend-ml-nat-lemmas@0.1.1.0/main.bend as NL
 import mlbend-huggingface@0.1.1.0/main.bend as Hf
 
 # A dataset: the rows of the features and the labels beside them.
@@ -176,6 +177,61 @@ def rows_go(lines: List<&2, String>, +drop: Nat, +acc: Rows) -> Rows:
 # The rows of a file.
 def rows_of(lines: List<&2, String>, drop: Nat) -> Rows:
   rows_go(lines, drop, Rows{Nil{}, Nil{}})
+
+# The parsed rows and the parsed labels
+# -------------------------------------
+#
+# Every line of the file makes one Row, and a Row holds one label, so the
+# rows and the labels the parser hands back have the same length. The claim
+# is stated over the parsed rows (issue #6, option 1); that the parse reads
+# every line of the file is a claim about the byte stream, and that belongs
+# to the CSV reader, not here.
+
+def n_rows(rs: Rows) -> Nat:
+  match rs:
+    case Rows{rows, labels}:
+      List.length(&2, Row, rows)
+
+def n_labels(rs: Rows) -> Nat:
+  match rs:
+    case Rows{rows, labels}:
+      List.length(&2, F32, labels)
+
+# one row in: both sides gain one, so the invariant holds
+def rows_step(+rows: List<&2, Row>, +labels: List<&2, F32>, +r: Row, +label: F32, h: {List.length(&2, Row, rows) == List.length(&2, F32, labels) : Nat}) -> {List.length(&2, Row, List.append(&2, Row, rows, r <> Nil{})) == List.length(&2, F32, List.append(&2, F32, labels, label <> Nil{})) : Nat}:
+  +u = Equal.cong(Nat, Nat, z => Nat.add(List.length(&2, Row, rows), z), Nat.add(1n, 0n), 1n, NL.add_zero(1n))
+  +a = Equal.trans(Nat, List.length(&2, Row, List.append(&2, Row, rows, r <> Nil{})), Nat.add(List.length(&2, Row, rows), Nat.add(1n, 0n)), Nat.add(List.length(&2, Row, rows), 1n), NL.length_append(Row, rows, r <> Nil{}), u)
+  +v = Equal.cong(Nat, Nat, z => Nat.add(List.length(&2, F32, labels), z), Nat.add(1n, 0n), 1n, NL.add_zero(1n))
+  +b = Equal.trans(Nat, List.length(&2, F32, List.append(&2, F32, labels, label <> Nil{})), Nat.add(List.length(&2, F32, labels), Nat.add(1n, 0n)), Nat.add(List.length(&2, F32, labels), 1n), NL.length_append(F32, labels, label <> Nil{}), v)
+  +m = Equal.cong(Nat, Nat, z => Nat.add(z, 1n), List.length(&2, Row, rows), List.length(&2, F32, labels), h)
+  Equal.trans(Nat, List.length(&2, Row, List.append(&2, Row, rows, r <> Nil{})), Nat.add(List.length(&2, Row, rows), 1n), List.length(&2, F32, List.append(&2, F32, labels, label <> Nil{})), a,
+    Equal.trans(Nat, Nat.add(List.length(&2, Row, rows), 1n), Nat.add(List.length(&2, F32, labels), 1n), List.length(&2, F32, List.append(&2, F32, labels, label <> Nil{})), m,
+      Equal.sym(Nat, List.length(&2, F32, List.append(&2, F32, labels, label <> Nil{})), Nat.add(List.length(&2, F32, labels), 1n), b)))
+
+# the pair the step needs, in the shape add_row_of builds it
+def rows_break(+acc: Rows, +r: Row, h: {n_rows(acc) == n_labels(acc) : Nat}) -> {n_rows(add_row_of(acc, r)) == n_labels(add_row_of(acc, r)) : Nat}:
+  match acc:
+    case Rows{rows, labels}:
+      match r:
+        case Row{features, +label}:
+          rows_step(rows, labels, r, label, h)
+
+# the invariant is carried through the parse, one line at a time
+def rows_ok(+lines: List<&2, String>, +drop: Nat, +acc: Rows, h: {n_rows(acc) == n_labels(acc) : Nat}) -> {n_rows(rows_go(lines, drop, acc)) == n_labels(rows_go(lines, drop, acc)) : Nat}:
+  match lines:
+    case Nil{}:
+      h
+    case Con{+x, t}:
+      rows_ok(t, drop, add_row_of(acc, row_of(x, drop)), rows_break(acc, row_of(x, drop), h))
+
+# LAW (rows_labels): the parsed rows and the parsed labels have the same length
+law rows_labels:
+  for lines: List<&2, String>
+  for drop: Nat
+  {n_rows(rows_of(lines, drop)) == n_labels(rows_of(lines, drop)) : Nat}
+
+def rows_labels(lines, drop):
+  rows_ok(lines, drop, Rows{Nil{}, Nil{}}, {==})
 
 # The dataset a file of rows makes.
 def build(text: String, drop: Nat) -> Table:

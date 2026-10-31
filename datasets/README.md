@@ -28,6 +28,22 @@ The labels are numbers. A classification label is the index of the
 class, a regression label is the value, and the model decides which it
 is.
 
+## The law
+
+`law rows_labels` states that the parsed rows and the parsed labels have
+the same length: every line of the file makes one `Row`, and a `Row`
+holds one label, so the two lists the parser hands back cannot
+disagree. It is stated over the parsed rows; that the parse reads every
+line of the file is a claim about the byte stream, and that belongs to
+the CSV reader.
+
+The package holds the HuggingFace socket bindings, so `bend
+datasets/main.bend` answers with the list of definitions that rest on
+foreign code rather than `ALL PROOFS CHECK`: the verdict refuses to
+certify a book that holds any. That refusal predates the law and is the
+trust base, not a gap in the proof. `reference/test_datasets.py` still
+checks the row and feature counts against scikit-learn's copies.
+
 Four datasets come from the `mstz` mirrors on HuggingFace, which hold
 the UCI files as they are. Each loader names a revision, not `main`, so
 the bytes cannot move under a run:
